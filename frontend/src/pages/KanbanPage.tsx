@@ -42,16 +42,22 @@ export default function KanbanPage() {
   }
 
   function toggleSubtask(taskId: string, subtaskId: string): void {
-    const toggleFn = (s: Subtask) => s.id === subtaskId ? { ...s, completed: !s.completed } : s
+    const sortedAfterToggle = (subtasks: Subtask[]): Subtask[] => {
+      const toggled = subtasks.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s)
+      const others = toggled.filter(s => s.id !== subtaskId)
+      const insertAt = others.filter(s => !s.completed).length
+      const pivot = toggled.find(s => s.id === subtaskId)!
+      return [...others.slice(0, insertAt), pivot, ...others.slice(insertAt)]
+    }
     setColumnTasks((prev) =>
       prev.map((col) =>
         col.map((task) =>
-          task.id === taskId ? { ...task, subtasks: task.subtasks.map(toggleFn) } : task
+          task.id === taskId ? { ...task, subtasks: sortedAfterToggle(task.subtasks) } : task
         )
       )
     )
     if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: selectedTask.task.subtasks.map(toggleFn) } })
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: sortedAfterToggle(selectedTask.task.subtasks) } })
     }
   }
 
