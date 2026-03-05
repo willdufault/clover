@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
-import type { Task } from "../types/task"
+import type { Task, TaskInfo } from "../types/task"
 import KanbanColumn from "../components/KanbanColumn"
+import TaskModal from "../components/TaskModal"
 
 export default function KanbanPage() {
   const [columnTasks, setColumnTasks] = useState<Task[][]>(KANBAN_COLUMNS.map(() => []))
   const [newTaskTitle, setNewTaskTitle] = useState<string>("")
+  const [selectedTask, setSelectedTask] = useState<TaskInfo | null>(null)
 
   function addTask(): void {
     const trimmed = newTaskTitle.trim()
@@ -20,6 +22,7 @@ export default function KanbanPage() {
 
   function moveTask(taskId: string, fromColIndex: number, direction: -1 | 1): void {
     const toColIndex = fromColIndex + direction
+    if(toColIndex < 0 || toColIndex >= KANBAN_COLUMNS.length) return
     setColumnTasks(prev => {
       const next = prev.map(col => [...col])
       const task = next[fromColIndex].find(t => t.id === taskId)!
@@ -49,8 +52,15 @@ export default function KanbanPage() {
                 isLast={colIndex === KANBAN_COLUMNS.length - 1}
                 onMoveLeft={(taskId) => moveTask(taskId, colIndex, -1)}
                 onMoveRight={(taskId) => moveTask(taskId, colIndex, 1)}
+                onTaskClick={(task) => setSelectedTask({ task, stage: col })}
               />
             ))}
+            {selectedTask && (
+              <TaskModal
+                taskInfo={selectedTask}
+                onClose={() => setSelectedTask(null)}
+              />
+            )}
           </div>
           <div className="border-t bg-white p-3 flex gap-2">
             <input
