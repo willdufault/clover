@@ -21,7 +21,7 @@ export default function KanbanColumn({ title, tasks, isFirst, isLast, onMoveLeft
             className="bg-gray-50 border rounded p-2 flex flex-col gap-1 cursor-pointer hover:bg-gray-100"
             onClick={() => onTaskClick(task)}
           >
-            <span>{task.title}</span>
+            <span className="break-words">{task.title}</span>
             {task.subtasks.length > 0 && (
               <span className="text-xs text-gray-400">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks

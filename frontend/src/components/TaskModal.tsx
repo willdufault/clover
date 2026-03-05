@@ -34,7 +34,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
         >
           ×
         </button>
-        <h2 className="text-lg font-semibold mb-1">{task.title}</h2>
+        <h2 className="text-lg font-semibold mb-1 break-words">{task.title}</h2>
         <div className="text-sm text-gray-500 mb-4">
           Stage: <span className="font-medium text-gray-700">{stage}</span>
         </div>
@@ -50,7 +50,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
                 onChange={() => onToggleSubtask(subtask.id)}
                 className="shrink-0"
               />
-              <span className={subtask.completed ? "line-through text-gray-400 text-sm" : "text-sm"}>
+              <span className={subtask.completed ? "line-through text-gray-400 text-sm min-w-0 break-words" : "text-sm min-w-0 break-words"}>
                 {subtask.title}
               </span>
             </label>
