@@ -25,7 +25,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6 relative"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6 relative flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -38,7 +38,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
         <div className="text-sm text-gray-500 mb-4">
           Stage: <span className="font-medium text-gray-700">{stage}</span>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
           {task.subtasks.map(subtask => (
             <label
               key={subtask.id}
@@ -55,22 +55,22 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
               </span>
             </label>
           ))}
-          <div className="flex gap-2 mt-1">
-            <input
-              type="text"
-              value={newSubtaskTitle}
-              onChange={e => setNewSubtaskTitle(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAddSubtask()}
-              className="flex-1 border rounded px-2 py-1 text-sm"
-              placeholder="New subtask..."
-            />
-            <button
-              onClick={handleAddSubtask}
-              className="px-3 py-1 text-sm bg-gray-800 text-white rounded"
-            >
-              Add
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-2 mt-3">
+          <input
+            type="text"
+            value={newSubtaskTitle}
+            onChange={e => setNewSubtaskTitle(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleAddSubtask()}
+            className="flex-1 border rounded px-2 py-1 text-sm"
+            placeholder="New subtask..."
+          />
+          <button
+            onClick={handleAddSubtask}
+            className="px-3 py-1 text-sm bg-gray-800 text-white rounded"
+          >
+            Add
+          </button>
         </div>
       </div>
     </div>
