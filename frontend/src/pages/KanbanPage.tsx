@@ -1,0 +1,75 @@
+import { useState } from "react"
+import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
+import type { Task } from "../types/task"
+import KanbanColumn from "../components/KanbanColumn"
+
+export default function KanbanPage() {
+  const [columnTasks, setColumnTasks] = useState<Task[][]>(KANBAN_COLUMNS.map(() => []))
+  const [newTaskTitle, setNewTaskTitle] = useState<string>("")
+
+  function addTask(): void {
+    const trimmed = newTaskTitle.trim()
+    if (!trimmed) return
+    setColumnTasks(prev => {
+      const next = [...prev]
+      next[0] = [{ id: crypto.randomUUID(), title: trimmed }, ...next[0]]
+      return next
+    })
+    setNewTaskTitle("")
+  }
+
+  function moveTask(taskId: string, fromColIndex: number, direction: -1 | 1): void {
+    const toColIndex = fromColIndex + direction
+    setColumnTasks(prev => {
+      const next = prev.map(col => [...col])
+      const task = next[fromColIndex].find(t => t.id === taskId)!
+      next[fromColIndex] = next[fromColIndex].filter(t => t.id !== taskId)
+      next[toColIndex] = [...next[toColIndex], task]
+      return next
+    })
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-100">
+      <div className="h-12 bg-white border-b flex items-center px-4">
+        <span className="font-semibold">clover</span>
+      </div>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-48 bg-white border-r p-4">
+          <span>sidebar</span>
+        </div>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 gap-4 p-4 overflow-x-auto">
+            {KANBAN_COLUMNS.map((col, colIndex) => (
+              <KanbanColumn
+                key={col}
+                title={col}
+                tasks={columnTasks[colIndex]}
+                isFirst={colIndex === 0}
+                isLast={colIndex === KANBAN_COLUMNS.length - 1}
+                onMoveLeft={(taskId) => moveTask(taskId, colIndex, -1)}
+                onMoveRight={(taskId) => moveTask(taskId, colIndex, 1)}
+              />
+            ))}
+          </div>
+          <div className="border-t bg-white p-3 flex gap-2">
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={e => setNewTaskTitle(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addTask()}
+              className="flex-1 border rounded px-2 py-1 text-sm"
+              placeholder="New task..."
+            />
+            <button
+              onClick={addTask}
+              className="px-3 py-1 text-sm bg-gray-800 text-white rounded"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
