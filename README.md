@@ -42,7 +42,3 @@ clover/
 ## Development
 
 > Setup instructions coming as the project is built out.
-
-## License
-
-MIT
