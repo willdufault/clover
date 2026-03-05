@@ -22,6 +22,11 @@ export default function KanbanColumn({ title, tasks, isFirst, isLast, onMoveLeft
             onClick={() => onTaskClick(task)}
           >
             <span>{task.title}</span>
+            {task.subtasks.length > 0 && (
+              <span className="text-xs text-gray-400">
+                {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks
+              </span>
+            )}
             <div className="flex gap-1">
               <button
                 onClick={e => { e.stopPropagation(); onMoveLeft(task.id) }}

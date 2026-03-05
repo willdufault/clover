@@ -1,32 +1,71 @@
 import { useState } from "react"
 import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
-import type { Task, TaskInfo } from "../types/task"
+import type { Task, TaskInfo, Subtask } from "../types/task"
 import KanbanColumn from "../components/KanbanColumn"
 import TaskModal from "../components/TaskModal"
 
 export default function KanbanPage() {
-  const [columnTasks, setColumnTasks] = useState<Task[][]>(KANBAN_COLUMNS.map(() => []))
+  const [columnTasks, setColumnTasks] = useState<Task[][]>(
+    KANBAN_COLUMNS.map(() => [])
+  )
   const [newTaskTitle, setNewTaskTitle] = useState<string>("")
   const [selectedTask, setSelectedTask] = useState<TaskInfo | null>(null)
 
   function addTask(): void {
     const trimmed = newTaskTitle.trim()
     if (!trimmed) return
-    setColumnTasks(prev => {
+    setColumnTasks((prev) => {
       const next = [...prev]
-      next[0] = [{ id: crypto.randomUUID(), title: trimmed }, ...next[0]]
+      next[0] = [
+        { id: crypto.randomUUID(), title: trimmed, subtasks: [] },
+        ...next[0]
+      ]
       return next
     })
     setNewTaskTitle("")
   }
 
-  function moveTask(taskId: string, fromColIndex: number, direction: -1 | 1): void {
+  function addSubtask(taskId: string, title: string): void {
+    const newSubtask = { id: crypto.randomUUID(), title, completed: false }
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId
+            ? { ...task, subtasks: [...task.subtasks, newSubtask] }
+            : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: [...selectedTask.task.subtasks, newSubtask] } })
+    }
+  }
+
+  function toggleSubtask(taskId: string, subtaskId: string): void {
+    const toggleFn = (s: Subtask) => s.id === subtaskId ? { ...s, completed: !s.completed } : s
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId ? { ...task, subtasks: task.subtasks.map(toggleFn) } : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: selectedTask.task.subtasks.map(toggleFn) } })
+    }
+  }
+
+  function moveTask(
+    taskId: string,
+    fromColIndex: number,
+    direction: -1 | 1
+  ): void {
     const toColIndex = fromColIndex + direction
-    if(toColIndex < 0 || toColIndex >= KANBAN_COLUMNS.length) return
-    setColumnTasks(prev => {
-      const next = prev.map(col => [...col])
-      const task = next[fromColIndex].find(t => t.id === taskId)!
-      next[fromColIndex] = next[fromColIndex].filter(t => t.id !== taskId)
+    if (toColIndex < 0 || toColIndex >= KANBAN_COLUMNS.length) return
+    setColumnTasks((prev) => {
+      const next = prev.map((col) => [...col])
+      const task = next[fromColIndex].find((t) => t.id === taskId)!
+      next[fromColIndex] = next[fromColIndex].filter((t) => t.id !== taskId)
       next[toColIndex] = [...next[toColIndex], task]
       return next
     })
@@ -59,6 +98,10 @@ export default function KanbanPage() {
               <TaskModal
                 taskInfo={selectedTask}
                 onClose={() => setSelectedTask(null)}
+                onAddSubtask={(title) => addSubtask(selectedTask.task.id, title)}
+                onToggleSubtask={(subtaskId) =>
+                  toggleSubtask(selectedTask.task.id, subtaskId)
+                }
               />
             )}
           </div>
@@ -66,8 +109,8 @@ export default function KanbanPage() {
             <input
               type="text"
               value={newTaskTitle}
-              onChange={e => setNewTaskTitle(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addTask()}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTask()}
               className="flex-1 border rounded px-2 py-1 text-sm"
               placeholder="New task..."
             />
