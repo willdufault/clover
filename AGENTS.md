@@ -20,9 +20,9 @@
 **Coding:**
 - Use clear, self-explanatory variable, function, and class names
 - Replace unclear literal values, like `/033c`, with variables, constants, or enums for clarity
-- Only add comments for complex code or important context
+- Only add comments for complex code, important context, or unintuitive behavior
 - Use guard statements to avoid deep nesting
-- Prefer simple, readable code over optimal or clever solutions
+- Always prefer simple, readable code over complex code
 - Write the minimum code required to solve a problem
 - Extract repeated logic into variables, functions, or classes
 - Use intermediate variables to break up complex expressions

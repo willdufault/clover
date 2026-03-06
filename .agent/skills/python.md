@@ -5,6 +5,7 @@ description: Develop clean, maintainable Python code for scripts, services, and 
 
 **Syntax:**
 - Use absolute imports, not relative imports
+- Create helper functions instead of nesting functions
 
 **Formatting:**
 - Add a concise docstring to the top of each Python file explaining its purpose
