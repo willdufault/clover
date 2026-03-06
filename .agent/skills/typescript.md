@@ -15,3 +15,6 @@ description: Write clean, consistent TypeScript with strict typing and predictab
 **Type annotations:**
 - Add types for function parameters and return values
 - Add additional types only when necessary to satisfy static type checkers
+
+**Naming conventions**:
+- Name types and their corresponding files using PascalCase (ex: `type Thing` in `Thing.ts`)

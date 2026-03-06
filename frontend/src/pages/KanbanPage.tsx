@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
-import type { Task, TaskInfo, Subtask } from "../types/task"
+import { PRIORITIES } from "../constants/priorities"
+import type { Task, TaskInfo, Subtask } from "../types/Task"
+import type { TaskPriority } from "../types/TaskPriority"
 import KanbanColumn from "../components/KanbanColumn"
 import TaskModal from "../components/TaskModal"
 
@@ -17,7 +19,7 @@ export default function KanbanPage() {
     setColumnTasks((prev) => {
       const next = [...prev]
       next[0] = [
-        { id: crypto.randomUUID(), title: trimmed, subtasks: [] },
+        { id: crypto.randomUUID(), title: trimmed, subtasks: [], priority: PRIORITIES.medium },
         ...next[0]
       ]
       return next
@@ -58,6 +60,19 @@ export default function KanbanPage() {
     )
     if (selectedTask?.task.id === taskId) {
       setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: sortedAfterToggle(selectedTask.task.subtasks) } })
+    }
+  }
+
+  function updatePriority(taskId: string, priority: TaskPriority): void {
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId ? { ...task, priority } : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, priority } })
     }
   }
 
@@ -108,6 +123,7 @@ export default function KanbanPage() {
                 onToggleSubtask={(subtaskId) =>
                   toggleSubtask(selectedTask.task.id, subtaskId)
                 }
+                onUpdatePriority={(priority) => updatePriority(selectedTask.task.id, priority)}
               />
             )}
           </div>

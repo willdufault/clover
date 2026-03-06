@@ -1,14 +1,17 @@
 import { useState } from "react"
-import type { TaskInfo } from "../types/task"
+import type { TaskInfo } from "../types/Task"
+import type { TaskPriority } from "../types/TaskPriority"
+import { PRIORITIES } from "../constants/priorities"
 
 type TaskModalProps = {
   taskInfo: TaskInfo
   onClose: () => void
   onAddSubtask: (title: string) => void
   onToggleSubtask: (subtaskId: string) => void
+  onUpdatePriority: (priority: TaskPriority) => void
 }
 
-export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSubtask }: TaskModalProps) {
+export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority }: TaskModalProps) {
   const { task, stage } = taskInfo
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("")
 
@@ -35,8 +38,20 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
           ×
         </button>
         <h2 className="text-lg font-semibold mb-1 break-words">{task.title}</h2>
-        <div className="text-sm text-gray-500 mb-4">
+        <div className="text-sm text-gray-500 mb-1">
           Stage: <span className="font-medium text-gray-700">{stage}</span>
+        </div>
+        <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+          Priority:
+          <select
+            value={task.priority}
+            onChange={e => onUpdatePriority(e.target.value as TaskPriority)}
+            className="font-medium text-gray-700 border rounded px-1 py-0.5 text-sm"
+          >
+            {Object.values(PRIORITIES).map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
           {task.subtasks.map(subtask => (

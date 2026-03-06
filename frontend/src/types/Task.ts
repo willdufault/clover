@@ -1,4 +1,5 @@
-import type { KanbanStage } from "./kanbanStage"
+import type { KanbanStage } from "./KanbanStage"
+import type { TaskPriority } from "./TaskPriority"
 
 export type Subtask = {
   id: string
@@ -10,6 +11,7 @@ export type Task = {
   id: string
   title: string
   subtasks: Subtask[]
+  priority: TaskPriority
 }
 
 export type TaskInfo = {
