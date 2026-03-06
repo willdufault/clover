@@ -1,6 +1,28 @@
 import type { Task } from "../types/Task"
 import { PRIORITIES } from "../constants/priorities"
 
+function isOverdue(dueDate: string): boolean {
+  const [y, m, d] = dueDate.split("-").map(Number)
+  const due = new Date(y, m - 1, d)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return due < today
+}
+
+function getDueDateLabel(dueDate: string): string {
+  const MS_PER_DAY = 86400000
+  const [ys, ms, ds] = dueDate.split("-")
+  const [y, m, d] = [Number(ys), Number(ms), Number(ds)]
+  const due = new Date(y, m - 1, d)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = (due.getTime() - today.getTime()) / MS_PER_DAY
+  if (diff === -1) return "Due yesterday"
+  if (diff === 0) return "Due today"
+  if (diff === 1) return "Due tomorrow"
+  return `Due ${ms}/${ds}/${y}`
+}
+
 type KanbanColumnProps = {
   title: string
   tasks: Task[]
@@ -26,6 +48,11 @@ export default function KanbanColumn({ title, tasks, isFirst, isLast, onMoveLeft
             {task.subtasks.length > 0 && (
               <span className="text-xs text-gray-400">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks
+              </span>
+            )}
+            {task.dueDate && (
+              <span className={`text-xs ${isOverdue(task.dueDate) ? "text-red-500" : "text-gray-400"}`}>
+                {getDueDateLabel(task.dueDate)}
               </span>
             )}
             <div className="flex items-center justify-between">

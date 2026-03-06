@@ -76,6 +76,19 @@ export default function KanbanPage() {
     }
   }
 
+  function updateDueDate(taskId: string, dueDate: string | undefined): void {
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId ? { ...task, dueDate } : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, dueDate } })
+    }
+  }
+
   function moveTask(
     taskId: string,
     fromColIndex: number,
@@ -124,6 +137,7 @@ export default function KanbanPage() {
                   toggleSubtask(selectedTask.task.id, subtaskId)
                 }
                 onUpdatePriority={(priority) => updatePriority(selectedTask.task.id, priority)}
+                onUpdateDueDate={(dueDate) => updateDueDate(selectedTask.task.id, dueDate)}
               />
             )}
           </div>

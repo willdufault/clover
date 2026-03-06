@@ -19,7 +19,7 @@
 
 **Coding:**
 - Use clear, self-explanatory variable, function, and class names
-- Replace unclear literal values, like `/033c`, with variables, constants, or enums for clarity
+- Use variables or enums instead of unclear inline values for clarity (ex: `ANSI_CLEAR = /033c`, `SECONDS_PER_DAY = 86400`, `status = Status.Busy`)
 - Only add comments for complex code, important context, or unintuitive behavior
 - Use guard statements to avoid deep nesting
 - Always prefer simple, readable code over complex code

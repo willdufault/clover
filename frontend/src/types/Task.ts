@@ -12,6 +12,7 @@ export type Task = {
   title: string
   subtasks: Subtask[]
   priority: TaskPriority
+  dueDate?: string
 }
 
 export type TaskInfo = {

@@ -9,9 +9,10 @@ type TaskModalProps = {
   onAddSubtask: (title: string) => void
   onToggleSubtask: (subtaskId: string) => void
   onUpdatePriority: (priority: TaskPriority) => void
+  onUpdateDueDate: (dueDate: string | undefined) => void
 }
 
-export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority }: TaskModalProps) {
+export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate }: TaskModalProps) {
   const { task, stage } = taskInfo
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("")
 
@@ -41,7 +42,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
         <div className="text-sm text-gray-500 mb-1">
           Stage: <span className="font-medium text-gray-700">{stage}</span>
         </div>
-        <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+        <div className="text-sm text-gray-500 mb-1 flex items-center gap-2">
           Priority:
           <select
             value={task.priority}
@@ -52,6 +53,15 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
+        </div>
+        <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+          Due date:
+          <input
+            type="date"
+            value={task.dueDate ?? ""}
+            onChange={e => onUpdateDueDate(e.target.value || undefined)}
+            className="font-medium text-gray-700 border rounded px-1 py-0.5 text-sm"
+          />
         </div>
         <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
           {task.subtasks.map(subtask => (
