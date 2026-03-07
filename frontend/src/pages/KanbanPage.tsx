@@ -3,13 +3,34 @@ import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
 import { PRIORITIES } from "../constants/priorities"
 import type { Task, TaskInfo, Subtask } from "../types/Task"
 import type { TaskPriority } from "../types/TaskPriority"
+import type { TaskList } from "../types/TaskList"
 import KanbanColumn from "../components/KanbanColumn"
 import TaskModal from "../components/TaskModal"
 
+const DEFAULT_LIST_ID = crypto.randomUUID()
+function makeEmptyColumns(): Task[][] { return KANBAN_COLUMNS.map(() => []) }
+
 export default function KanbanPage() {
-  const [columnTasks, setColumnTasks] = useState<Task[][]>(
-    KANBAN_COLUMNS.map(() => [])
-  )
+  const [lists, setLists] = useState<TaskList[]>([
+    { id: DEFAULT_LIST_ID, name: "Tasks", columns: makeEmptyColumns() }
+  ])
+  const [activeListId, setActiveListId] = useState(DEFAULT_LIST_ID)
+  const [newListName, setNewListName] = useState("")
+
+  const activeList = lists.find(l => l.id === activeListId) ?? lists.find(l => l.id === DEFAULT_LIST_ID)!
+
+  function setColumnTasks(updater: (prev: Task[][]) => Task[][]): void {
+    setLists(prev => prev.map(list =>
+      list.id === activeListId ? { ...list, columns: updater(list.columns) } : list
+    ))
+  }
+
+  function addList(): void {
+    const trimmed = newListName.trim()
+    if (!trimmed) return
+    setLists(prev => [...prev, { id: crypto.randomUUID(), name: trimmed, columns: makeEmptyColumns() }])
+    setNewListName("")
+  }
   const [newTaskTitle, setNewTaskTitle] = useState<string>("")
   const [selectedTask, setSelectedTask] = useState<TaskInfo | null>(null)
 
@@ -129,8 +150,36 @@ export default function KanbanPage() {
         <span className="font-semibold">clover</span>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-48 bg-white border-r p-4">
-          <span>sidebar</span>
+        <div className="w-48 bg-white border-r flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+            {lists.map(list => (
+              <button
+                key={list.id}
+                onClick={() => setActiveListId(list.id)}
+                className={`w-full text-left text-sm px-2 py-1.5 rounded break-words ${
+                  activeListId === list.id ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
+                }`}
+              >
+                {list.name}
+              </button>
+            ))}
+          </div>
+          <div className="border-t p-2 flex flex-col gap-1.5">
+            <input
+              type="text"
+              value={newListName}
+              onChange={e => setNewListName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addList()}
+              className="w-full border rounded px-2 py-1 text-xs"
+              placeholder="New list..."
+            />
+            <button
+              onClick={addList}
+              className="w-full py-1 text-xs bg-gray-800 text-white rounded"
+            >
+              Add
+            </button>
+          </div>
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex flex-1 gap-4 p-4 overflow-x-auto">
@@ -138,7 +187,7 @@ export default function KanbanPage() {
               <KanbanColumn
                 key={col}
                 title={col}
-                tasks={columnTasks[colIndex]}
+                tasks={activeList.columns[colIndex]}
                 isFirst={colIndex === 0}
                 isLast={colIndex === KANBAN_COLUMNS.length - 1}
                 onMoveLeft={(taskId) => moveTask(taskId, colIndex, -1)}
