@@ -1,10 +1,10 @@
 import { useState } from "react"
-import type { TaskInfo } from "../types/Task"
+import type { Task } from "../types/Task"
 import type { TaskPriority } from "../types/TaskPriority"
 import { PRIORITIES } from "../constants/priorities"
 
 type TaskModalProps = {
-  taskInfo: TaskInfo
+  task: Task
   onClose: () => void
   onAddSubtask: (title: string) => void
   onToggleSubtask: (subtaskId: string) => void
@@ -14,8 +14,7 @@ type TaskModalProps = {
   onRenameSubtask: (subtaskId: string, title: string) => void
 }
 
-export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask }: TaskModalProps) {
-  const { task, stage } = taskInfo
+export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask }: TaskModalProps) {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("")
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(task.title)
@@ -77,7 +76,7 @@ export default function TaskModal({ taskInfo, onClose, onAddSubtask, onToggleSub
           </h2>
         )}
         <div className="text-sm text-gray-500 mb-1">
-          Stage: <span className="font-medium text-gray-700">{stage}</span>
+          Stage: <span className="font-medium text-gray-700">{task.stage}</span>
         </div>
         <div className="text-sm text-gray-500 mb-1 flex items-center gap-2">
           Priority:
