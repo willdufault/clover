@@ -2,6 +2,8 @@
 
 A personal productivity app — kanban boards, timers, pomodoro sessions, notes, and more.
 
+> This project is still a WIP. Some features have not yet been added.
+
 ## Features
 
 - **Kanban** — drag-and-drop boards with columns and cards

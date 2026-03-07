@@ -16,7 +16,7 @@
 - Only add comments to clarify inobvious context
 - Extract duplicated code into reusable variables, functions, or classes
 - Use guard clauses to prevent deep nesting
-- Prioritize following existing coding patterns in the codebase
+- Prioritize following existing patterns in the codebase
 - Create intermediate variables to break up complex expressions
 - Use unambiguous names for all variables, functions, and classes
 
