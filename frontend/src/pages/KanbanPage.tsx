@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
-import type { Task, TaskInfo, Subtask } from "../types/task"
+import { PRIORITIES } from "../constants/priorities"
+import type { Task, TaskInfo, Subtask } from "../types/Task"
+import type { TaskPriority } from "../types/TaskPriority"
 import KanbanColumn from "../components/KanbanColumn"
 import TaskModal from "../components/TaskModal"
 
@@ -17,7 +19,7 @@ export default function KanbanPage() {
     setColumnTasks((prev) => {
       const next = [...prev]
       next[0] = [
-        { id: crypto.randomUUID(), title: trimmed, subtasks: [] },
+        { id: crypto.randomUUID(), title: trimmed, subtasks: [], priority: PRIORITIES.medium },
         ...next[0]
       ]
       return next
@@ -58,6 +60,50 @@ export default function KanbanPage() {
     )
     if (selectedTask?.task.id === taskId) {
       setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: sortedAfterToggle(selectedTask.task.subtasks) } })
+    }
+  }
+
+  function updatePriority(taskId: string, priority: TaskPriority): void {
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId ? { ...task, priority } : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, priority } })
+    }
+  }
+
+  function updateDueDate(taskId: string, dueDate: string | undefined): void {
+    setColumnTasks((prev) =>
+      prev.map((col) =>
+        col.map((task) =>
+          task.id === taskId ? { ...task, dueDate } : task
+        )
+      )
+    )
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, dueDate } })
+    }
+  }
+
+  function renameTask(taskId: string, title: string): void {
+    setColumnTasks(prev => prev.map(col => col.map(task => task.id === taskId ? { ...task, title } : task)))
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, title } })
+    }
+  }
+
+  function renameSubtask(taskId: string, subtaskId: string, title: string): void {
+    setColumnTasks(prev => prev.map(col => col.map(task =>
+      task.id === taskId
+        ? { ...task, subtasks: task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) }
+        : task
+    )))
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: selectedTask.task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) } })
     }
   }
 
@@ -108,6 +154,10 @@ export default function KanbanPage() {
                 onToggleSubtask={(subtaskId) =>
                   toggleSubtask(selectedTask.task.id, subtaskId)
                 }
+                onUpdatePriority={(priority) => updatePriority(selectedTask.task.id, priority)}
+                onUpdateDueDate={(dueDate) => updateDueDate(selectedTask.task.id, dueDate)}
+                onRenameTask={(title) => renameTask(selectedTask.task.id, title)}
+                onRenameSubtask={(subtaskId, title) => renameSubtask(selectedTask.task.id, subtaskId, title)}
               />
             )}
           </div>
