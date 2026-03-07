@@ -89,6 +89,24 @@ export default function KanbanPage() {
     }
   }
 
+  function renameTask(taskId: string, title: string): void {
+    setColumnTasks(prev => prev.map(col => col.map(task => task.id === taskId ? { ...task, title } : task)))
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, title } })
+    }
+  }
+
+  function renameSubtask(taskId: string, subtaskId: string, title: string): void {
+    setColumnTasks(prev => prev.map(col => col.map(task =>
+      task.id === taskId
+        ? { ...task, subtasks: task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) }
+        : task
+    )))
+    if (selectedTask?.task.id === taskId) {
+      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: selectedTask.task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) } })
+    }
+  }
+
   function moveTask(
     taskId: string,
     fromColIndex: number,
@@ -138,6 +156,8 @@ export default function KanbanPage() {
                 }
                 onUpdatePriority={(priority) => updatePriority(selectedTask.task.id, priority)}
                 onUpdateDueDate={(dueDate) => updateDueDate(selectedTask.task.id, dueDate)}
+                onRenameTask={(title) => renameTask(selectedTask.task.id, title)}
+                onRenameSubtask={(subtaskId, title) => renameSubtask(selectedTask.task.id, subtaskId, title)}
               />
             )}
           </div>
