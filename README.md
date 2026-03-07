@@ -23,6 +23,8 @@ A personal productivity app — kanban boards, timers, pomodoro sessions, notes,
 
 The frontend communicates directly with Supabase for all data operations. Row Level Security (RLS) policies on each table enforce that users can only access their own data. Supabase Auth handles SSO — Google OAuth today, more providers in the future. Supabase Edge Functions cover any server-side logic that goes beyond direct database queries.
 
+> Currently this project is frontend and in-memory only. Persistent backend is coming soon.
+
 ### Project Structure
 
 ```
