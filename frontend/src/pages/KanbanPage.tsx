@@ -12,6 +12,8 @@ export default function KanbanPage() {
   const [lists, setLists] = useState<TaskList[]>([])
   const [activeListId, setActiveListId] = useState<string | null>(null)
   const [newListName, setNewListName] = useState("")
+  const [editingListName, setEditingListName] = useState(false)
+  const [listNameDraft, setListNameDraft] = useState("")
   const [newTaskTitle, setNewTaskTitle] = useState<string>("")
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
@@ -29,6 +31,16 @@ export default function KanbanPage() {
   function deleteList(listId: string): void {
     setLists(prev => prev.filter(l => l.id !== listId))
     if (activeListId === listId) setActiveListId(null)
+  }
+
+  function renameList(listId: string, name: string): void {
+    setLists(prev => prev.map(l => l.id === listId ? { ...l, name } : l))
+  }
+
+  function commitListNameEdit(): void {
+    const trimmed = listNameDraft.trim()
+    if (trimmed && activeListId) renameList(activeListId, trimmed)
+    setEditingListName(false)
   }
 
   function addTask(): void {
@@ -89,7 +101,7 @@ export default function KanbanPage() {
         <div className="w-48 bg-white border-r flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
             <button
-              onClick={() => setActiveListId(null)}
+              onClick={() => { setActiveListId(null); setEditingListName(false) }}
               className={`w-full text-left text-sm px-2 py-1.5 rounded ${
                 activeListId === null ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
               }`}
@@ -99,18 +111,12 @@ export default function KanbanPage() {
             {lists.map(list => (
               <div
                 key={list.id}
-                onClick={() => setActiveListId(list.id)}
+                onClick={() => { setActiveListId(list.id); setEditingListName(false) }}
                 className={`flex items-center w-full text-left text-sm px-2 py-1.5 rounded break-words cursor-pointer ${
                   activeListId === list.id ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
                 }`}
               >
                 <span className="flex-1">{list.name}</span>
-                <button
-                  onClick={e => { e.stopPropagation(); deleteList(list.id) }}
-                  className="ml-auto shrink-0 text-gray-400 hover:text-red-500"
-                >
-                  🗑️
-                </button>
               </div>
             ))}
           </div>
@@ -132,6 +138,41 @@ export default function KanbanPage() {
           </div>
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+            {activeListId === null ? (
+              <span className="font-semibold text-base">Tasks</span>
+            ) : editingListName ? (
+              <input
+                autoFocus
+                className="font-semibold text-base border-b border-gray-400 outline-none bg-transparent"
+                value={listNameDraft}
+                onChange={e => setListNameDraft(e.target.value)}
+                onBlur={commitListNameEdit}
+                onKeyDown={e => {
+                  if (e.key === "Enter") commitListNameEdit()
+                  if (e.key === "Escape") setEditingListName(false)
+                }}
+              />
+            ) : (
+              <>
+                <span
+                  className="font-semibold text-base cursor-pointer hover:underline decoration-dotted"
+                  onClick={() => {
+                    const list = lists.find(l => l.id === activeListId)
+                    if (list) { setListNameDraft(list.name); setEditingListName(true) }
+                  }}
+                >
+                  {lists.find(l => l.id === activeListId)?.name}
+                </span>
+                <button
+                  onClick={() => deleteList(activeListId)}
+                  className="text-gray-400 hover:text-red-500 text-sm"
+                >
+                  🗑️
+                </button>
+              </>
+            )}
+          </div>
           <div className="flex flex-1 gap-4 p-4 overflow-x-auto">
             {KANBAN_COLUMNS.map((col, colIndex) => (
               <KanbanColumn
