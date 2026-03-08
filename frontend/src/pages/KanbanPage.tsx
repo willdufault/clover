@@ -43,8 +43,7 @@ export default function KanbanPage() {
 
   function addSubtask(taskId: string, title: string): void {
     const newSubtask: Subtask = { id: crypto.randomUUID(), title, completed: false }
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: [...t.subtasks, newSubtask] } : t))
-    setSelectedTask(prev => prev?.id === taskId ? { ...prev, subtasks: [...prev.subtasks, newSubtask] } : prev)
+    updateTask(taskId, t => ({ ...t, subtasks: [...t.subtasks, newSubtask] }))
   }
 
   function toggleSubtask(taskId: string, subtaskId: string): void {
@@ -55,8 +54,7 @@ export default function KanbanPage() {
       const pivot = toggled.find(s => s.id === subtaskId)!
       return [...others.slice(0, insertAt), pivot, ...others.slice(insertAt)]
     }
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: sortedAfterToggle(t.subtasks) } : t))
-    setSelectedTask(prev => prev?.id === taskId ? { ...prev, subtasks: sortedAfterToggle(prev.subtasks) } : prev)
+    updateTask(taskId, t => ({ ...t, subtasks: sortedAfterToggle(t.subtasks) }))
   }
 
   function deleteTask(taskId: string): void {
@@ -69,13 +67,12 @@ export default function KanbanPage() {
   }
 
   function moveTask(taskId: string, direction: -1 | 1): void {
-    setTasks(prev => prev.map(task => {
-      if (task.id !== taskId) return task
-      const i = KANBAN_COLUMNS.indexOf(task.stage)
+    updateTask(taskId, t => {
+      const i = KANBAN_COLUMNS.indexOf(t.stage)
       const nextIndex = i + direction
-      if (nextIndex < 0 || nextIndex >= KANBAN_COLUMNS.length) return task
-      return { ...task, stage: KANBAN_COLUMNS[nextIndex] }
-    }))
+      if (nextIndex < 0 || nextIndex >= KANBAN_COLUMNS.length) return t
+      return { ...t, stage: KANBAN_COLUMNS[nextIndex] }
+    })
   }
 
   return (
@@ -112,12 +109,12 @@ export default function KanbanPage() {
               value={newListName}
               onChange={e => setNewListName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addList()}
-              className="w-full border rounded px-2 py-1 text-xs"
+              className="w-full border rounded px-2 py-1 text-sm"
               placeholder="New list..."
             />
             <button
               onClick={addList}
-              className="w-full py-1 text-xs bg-gray-800 text-white rounded"
+              className="w-full px-3 py-1 text-sm bg-gray-800 text-white rounded"
             >
               Add
             </button>
@@ -151,6 +148,8 @@ export default function KanbanPage() {
                 }))}
                 onDeleteTask={() => deleteTask(selectedTask.id)}
                 onDeleteSubtask={(subtaskId) => deleteSubtask(selectedTask.id, subtaskId)}
+                onMoveLeft={() => moveTask(selectedTask.id, -1)}
+                onMoveRight={() => moveTask(selectedTask.id, 1)}
               />
             )}
           </div>

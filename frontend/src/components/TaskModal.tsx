@@ -2,6 +2,7 @@ import { useState } from "react"
 import type { Task } from "../types/Task"
 import type { TaskPriority } from "../types/TaskPriority"
 import { PRIORITIES } from "../constants/priorities"
+import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
 
 type TaskModalProps = {
   task: Task
@@ -14,9 +15,12 @@ type TaskModalProps = {
   onRenameSubtask: (subtaskId: string, title: string) => void
   onDeleteTask: () => void
   onDeleteSubtask: (subtaskId: string) => void
+  onMoveLeft: () => void
+  onMoveRight: () => void
 }
 
-export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask, onDeleteTask, onDeleteSubtask }: TaskModalProps) {
+export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask, onDeleteTask, onDeleteSubtask, onMoveLeft, onMoveRight }: TaskModalProps) {
+  const stageIndex = KANBAN_COLUMNS.indexOf(task.stage)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("")
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(task.title)
@@ -77,8 +81,26 @@ export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask
             {task.title}
           </h2>
         )}
-        <div className="text-sm text-gray-500 mb-1">
-          Stage: <span className="font-medium text-gray-700">{task.stage}</span>
+        <div className="mb-1">
+          <div className="text-sm text-gray-500">
+            Stage: <span className="font-medium text-gray-700">{task.stage}</span>
+          </div>
+          <div className="flex gap-1 mt-1">
+            <button
+              onClick={onMoveLeft}
+              disabled={stageIndex === 0}
+              className="px-2 py-0.5 text-sm border rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+            <button
+              onClick={onMoveRight}
+              disabled={stageIndex === KANBAN_COLUMNS.length - 1}
+              className="px-2 py-0.5 text-sm border rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+          </div>
         </div>
         <div className="text-sm text-gray-500 mb-1 flex items-center gap-2">
           Priority:
@@ -103,7 +125,7 @@ export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask
         </div>
         <button
           onClick={onDeleteTask}
-          className="text-sm text-red-500 hover:text-red-700 self-start mb-3"
+          className="text-sm text-red-500 hover:text-red-700 self-start mb-3 border border-red-300 hover:border-red-500 rounded px-2 py-0.5"
         >
           🗑️ delete
         </button>
