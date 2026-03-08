@@ -26,6 +26,11 @@ export default function KanbanPage() {
     setNewListName("")
   }
 
+  function deleteList(listId: string): void {
+    setLists(prev => prev.filter(l => l.id !== listId))
+    if (activeListId === listId) setActiveListId(null)
+  }
+
   function addTask(): void {
     const trimmed = newTaskTitle.trim()
     if (!trimmed) return
@@ -92,15 +97,21 @@ export default function KanbanPage() {
               Tasks
             </button>
             {lists.map(list => (
-              <button
+              <div
                 key={list.id}
                 onClick={() => setActiveListId(list.id)}
-                className={`w-full text-left text-sm px-2 py-1.5 rounded break-words ${
+                className={`flex items-center w-full text-left text-sm px-2 py-1.5 rounded break-words cursor-pointer ${
                   activeListId === list.id ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
                 }`}
               >
-                {list.name}
-              </button>
+                <span className="flex-1">{list.name}</span>
+                <button
+                  onClick={e => { e.stopPropagation(); deleteList(list.id) }}
+                  className="ml-auto shrink-0 text-gray-400 hover:text-red-500"
+                >
+                  🗑️
+                </button>
+              </div>
             ))}
           </div>
           <div className="border-t p-2 flex flex-col gap-1.5">
