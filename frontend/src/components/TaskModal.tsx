@@ -12,9 +12,11 @@ type TaskModalProps = {
   onUpdateDueDate: (dueDate: string | undefined) => void
   onRenameTask: (title: string) => void
   onRenameSubtask: (subtaskId: string, title: string) => void
+  onDeleteTask: () => void
+  onDeleteSubtask: (subtaskId: string) => void
 }
 
-export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask }: TaskModalProps) {
+export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask, onUpdatePriority, onUpdateDueDate, onRenameTask, onRenameSubtask, onDeleteTask, onDeleteSubtask }: TaskModalProps) {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>("")
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(task.title)
@@ -99,6 +101,12 @@ export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask
             className="font-medium text-gray-700 border rounded px-1 py-0.5 text-sm"
           />
         </div>
+        <button
+          onClick={onDeleteTask}
+          className="text-sm text-red-500 hover:text-red-700 self-start mb-3"
+        >
+          🗑️ delete
+        </button>
         <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
           {task.subtasks.map(subtask => (
             <div
@@ -127,11 +135,17 @@ export default function TaskModal({ task, onClose, onAddSubtask, onToggleSubtask
                 />
               ) : (
                 <span
-                  className={subtask.completed ? "line-through text-gray-400 text-sm min-w-0 break-words" : "text-sm min-w-0 break-words"}
+                  className={subtask.completed ? "flex-1 line-through text-gray-400 text-sm min-w-0 break-words" : "flex-1 text-sm min-w-0 break-words"}
                 >
                   {subtask.title}
                 </span>
               )}
+              <button
+                onClick={e => { e.stopPropagation(); onDeleteSubtask(subtask.id) }}
+                className="ml-auto shrink-0 text-gray-400 hover:text-red-500"
+              >
+                🗑️
+              </button>
             </div>
           ))}
         </div>

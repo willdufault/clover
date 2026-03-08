@@ -59,6 +59,15 @@ export default function KanbanPage() {
     setSelectedTask(prev => prev?.id === taskId ? { ...prev, subtasks: sortedAfterToggle(prev.subtasks) } : prev)
   }
 
+  function deleteTask(taskId: string): void {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    setSelectedTask(null)
+  }
+
+  function deleteSubtask(taskId: string, subtaskId: string): void {
+    updateTask(taskId, t => ({ ...t, subtasks: t.subtasks.filter(s => s.id !== subtaskId) }))
+  }
+
   function moveTask(taskId: string, direction: -1 | 1): void {
     setTasks(prev => prev.map(task => {
       if (task.id !== taskId) return task
@@ -140,6 +149,8 @@ export default function KanbanPage() {
                 onRenameSubtask={(subtaskId, title) => updateTask(selectedTask.id, t => ({
                   ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s)
                 }))}
+                onDeleteTask={() => deleteTask(selectedTask.id)}
+                onDeleteSubtask={(subtaskId) => deleteSubtask(selectedTask.id, subtaskId)}
               />
             )}
           </div>
