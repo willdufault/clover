@@ -35,7 +35,7 @@ type KanbanColumnProps = {
 
 export default function KanbanColumn({ title, tasks, isFirst, isLast, onMoveLeft, onMoveRight, onTaskClick }: KanbanColumnProps) {
   return (
-    <div className="w-64 shrink-0 bg-white rounded border flex flex-col">
+    <div className="flex-1 min-w-64 bg-white rounded border flex flex-col">
       <div className="p-3 font-semibold border-b">{title}</div>
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
         {tasks.map(task => (

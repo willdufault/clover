@@ -13,9 +13,6 @@ export type Task = {
   subtasks: Subtask[]
   priority: TaskPriority
   dueDate?: string
-}
-
-export type TaskInfo = {
-  task: Task
   stage: KanbanStage
+  listId: string | null
 }

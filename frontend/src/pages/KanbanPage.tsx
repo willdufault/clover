@@ -1,46 +1,66 @@
 import { useState } from "react"
-import { KANBAN_COLUMNS } from "../constants/kanbanColumns"
+import { KANBAN_COLUMNS, DEFAULT_STAGE } from "../constants/kanbanColumns"
 import { PRIORITIES } from "../constants/priorities"
-import type { Task, TaskInfo, Subtask } from "../types/Task"
+import type { Task, Subtask } from "../types/Task"
 import type { TaskPriority } from "../types/TaskPriority"
+import type { TaskList } from "../types/TaskList"
 import KanbanColumn from "../components/KanbanColumn"
 import TaskModal from "../components/TaskModal"
 
 export default function KanbanPage() {
-  const [columnTasks, setColumnTasks] = useState<Task[][]>(
-    KANBAN_COLUMNS.map(() => [])
-  )
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [lists, setLists] = useState<TaskList[]>([])
+  const [activeListId, setActiveListId] = useState<string | null>(null)
+  const [newListName, setNewListName] = useState("")
+  const [editingListName, setEditingListName] = useState(false)
+  const [listNameDraft, setListNameDraft] = useState("")
   const [newTaskTitle, setNewTaskTitle] = useState<string>("")
-  const [selectedTask, setSelectedTask] = useState<TaskInfo | null>(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+
+  const visibleTasks = activeListId === null
+    ? tasks
+    : tasks.filter(t => t.listId === activeListId)
+
+  function addList(): void {
+    const trimmed = newListName.trim()
+    if (!trimmed) return
+    setLists(prev => [...prev, { id: crypto.randomUUID(), name: trimmed }])
+    setNewListName("")
+  }
+
+  function deleteList(listId: string): void {
+    setLists(prev => prev.filter(l => l.id !== listId))
+    if (activeListId === listId) setActiveListId(null)
+  }
+
+  function renameList(listId: string, name: string): void {
+    setLists(prev => prev.map(l => l.id === listId ? { ...l, name } : l))
+  }
+
+  function commitListNameEdit(): void {
+    const trimmed = listNameDraft.trim()
+    if (trimmed && activeListId) renameList(activeListId, trimmed)
+    setEditingListName(false)
+  }
 
   function addTask(): void {
     const trimmed = newTaskTitle.trim()
     if (!trimmed) return
-    setColumnTasks((prev) => {
-      const next = [...prev]
-      next[0] = [
-        { id: crypto.randomUUID(), title: trimmed, subtasks: [], priority: PRIORITIES.medium },
-        ...next[0]
-      ]
-      return next
-    })
+    setTasks(prev => [
+      { id: crypto.randomUUID(), title: trimmed, subtasks: [], priority: PRIORITIES.medium, stage: DEFAULT_STAGE, listId: activeListId },
+      ...prev
+    ])
     setNewTaskTitle("")
   }
 
+  function updateTask(taskId: string, updater: (t: Task) => Task): void {
+    setTasks(prev => prev.map(t => t.id === taskId ? updater(t) : t))
+    setSelectedTask(prev => prev?.id === taskId ? updater(prev) : prev)
+  }
+
   function addSubtask(taskId: string, title: string): void {
-    const newSubtask = { id: crypto.randomUUID(), title, completed: false }
-    setColumnTasks((prev) =>
-      prev.map((col) =>
-        col.map((task) =>
-          task.id === taskId
-            ? { ...task, subtasks: [...task.subtasks, newSubtask] }
-            : task
-        )
-      )
-    )
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: [...selectedTask.task.subtasks, newSubtask] } })
-    }
+    const newSubtask: Subtask = { id: crypto.randomUUID(), title, completed: false }
+    updateTask(taskId, t => ({ ...t, subtasks: [...t.subtasks, newSubtask] }))
   }
 
   function toggleSubtask(taskId: string, subtaskId: string): void {
@@ -51,75 +71,24 @@ export default function KanbanPage() {
       const pivot = toggled.find(s => s.id === subtaskId)!
       return [...others.slice(0, insertAt), pivot, ...others.slice(insertAt)]
     }
-    setColumnTasks((prev) =>
-      prev.map((col) =>
-        col.map((task) =>
-          task.id === taskId ? { ...task, subtasks: sortedAfterToggle(task.subtasks) } : task
-        )
-      )
-    )
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: sortedAfterToggle(selectedTask.task.subtasks) } })
-    }
+    updateTask(taskId, t => ({ ...t, subtasks: sortedAfterToggle(t.subtasks) }))
   }
 
-  function updatePriority(taskId: string, priority: TaskPriority): void {
-    setColumnTasks((prev) =>
-      prev.map((col) =>
-        col.map((task) =>
-          task.id === taskId ? { ...task, priority } : task
-        )
-      )
-    )
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, priority } })
-    }
+  function deleteTask(taskId: string): void {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+    setSelectedTask(null)
   }
 
-  function updateDueDate(taskId: string, dueDate: string | undefined): void {
-    setColumnTasks((prev) =>
-      prev.map((col) =>
-        col.map((task) =>
-          task.id === taskId ? { ...task, dueDate } : task
-        )
-      )
-    )
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, dueDate } })
-    }
+  function deleteSubtask(taskId: string, subtaskId: string): void {
+    updateTask(taskId, t => ({ ...t, subtasks: t.subtasks.filter(s => s.id !== subtaskId) }))
   }
 
-  function renameTask(taskId: string, title: string): void {
-    setColumnTasks(prev => prev.map(col => col.map(task => task.id === taskId ? { ...task, title } : task)))
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, title } })
-    }
-  }
-
-  function renameSubtask(taskId: string, subtaskId: string, title: string): void {
-    setColumnTasks(prev => prev.map(col => col.map(task =>
-      task.id === taskId
-        ? { ...task, subtasks: task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) }
-        : task
-    )))
-    if (selectedTask?.task.id === taskId) {
-      setSelectedTask({ ...selectedTask, task: { ...selectedTask.task, subtasks: selectedTask.task.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s) } })
-    }
-  }
-
-  function moveTask(
-    taskId: string,
-    fromColIndex: number,
-    direction: -1 | 1
-  ): void {
-    const toColIndex = fromColIndex + direction
-    if (toColIndex < 0 || toColIndex >= KANBAN_COLUMNS.length) return
-    setColumnTasks((prev) => {
-      const next = prev.map((col) => [...col])
-      const task = next[fromColIndex].find((t) => t.id === taskId)!
-      next[fromColIndex] = next[fromColIndex].filter((t) => t.id !== taskId)
-      next[toColIndex] = [...next[toColIndex], task]
-      return next
+  function moveTask(taskId: string, direction: -1 | 1): void {
+    updateTask(taskId, t => {
+      const i = KANBAN_COLUMNS.indexOf(t.stage)
+      const nextIndex = i + direction
+      if (nextIndex < 0 || nextIndex >= KANBAN_COLUMNS.length) return t
+      return { ...t, stage: KANBAN_COLUMNS[nextIndex] }
     })
   }
 
@@ -129,35 +98,110 @@ export default function KanbanPage() {
         <span className="font-semibold">clover</span>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-48 bg-white border-r p-4">
-          <span>sidebar</span>
+        <div className="w-48 bg-white border-r flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+            <button
+              onClick={() => { setActiveListId(null); setEditingListName(false) }}
+              className={`w-full text-left text-sm px-2 py-1.5 rounded ${
+                activeListId === null ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
+              }`}
+            >
+              Tasks
+            </button>
+            {lists.map(list => (
+              <div
+                key={list.id}
+                onClick={() => { setActiveListId(list.id); setEditingListName(false) }}
+                className={`flex items-center w-full text-left text-sm px-2 py-1.5 rounded break-words cursor-pointer ${
+                  activeListId === list.id ? "bg-gray-200 font-medium" : "hover:bg-gray-100"
+                }`}
+              >
+                <span className="flex-1">{list.name}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t p-2 flex flex-col gap-1.5">
+            <input
+              type="text"
+              value={newListName}
+              onChange={e => setNewListName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addList()}
+              className="w-full border rounded px-2 py-1 text-sm"
+              placeholder="New list..."
+            />
+            <button
+              onClick={addList}
+              className="w-full px-3 py-1 text-sm bg-gray-800 text-white rounded"
+            >
+              Add
+            </button>
+          </div>
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+            {activeListId === null ? (
+              <span className="font-semibold text-base">Tasks</span>
+            ) : editingListName ? (
+              <input
+                autoFocus
+                className="font-semibold text-base border-b border-gray-400 outline-none bg-transparent"
+                value={listNameDraft}
+                onChange={e => setListNameDraft(e.target.value)}
+                onBlur={commitListNameEdit}
+                onKeyDown={e => {
+                  if (e.key === "Enter") commitListNameEdit()
+                  if (e.key === "Escape") setEditingListName(false)
+                }}
+              />
+            ) : (
+              <>
+                <span
+                  className="font-semibold text-base cursor-pointer hover:underline decoration-dotted"
+                  onClick={() => {
+                    const list = lists.find(l => l.id === activeListId)
+                    if (list) { setListNameDraft(list.name); setEditingListName(true) }
+                  }}
+                >
+                  {lists.find(l => l.id === activeListId)?.name}
+                </span>
+                <button
+                  onClick={() => deleteList(activeListId)}
+                  className="text-gray-400 hover:text-red-500 text-sm"
+                >
+                  🗑️
+                </button>
+              </>
+            )}
+          </div>
           <div className="flex flex-1 gap-4 p-4 overflow-x-auto">
             {KANBAN_COLUMNS.map((col, colIndex) => (
               <KanbanColumn
                 key={col}
                 title={col}
-                tasks={columnTasks[colIndex]}
+                tasks={visibleTasks.filter(t => t.stage === col)}
                 isFirst={colIndex === 0}
                 isLast={colIndex === KANBAN_COLUMNS.length - 1}
-                onMoveLeft={(taskId) => moveTask(taskId, colIndex, -1)}
-                onMoveRight={(taskId) => moveTask(taskId, colIndex, 1)}
-                onTaskClick={(task) => setSelectedTask({ task, stage: col })}
+                onMoveLeft={(taskId) => moveTask(taskId, -1)}
+                onMoveRight={(taskId) => moveTask(taskId, 1)}
+                onTaskClick={(task) => setSelectedTask(task)}
               />
             ))}
             {selectedTask && (
               <TaskModal
-                taskInfo={selectedTask}
+                task={selectedTask}
                 onClose={() => setSelectedTask(null)}
-                onAddSubtask={(title) => addSubtask(selectedTask.task.id, title)}
-                onToggleSubtask={(subtaskId) =>
-                  toggleSubtask(selectedTask.task.id, subtaskId)
-                }
-                onUpdatePriority={(priority) => updatePriority(selectedTask.task.id, priority)}
-                onUpdateDueDate={(dueDate) => updateDueDate(selectedTask.task.id, dueDate)}
-                onRenameTask={(title) => renameTask(selectedTask.task.id, title)}
-                onRenameSubtask={(subtaskId, title) => renameSubtask(selectedTask.task.id, subtaskId, title)}
+                onAddSubtask={(title) => addSubtask(selectedTask.id, title)}
+                onToggleSubtask={(subtaskId) => toggleSubtask(selectedTask.id, subtaskId)}
+                onUpdatePriority={(priority) => updateTask(selectedTask.id, t => ({ ...t, priority }))}
+                onUpdateDueDate={(dueDate) => updateTask(selectedTask.id, t => ({ ...t, dueDate }))}
+                onRenameTask={(title) => updateTask(selectedTask.id, t => ({ ...t, title }))}
+                onRenameSubtask={(subtaskId, title) => updateTask(selectedTask.id, t => ({
+                  ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, title } : s)
+                }))}
+                onDeleteTask={() => deleteTask(selectedTask.id)}
+                onDeleteSubtask={(subtaskId) => deleteSubtask(selectedTask.id, subtaskId)}
+                onMoveLeft={() => moveTask(selectedTask.id, -1)}
+                onMoveRight={() => moveTask(selectedTask.id, 1)}
               />
             )}
           </div>

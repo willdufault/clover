@@ -4,3 +4,5 @@ export const KANBAN_COLUMNS = [
   "⌛ waiting",
   "🎉 done"
 ] as const
+
+export const DEFAULT_STAGE = KANBAN_COLUMNS[0]
