@@ -1,8 +1,8 @@
 # clover
 
-A personal productivity app — kanban boards, timers, pomodoro sessions, notes, and more.
+> This project is the result of me experimenting with different agentic coding tools, namely Claude Code and OpenCode. It serves as a continuation of <a href="https://github.com/willdufault/spec-todo">spec-todo</a>.
 
-> This project is still a WIP. Some features have not yet been added.
+A personal productivity app — kanban boards, timers, pomodoro sessions, notes, and more.
 
 ## Features
 
