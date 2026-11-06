@@ -230,8 +230,8 @@ export default function App() {
                   }}
                   className={
                     l.id === selectedId
-                      ? 'group flex cursor-pointer items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
-                      : 'group flex cursor-pointer items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
+                      ? 'group flex select-none cursor-default items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
+                      : 'group flex select-none cursor-default items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
                   }
                 >
                   <span className="truncate">{l.name}</span>
@@ -305,7 +305,7 @@ export default function App() {
                         id={task.id}
                         tag="li"
                         onClick={() => setSelectedItemId(task.id)}
-                        className="group flex cursor-pointer select-none items-center gap-3 border-b border-gray-100 py-2"
+                        className="group flex cursor-default select-none items-center gap-3 border-b border-gray-100 py-2"
                       >
                         <input
                           type="checkbox"
@@ -378,7 +378,7 @@ export default function App() {
                       key={item.id}
                       id={item.id}
                       tag="li"
-                      className="group flex items-center gap-3 border-b border-gray-200 py-2"
+                      className="group flex cursor-default select-none items-center gap-3 border-b border-gray-200 py-2"
                     >
                       <input
                         type="checkbox"
