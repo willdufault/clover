@@ -37,10 +37,11 @@ export default function App() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [subText, setSubText] = useState('')
+  const [addingList, setAddingList] = useState(false)
+  const [newListName, setNewListName] = useState('')
 
   const list = lists.find((l) => l.id === selectedId)
-  if (!list) return null
-  const selectedItem = list.todos.find((t) => t.id === selectedItemId)
+  const selectedItem = list?.todos.find((t) => t.id === selectedItemId)
 
   const updateTodos = (listId: string, fn: (todos: Todo[]) => Todo[]) => {
     setLists(lists.map((l) => (l.id === listId ? { ...l, todos: fn(l.todos) } : l)))
@@ -112,6 +113,27 @@ export default function App() {
     updateSubitems((subitems) => subitems.filter((t) => t.id !== id))
   }
 
+  const createList = () => {
+    const name = newListName.trim()
+    setAddingList(false)
+    setNewListName('')
+    if (!name) return
+    const newList = { id: crypto.randomUUID(), name, todos: [] }
+    setLists([...lists, newList])
+    setSelectedId(newList.id)
+    setSelectedItemId(null)
+  }
+
+  const deleteList = (id: string) => {
+    const remaining = lists.filter((l) => l.id !== id)
+    const index = lists.findIndex((l) => l.id === id)
+    setLists(remaining)
+    setSelectedItemId(null)
+    if (id === selectedId && remaining.length > 0) {
+      setSelectedId((remaining[index - 1] ?? remaining[0]).id)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col font-sans">
       <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
@@ -121,7 +143,7 @@ export default function App() {
       <div className="flex flex-1">
         <nav className="flex w-64 shrink-0 flex-col gap-1 border-r border-gray-200 bg-gray-100 p-3">
           {lists.map((l) => (
-            <button
+            <div
               key={l.id}
               onClick={() => {
                 setSelectedId(l.id)
@@ -129,17 +151,59 @@ export default function App() {
               }}
               className={
                 l.id === selectedId
-                  ? 'rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
-                  : 'rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
+                  ? 'group flex cursor-pointer items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
+                  : 'group flex cursor-pointer items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
               }
             >
-              {l.name}
-            </button>
+              <span className="truncate">{l.name}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteList(l.id)
+                }}
+                className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
+                aria-label={`Delete ${l.name}`}
+              >
+                ✕
+              </button>
+            </div>
           ))}
+
+          {addingList ? (
+            <input
+              autoFocus
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') createList()
+                if (e.key === 'Escape') {
+                  setAddingList(false)
+                  setNewListName('')
+                }
+              }}
+              onBlur={() => {
+                setAddingList(false)
+                setNewListName('')
+              }}
+              placeholder="List name…"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+            />
+          ) : (
+            <button
+              onClick={() => setAddingList(true)}
+              className="rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
+            >
+              + New list
+            </button>
+          )}
         </nav>
 
         <main className="flex-1 p-6">
-          <h1 className="font-semibold text-gray-800">{list.name}</h1>
+          {!list ? (
+            <p className="text-sm text-gray-400">No lists yet — create one on the left</p>
+          ) : (
+            <>
+              <h1 className="font-semibold text-gray-800">{list.name}</h1>
 
           <input
             value={text}
@@ -186,6 +250,8 @@ export default function App() {
 
           {list.todos.length === 0 && (
             <p className="mt-4 text-sm text-gray-400">No todos yet</p>
+          )}
+            </>
           )}
         </main>
 
