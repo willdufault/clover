@@ -14,35 +14,35 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type Todo = { id: string; text: string; done: boolean; subitems: Todo[] }
-type TodoList = { id: string; name: string; todos: Todo[] }
+type Task = { id: string; text: string; done: boolean; subtasks: Task[] }
+type TaskList = { id: string; name: string; tasks: Task[] }
 
-const seedLists: TodoList[] = [
+const seedLists: TaskList[] = [
   {
     id: 'groceries',
     name: 'Groceries',
-    todos: [
+    tasks: [
       {
         id: 'g1',
         text: 'Milk',
         done: false,
-        subitems: [
-          { id: 'g1a', text: '2% lactose free', done: false, subitems: [] },
+        subtasks: [
+          { id: 'g1a', text: '2% lactose free', done: false, subtasks: [] },
         ],
       },
-      { id: 'g2', text: 'Eggs', done: false, subitems: [] },
+      { id: 'g2', text: 'Eggs', done: false, subtasks: [] },
     ],
   },
   {
     id: 'work',
     name: 'Work',
-    todos: [
-      { id: 'w1', text: 'Reply to emails', done: false, subitems: [] },
-      { id: 'w2', text: 'Update docs', done: false, subitems: [] },
-      { id: 'w3', text: 'Review PR', done: false, subitems: [] },
+    tasks: [
+      { id: 'w1', text: 'Reply to emails', done: false, subtasks: [] },
+      { id: 'w2', text: 'Update docs', done: false, subtasks: [] },
+      { id: 'w3', text: 'Review PR', done: false, subtasks: [] },
     ],
   },
-  { id: 'home', name: 'Home', todos: [] },
+  { id: 'home', name: 'Home', tasks: [] },
 ]
 
 // Row that can be dragged among its SortableContext siblings.
@@ -81,49 +81,49 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(seedLists[0].id)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [text, setText] = useState('')
-  const [subText, setSubText] = useState('')
+  const [subtaskText, setSubtaskText] = useState('')
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
 
   const list = lists.find((l) => l.id === selectedId)
-  const selectedItem = list?.todos.find((t) => t.id === selectedItemId)
+  const selectedItem = list?.tasks.find((t) => t.id === selectedItemId)
 
-  const updateTodos = (listId: string, fn: (todos: Todo[]) => Todo[]) => {
-    setLists(lists.map((l) => (l.id === listId ? { ...l, todos: fn(l.todos) } : l)))
+  const updateTasks = (listId: string, fn: (tasks: Task[]) => Task[]) => {
+    setLists(lists.map((l) => (l.id === listId ? { ...l, tasks: fn(l.tasks) } : l)))
   }
 
-  // Swap the selected item's subitems through fn.
-  const updateSubitems = (fn: (subitems: Todo[]) => Todo[]) => {
-    updateTodos(selectedId, (todos) =>
-      todos.map((t) => (t.id === selectedItemId ? { ...t, subitems: fn(t.subitems) } : t)),
+  // Swap the selected item's subtasks through fn.
+  const updateSubtasks = (fn: (subtasks: Task[]) => Task[]) => {
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((t) => (t.id === selectedItemId ? { ...t, subtasks: fn(t.subtasks) } : t)),
     )
   }
 
-  const addTodo = () => {
+  const addTask = () => {
     if (!text.trim()) return
-    updateTodos(selectedId, (todos) => [
-      { id: crypto.randomUUID(), text, done: false, subitems: [] },
-      ...todos,
+    updateTasks(selectedId, (tasks) => [
+      { id: crypto.randomUUID(), text, done: false, subtasks: [] },
+      ...tasks,
     ])
     setText('')
   }
 
-  const addSubitem = () => {
-    if (!subText.trim() || !selectedItem) return
-    updateSubitems((subitems) => [
-      { id: crypto.randomUUID(), text: subText, done: false, subitems: [] },
-      ...subitems,
+  const addSubtask = () => {
+    if (!subtaskText.trim() || !selectedItem) return
+    updateSubtasks((subtasks) => [
+      { id: crypto.randomUUID(), text: subtaskText, done: false, subtasks: [] },
+      ...subtasks,
     ])
-    setSubText('')
+    setSubtaskText('')
   }
 
   // Move an item right after the last open (unchecked) item:
   // checked items land at the top of the done section,
   // unchecked items land at the bottom of the open section.
-  const moveAfterLastOpen = (todos: Todo[], id: string): Todo[] => {
-    const item = todos.find((t) => t.id === id)
-    if (!item) return todos
-    const rest = todos.filter((t) => t.id !== id)
+  const moveAfterLastOpen = (tasks: Task[], id: string): Task[] => {
+    const item = tasks.find((t) => t.id === id)
+    if (!item) return tasks
+    const rest = tasks.filter((t) => t.id !== id)
     const lastOpen = rest.reduce((acc, t, i) => (!t.done ? i : acc), -1)
     return [
       ...rest.slice(0, lastOpen + 1),
@@ -132,30 +132,30 @@ export default function App() {
     ]
   }
 
-  const toggleTodo = (id: string) => {
-    updateTodos(selectedId, (todos) => {
-      const flipped = todos.map((t) =>
+  const toggleTask = (id: string) => {
+    updateTasks(selectedId, (tasks) => {
+      const flipped = tasks.map((t) =>
         t.id === id ? { ...t, done: !t.done } : t,
       )
       return moveAfterLastOpen(flipped, id)
     })
   }
 
-  const toggleSubitem = (id: string) => {
-    updateSubitems((subitems) => {
-      const flipped = subitems.map((t) =>
+  const toggleSubtask = (id: string) => {
+    updateSubtasks((subtasks) => {
+      const flipped = subtasks.map((t) =>
         t.id === id ? { ...t, done: !t.done } : t,
       )
       return moveAfterLastOpen(flipped, id)
     })
   }
 
-  const deleteTodo = (id: string) => {
-    updateTodos(selectedId, (todos) => todos.filter((t) => t.id !== id))
+  const deleteTask = (id: string) => {
+    updateTasks(selectedId, (tasks) => tasks.filter((t) => t.id !== id))
   }
 
-  const deleteSubitem = (id: string) => {
-    updateSubitems((subitems) => subitems.filter((t) => t.id !== id))
+  const deleteSubtask = (id: string) => {
+    updateSubtasks((subtasks) => subtasks.filter((t) => t.id !== id))
   }
 
   const createList = () => {
@@ -163,7 +163,7 @@ export default function App() {
     setAddingList(false)
     setNewListName('')
     if (!name) return
-    const newList = { id: crypto.randomUUID(), name, todos: [] }
+    const newList = { id: crypto.randomUUID(), name, tasks: [] }
     setLists([...lists, newList])
     setSelectedId(newList.id)
     setSelectedItemId(null)
@@ -179,7 +179,7 @@ export default function App() {
     }
   }
 
-  // Reorder only within the container (sidebar lists, main todos, subitems)
+  // Reorder only within the container (sidebar lists, main tasks and subtasks)
   // that both the dragged item and its drop target belong to.
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return
@@ -192,16 +192,16 @@ export default function App() {
       return
     }
     if (!list) return
-    const todoIds = list.todos.map((t) => t.id)
-    const subIds =
-      list.todos.find((t) => t.id === selectedItemId)?.subitems.map((t) => t.id) ?? []
-    if (todoIds.includes(a) && todoIds.includes(o)) {
-      updateTodos(selectedId, (todos) =>
-        arrayMove(todos, todoIds.indexOf(a), todoIds.indexOf(o)),
+    const taskIds = list.tasks.map((t) => t.id)
+    const subtaskIds =
+      list.tasks.find((t) => t.id === selectedItemId)?.subtasks.map((t) => t.id) ?? []
+    if (taskIds.includes(a) && taskIds.includes(o)) {
+      updateTasks(selectedId, (tasks) =>
+        arrayMove(tasks, taskIds.indexOf(a), taskIds.indexOf(o)),
       )
-    } else if (subIds.includes(a) && subIds.includes(o)) {
-      updateSubitems((subitems) =>
-        arrayMove(subitems, subIds.indexOf(a), subIds.indexOf(o)),
+    } else if (subtaskIds.includes(a) && subtaskIds.includes(o)) {
+      updateSubtasks((subtasks) =>
+        arrayMove(subtasks, subtaskIds.indexOf(a), subtaskIds.indexOf(o)),
       )
     }
   }
@@ -289,49 +289,49 @@ export default function App() {
                 <input
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addTodo()}
-                  placeholder="Add a todo and press Enter"
+                  onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                  placeholder="Add a task and press Enter"
                   className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
                 />
 
                 <SortableContext
-                  items={list.todos}
+                  items={list.tasks}
                   strategy={verticalListSortingStrategy}
                 >
                   <ul className="mt-4 w-full">
-                    {list.todos.map((todo) => (
+                    {list.tasks.map((task) => (
                       <SortableRow
-                        key={todo.id}
-                        id={todo.id}
+                        key={task.id}
+                        id={task.id}
                         tag="li"
-                        onClick={() => setSelectedItemId(todo.id)}
+                        onClick={() => setSelectedItemId(task.id)}
                         className="group flex cursor-pointer select-none items-center gap-3 border-b border-gray-100 py-2"
                       >
                         <input
                           type="checkbox"
-                          checked={todo.done}
+                          checked={task.done}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
-                          onChange={() => toggleTodo(todo.id)}
+                          onChange={() => toggleTask(task.id)}
                           className="size-4 accent-blue-500"
                         />
                         <span
                           className={
-                            todo.done
+                            task.done
                               ? 'text-gray-400 line-through'
                               : 'text-gray-800'
                           }
                         >
-                          {todo.text}
+                          {task.text}
                         </span>
                         <button
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation()
-                            deleteTodo(todo.id)
+                            deleteTask(task.id)
                           }}
                           className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
-                          aria-label={`Delete ${todo.text}`}
+                          aria-label={`Delete ${task.text}`}
                         >
                           ✕
                         </button>
@@ -340,8 +340,8 @@ export default function App() {
                   </ul>
                 </SortableContext>
 
-                {list.todos.length === 0 && (
-                  <p className="mt-4 text-sm text-gray-400">No todos yet</p>
+                {list.tasks.length === 0 && (
+                  <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
                 )}
               </>
             )}
@@ -361,19 +361,19 @@ export default function App() {
               </div>
 
               <input
-                value={subText}
-                onChange={(e) => setSubText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addSubitem()}
-                placeholder="Add a subitem and press Enter"
+                value={subtaskText}
+                onChange={(e) => setSubtaskText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
+                placeholder="Add a subtask and press Enter"
                 className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
               />
 
               <SortableContext
-                items={selectedItem.subitems}
+                items={selectedItem.subtasks}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="mt-4 w-full">
-                  {selectedItem.subitems.map((item) => (
+                  {selectedItem.subtasks.map((item) => (
                     <SortableRow
                       key={item.id}
                       id={item.id}
@@ -384,7 +384,7 @@ export default function App() {
                         type="checkbox"
                         checked={item.done}
                         onPointerDown={(e) => e.stopPropagation()}
-                        onChange={() => toggleSubitem(item.id)}
+                        onChange={() => toggleSubtask(item.id)}
                         className="size-4 accent-blue-500"
                       />
                       <span
@@ -398,7 +398,7 @@ export default function App() {
                       </span>
                       <button
                         onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => deleteSubitem(item.id)}
+                        onClick={() => deleteSubtask(item.id)}
                         className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
                         aria-label={`Delete ${item.text}`}
                       >
@@ -409,8 +409,8 @@ export default function App() {
                 </ul>
               </SortableContext>
 
-              {selectedItem.subitems.length === 0 && (
-                <p className="mt-4 text-sm text-gray-400">No subitems yet</p>
+              {selectedItem.subtasks.length === 0 && (
+                <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
               )}
             </aside>
           )}
