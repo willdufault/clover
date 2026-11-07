@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -80,6 +82,7 @@ export default function App() {
   const [lists, setLists] = useState(seedLists)
   const [selectedId, setSelectedId] = useState(seedLists[0].id)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [drag, setDrag] = useState<{ kind: 'list' | 'task' | 'subtask'; text: string } | null>(null)
   const [text, setText] = useState('')
   const [subtaskText, setSubtaskText] = useState('')
   const [addingList, setAddingList] = useState(false)
@@ -179,6 +182,27 @@ export default function App() {
     }
   }
 
+  // Remember what is being dragged so DragOverlay can render a floating clone.
+  const onDragStart = ({ active }: DragStartEvent) => {
+    for (const l of lists) {
+      if (l.id === String(active.id)) {
+        setDrag({ kind: 'list', text: l.name })
+        return
+      }
+      for (const t of l.tasks) {
+        if (t.id === String(active.id)) {
+          setDrag({ kind: 'task', text: t.text })
+          return
+        }
+        const s = t.subtasks.find((s) => s.id === String(active.id))
+        if (s) {
+          setDrag({ kind: 'subtask', text: s.text })
+          return
+        }
+      }
+    }
+  }
+
   // Reorder only within the container (sidebar lists, main tasks and subtasks)
   // that both the dragged item and its drop target belong to.
   const onDragEnd = ({ active, over }: DragEndEvent) => {
@@ -204,20 +228,23 @@ export default function App() {
         arrayMove(subtasks, subtaskIds.indexOf(a), subtaskIds.indexOf(o)),
       )
     }
+    setDrag(null)
   }
 
   return (
     <DndContext
       sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
+      onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragCancel={() => setDrag(null)}
     >
-      <div className="flex min-h-screen flex-col font-sans">
+      <div className="flex h-screen overflow-hidden flex-col font-sans">
         <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
           <span className="font-semibold text-gray-800">todo</span>
         </header>
 
-        <div className="flex flex-1">
-          <nav className="flex w-64 shrink-0 flex-col gap-1 border-r border-gray-200 bg-gray-100 p-3">
+        <div className="flex flex-1 min-h-0">
+          <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
             <SortableContext items={lists} strategy={verticalListSortingStrategy}>
               {lists.map((l) => (
                 <SortableRow
@@ -279,7 +306,7 @@ export default function App() {
             )}
           </nav>
 
-          <main className="flex-1 p-6">
+          <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
             {!list ? (
               <p className="text-sm text-gray-400">No lists yet — create one on the left</p>
             ) : (
@@ -348,7 +375,7 @@ export default function App() {
           </main>
 
           {selectedItem && (
-            <aside className="w-72 shrink-0 border-l border-gray-200 bg-gray-100 p-3">
+            <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
               <div className="flex items-center">
                 <h2 className="font-semibold text-gray-800">{selectedItem.text}</h2>
                 <button
@@ -416,6 +443,13 @@ export default function App() {
           )}
         </div>
       </div>
+      <DragOverlay>
+        {drag && (
+          <div className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
+            {drag.text}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   )
 }
