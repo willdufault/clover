@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -54,12 +54,14 @@ function SortableRow({
   tag,
   className,
   onClick,
+  onContextMenu,
   children,
 }: {
   id: string
   tag: 'li' | 'div'
   className?: string
   onClick?: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
   children: React.ReactNode
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -70,6 +72,7 @@ function SortableRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       className={isDragging ? 'opacity-60 shadow-lg ' + className : className}
       {...attributes}
       {...listeners}
@@ -79,12 +82,50 @@ function SortableRow({
   )
 }
 
+// In-place rename box: Enter commits, Escape or blur cancels.
+function RenameInput({
+  draft,
+  onChange,
+  onCommit,
+  onCancel,
+  className,
+}: {
+  draft: string
+  onChange: (draft: string) => void
+  onCommit: () => void
+  onCancel: () => void
+  className: string
+}) {
+  return (
+    <input
+      autoFocus
+      onFocus={(e) => e.target.select()}
+      value={draft}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onCommit()
+        if (e.key === 'Escape') onCancel()
+      }}
+      onBlur={onCancel}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      className={className}
+    />
+  )
+}
+
 export default function App() {
   const [lists, setLists] = useState(seedLists)
   const [selectedId, setSelectedId] = useState(seedLists[0].id)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ kind: 'list' | 'task' | 'subtask'; text: string } | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
+  const [menu, setMenu] = useState<
+    { x: number; y: number; kind: 'list' | 'task' | 'subtask'; id: string; text: string } | null
+  >(null)
+  const [renaming, setRenaming] = useState<
+    { kind: 'list' | 'task' | 'subtask'; id: string; draft: string } | null
+  >(null)
   const [text, setText] = useState('')
   const [subtaskText, setSubtaskText] = useState('')
   const [addingList, setAddingList] = useState(false)
@@ -92,6 +133,15 @@ export default function App() {
 
   const list = lists.find((l) => l.id === selectedId)
   const selectedItem = list?.tasks.find((t) => t.id === selectedItemId)
+
+  useEffect(() => {
+    if (!menu) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenu(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menu])
 
   const updateTasks = (listId: string, fn: (tasks: Task[]) => Task[]) => {
     setLists(lists.map((l) => (l.id === listId ? { ...l, tasks: fn(l.tasks) } : l)))
@@ -161,6 +211,26 @@ export default function App() {
 
   const deleteSubtask = (id: string) => {
     updateSubtasks((subtasks) => subtasks.filter((t) => t.id !== id))
+  }
+
+  // Apply the in-progress rename (no-op on empty draft = cancel).
+  const commitRename = () => {
+    if (!renaming) return
+    const { kind, id, draft } = renaming
+    const name = draft.trim()
+    setRenaming(null)
+    if (!name) return
+    if (kind === 'list') {
+      setLists(lists.map((l) => (l.id === id ? { ...l, name } : l)))
+    } else if (kind === 'task') {
+      updateTasks(selectedId, (tasks) =>
+        tasks.map((t) => (t.id === id ? { ...t, text: name } : t)),
+      )
+    } else {
+      updateSubtasks((subtasks) =>
+        subtasks.map((t) => (t.id === id ? { ...t, text: name } : t)),
+      )
+    }
   }
 
   const createList = () => {
@@ -273,8 +343,7 @@ export default function App() {
         setDragOverListId(null)
       }}
     >
-      <div className="flex h-screen overflow-hidden flex-col font-sans">
-        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
+      <div className="flex h-screen overflow-hidden flex-col font-sans">        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
           <span className="font-semibold text-gray-800">todo</span>
         </header>
 
@@ -290,6 +359,10 @@ export default function App() {
                     setSelectedId(l.id)
                     setSelectedItemId(null)
                   }}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    setMenu({ x: e.clientX, y: e.clientY, kind: 'list', id: l.id, text: l.name })
+                  }}
                   className={
                     l.id === dragOverListId
                       ? 'group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800'
@@ -298,18 +371,17 @@ export default function App() {
                       : 'group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
                   }
                 >
-                  <span className="truncate">{l.name}</span>
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteList(l.id)
-                    }}
-                    className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
-                    aria-label={`Delete ${l.name}`}
-                  >
-                    ✕
-                  </button>
+                  {renaming?.kind === 'list' && renaming.id === l.id ? (
+                    <RenameInput
+                      draft={renaming.draft}
+                      onChange={(draft) => setRenaming({ ...renaming, draft })}
+                      onCommit={commitRename}
+                      onCancel={() => setRenaming(null)}
+                      className="w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none"
+                    />
+                  ) : (
+                    <span className="truncate">{l.name}</span>
+                  )}
                 </SortableRow>
               ))}
             </SortableContext>
@@ -369,6 +441,10 @@ export default function App() {
                         id={task.id}
                         tag="li"
                         onClick={() => setSelectedItemId(task.id)}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          setMenu({ x: e.clientX, y: e.clientY, kind: 'task', id: task.id, text: task.text })
+                        }}
                         className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
                       >
                         <input
@@ -379,26 +455,25 @@ export default function App() {
                           onChange={() => toggleTask(task.id)}
                           className="size-4 accent-blue-500"
                         />
-                        <span
-                          className={
-                            task.done
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-800'
-                          }
-                        >
-                          {task.text}
-                        </span>
-                        <button
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteTask(task.id)
-                          }}
-                          className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
-                          aria-label={`Delete ${task.text}`}
-                        >
-                          ✕
-                        </button>
+                        {renaming?.kind === 'task' && renaming.id === task.id ? (
+                          <RenameInput
+                            draft={renaming.draft}
+                            onChange={(draft) => setRenaming({ ...renaming, draft })}
+                            onCommit={commitRename}
+                            onCancel={() => setRenaming(null)}
+                            className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+                          />
+                        ) : (
+                          <span
+                            className={
+                              task.done
+                                ? 'text-gray-400 line-through'
+                                : 'text-gray-800'
+                            }
+                          >
+                            {task.text}
+                          </span>
+                        )}
                       </SortableRow>
                     ))}
                   </ul>
@@ -442,6 +517,10 @@ export default function App() {
                       key={item.id}
                       id={item.id}
                       tag="li"
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        setMenu({ x: e.clientX, y: e.clientY, kind: 'subtask', id: item.id, text: item.text })
+                      }}
                       className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
                     >
                       <input
@@ -451,23 +530,25 @@ export default function App() {
                         onChange={() => toggleSubtask(item.id)}
                         className="size-4 accent-blue-500"
                       />
-                      <span
-                        className={
-                          item.done
-                            ? 'text-gray-400 line-through'
-                            : 'text-gray-800'
-                        }
-                      >
-                        {item.text}
-                      </span>
-                      <button
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => deleteSubtask(item.id)}
-                        className="ml-auto rounded text-gray-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100"
-                        aria-label={`Delete ${item.text}`}
-                      >
-                        ✕
-                      </button>
+                      {renaming?.kind === 'subtask' && renaming.id === item.id ? (
+                        <RenameInput
+                          draft={renaming.draft}
+                          onChange={(draft) => setRenaming({ ...renaming, draft })}
+                          onCommit={commitRename}
+                          onCancel={() => setRenaming(null)}
+                          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+                        />
+                      ) : (
+                        <span
+                          className={
+                            item.done
+                              ? 'text-gray-400 line-through'
+                              : 'text-gray-800'
+                          }
+                        >
+                          {item.text}
+                        </span>
+                      )}
                     </SortableRow>
                   ))}
                 </ul>
@@ -487,6 +568,47 @@ export default function App() {
           </div>
         )}
       </DragOverlay>
+
+      {menu && (
+        <>
+          {/* Invisible backdrop to catch clicks outside the menu. */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setMenu(null)
+            }}
+          />
+          <div
+            className="fixed z-50 min-w-32 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+            style={{ left: menu.x, top: menu.y }}
+          >
+            <button
+              onClick={() => {
+                setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
+                setMenu(null)
+              }}
+              className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
+            >
+              Rename
+            </button>
+            <button
+              onClick={() => {
+                menu.kind === 'task'
+                  ? deleteTask(menu.id)
+                  : menu.kind === 'list'
+                  ? deleteList(menu.id)
+                  : deleteSubtask(menu.id)
+                setMenu(null)
+              }}
+              className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
     </DndContext>
   )
 }
