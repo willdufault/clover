@@ -11,14 +11,12 @@ import {
 } from '@dnd-kit/core'
 import {
   SortableContext,
-  arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from './drop'
 
-type Task = { id: string; text: string; done: boolean; subtasks: Task[] }
-type TaskList = { id: string; name: string; tasks: Task[] }
 
 const seedLists: TaskList[] = [
   {
@@ -157,6 +155,12 @@ export default function App() {
   const updateItem = (id: string, f: (items: Task[]) => Task[]) =>
     updateTasks(selectedId, (tasks) => updateById(tasks, id, f))
 
+  // Apply f to the subtasks of the task with id.
+  const updateSubtasks = (taskId: string, f: (subtasks: Task[]) => Task[]) =>
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((task) => (task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task)),
+    )
+
   const addTask = () => {
     if (!text.trim()) return
     updateTasks(selectedId, (tasks) => [
@@ -168,26 +172,11 @@ export default function App() {
 
   const addSubtask = () => {
     if (!subtaskText.trim() || !selectedItem) return
-    updateItem(selectedItem.id, (subtasks) => [
+    updateSubtasks(selectedItem.id, (subtasks) => [
       { id: crypto.randomUUID(), text: subtaskText, done: false, subtasks: [] },
       ...subtasks,
     ])
     setSubtaskText('')
-  }
-
-  // Move an item right after the last open (unchecked) item:
-  // checked items land at the top of the done section,
-  // unchecked items land at the bottom of the open section.
-  const moveAfterLastOpen = (tasks: Task[], id: string): Task[] => {
-    const item = tasks.find((task) => task.id === id)
-    if (!item) return tasks
-    const rest = tasks.filter((task) => task.id !== id)
-    const lastOpen = rest.reduce((latestIndex, task, index) => (!task.done ? index : latestIndex), -1)
-    return [
-      ...rest.slice(0, lastOpen + 1),
-      item,
-      ...rest.slice(lastOpen + 1),
-    ]
   }
 
   const toggleItem = (id: string) =>
@@ -298,22 +287,6 @@ export default function App() {
     }
   }
 
-  // Move a task to the front of another list.
-  const moveTaskToList = (taskId: string, targetListId: string) => {
-    if (!selectedList || selectedList.id === targetListId) return
-    const task = selectedList.tasks.find((task) => task.id === taskId)
-    if (!task) return
-    setLists(lists.map((list) => {
-      if (list.id === selectedList.id) return { ...list, tasks: list.tasks.filter((task) => task.id !== taskId) }
-      if (list.id === targetListId) {
-        const tasks = [task, ...list.tasks]
-        return { ...list, tasks: task.done ? moveAfterLastOpen(tasks, taskId) : tasks }
-      }
-      return list
-    }))
-    setSelectedItemId(null)
-  }
-
   // Highlight the sidebar list row a task is hovering over.
   const onDragOver = ({ over }: DragOverEvent) => {
     const listIds = lists.map((list) => list.id)
@@ -322,37 +295,21 @@ export default function App() {
     )
   }
 
-  // Reorder only within the container (sidebar lists, main tasks and subtasks)
-  // that both the dragged item and its drop target belong to.
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    setDragOverListId(null)
-    if (!over || active.id === over.id) return
-    const activeId = String(active.id)
-    const overId = String(over.id)
-
-    const listIds = lists.map((list) => list.id)
-    if (drag?.kind === 'task' && listIds.includes(overId)) {
-      moveTaskToList(activeId, overId)
-      return
-    }
-    if (listIds.includes(activeId) && listIds.includes(overId)) {
-      setLists(arrayMove(lists, listIds.indexOf(activeId), listIds.indexOf(overId)))
-      return
-    }
-    if (!selectedList) return
-    const taskIds = selectedList.tasks.map((task) => task.id)
-    const subtaskIds =
-      selectedList.tasks.find((task) => task.id === selectedItemId)?.subtasks.map((sub) => sub.id) ?? []
-    if (taskIds.includes(activeId) && taskIds.includes(overId)) {
-      updateTasks(selectedId, (tasks) =>
-        arrayMove(tasks, taskIds.indexOf(activeId), taskIds.indexOf(overId)),
-      )
-    } else if (subtaskIds.includes(activeId) && subtaskIds.includes(overId)) {
-      updateItem(selectedItemId!, (subtasks) =>
-        arrayMove(subtasks, subtaskIds.indexOf(activeId), subtaskIds.indexOf(overId)),
-      )
-    }
     setDrag(null)
+    setDragOverListId(null)
+    if (!over) return
+    const overId = String(over.id)
+    const next = applyDrop(lists, {
+      selectedId,
+      selectedItemId,
+      dragKind: drag?.kind,
+      activeId: String(active.id),
+      overId,
+    })
+    if (next === lists) return
+    setLists(next)
+    if (drag?.kind === 'task' && lists.some((list) => list.id === overId)) setSelectedItemId(null)
   }
 
   return (
