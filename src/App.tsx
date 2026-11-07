@@ -131,8 +131,8 @@ export default function App() {
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
 
-  const list = lists.find((l) => l.id === selectedId)
-  const selectedItem = list?.tasks.find((t) => t.id === selectedItemId)
+  const selectedList = lists.find((list) => list.id === selectedId)
+  const selectedItem = selectedList?.tasks.find((task) => task.id === selectedItemId)
 
   useEffect(() => {
     if (!menu) return
@@ -144,13 +144,13 @@ export default function App() {
   }, [menu])
 
   const updateTasks = (listId: string, fn: (tasks: Task[]) => Task[]) => {
-    setLists(lists.map((l) => (l.id === listId ? { ...l, tasks: fn(l.tasks) } : l)))
+    setLists(lists.map((list) => (list.id === listId ? { ...list, tasks: fn(list.tasks) } : list)))
   }
 
   // Swap the selected item's subtasks through fn.
   const updateSubtasks = (fn: (subtasks: Task[]) => Task[]) => {
     updateTasks(selectedId, (tasks) =>
-      tasks.map((t) => (t.id === selectedItemId ? { ...t, subtasks: fn(t.subtasks) } : t)),
+      tasks.map((task) => (task.id === selectedItemId ? { ...task, subtasks: fn(task.subtasks) } : task)),
     )
   }
 
@@ -176,10 +176,10 @@ export default function App() {
   // checked items land at the top of the done section,
   // unchecked items land at the bottom of the open section.
   const moveAfterLastOpen = (tasks: Task[], id: string): Task[] => {
-    const item = tasks.find((t) => t.id === id)
+    const item = tasks.find((task) => task.id === id)
     if (!item) return tasks
-    const rest = tasks.filter((t) => t.id !== id)
-    const lastOpen = rest.reduce((acc, t, i) => (!t.done ? i : acc), -1)
+    const rest = tasks.filter((task) => task.id !== id)
+    const lastOpen = rest.reduce((latestIndex, task, index) => (!task.done ? index : latestIndex), -1)
     return [
       ...rest.slice(0, lastOpen + 1),
       item,
@@ -189,8 +189,8 @@ export default function App() {
 
   const toggleTask = (id: string) => {
     updateTasks(selectedId, (tasks) => {
-      const flipped = tasks.map((t) =>
-        t.id === id ? { ...t, done: !t.done } : t,
+      const flipped = tasks.map((task) =>
+        task.id === id ? { ...task, done: !task.done } : task,
       )
       return moveAfterLastOpen(flipped, id)
     })
@@ -198,19 +198,19 @@ export default function App() {
 
   const toggleSubtask = (id: string) => {
     updateSubtasks((subtasks) => {
-      const flipped = subtasks.map((t) =>
-        t.id === id ? { ...t, done: !t.done } : t,
+      const flipped = subtasks.map((sub) =>
+        sub.id === id ? { ...sub, done: !sub.done } : sub,
       )
       return moveAfterLastOpen(flipped, id)
     })
   }
 
   const deleteTask = (id: string) => {
-    updateTasks(selectedId, (tasks) => tasks.filter((t) => t.id !== id))
+    updateTasks(selectedId, (tasks) => tasks.filter((task) => task.id !== id))
   }
 
   const deleteSubtask = (id: string) => {
-    updateSubtasks((subtasks) => subtasks.filter((t) => t.id !== id))
+    updateSubtasks((subtasks) => subtasks.filter((sub) => sub.id !== id))
   }
 
   // Apply the in-progress rename (no-op on empty draft = cancel).
@@ -221,14 +221,14 @@ export default function App() {
     setRenaming(null)
     if (!name) return
     if (kind === 'list') {
-      setLists(lists.map((l) => (l.id === id ? { ...l, name } : l)))
+      setLists(lists.map((list) => (list.id === id ? { ...list, name } : list)))
     } else if (kind === 'task') {
       updateTasks(selectedId, (tasks) =>
-        tasks.map((t) => (t.id === id ? { ...t, text: name } : t)),
+        tasks.map((task) => (task.id === id ? { ...task, text: name } : task)),
       )
     } else {
       updateSubtasks((subtasks) =>
-        subtasks.map((t) => (t.id === id ? { ...t, text: name } : t)),
+        subtasks.map((sub) => (sub.id === id ? { ...sub, text: name } : sub)),
       )
     }
   }
@@ -245,8 +245,8 @@ export default function App() {
   }
 
   const deleteList = (id: string) => {
-    const remaining = lists.filter((l) => l.id !== id)
-    const index = lists.findIndex((l) => l.id === id)
+    const remaining = lists.filter((list) => list.id !== id)
+    const index = lists.findIndex((list) => list.id === id)
     setLists(remaining)
     setSelectedItemId(null)
     if (id === selectedId && remaining.length > 0) {
@@ -256,19 +256,19 @@ export default function App() {
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    for (const l of lists) {
-      if (l.id === String(active.id)) {
-        setDrag({ kind: 'list', text: l.name })
+    for (const list of lists) {
+      if (list.id === String(active.id)) {
+        setDrag({ kind: 'list', text: list.name })
         return
       }
-      for (const t of l.tasks) {
-        if (t.id === String(active.id)) {
-          setDrag({ kind: 'task', text: t.text })
+      for (const task of list.tasks) {
+        if (task.id === String(active.id)) {
+          setDrag({ kind: 'task', text: task.text })
           return
         }
-        const s = t.subtasks.find((s) => s.id === String(active.id))
-        if (s) {
-          setDrag({ kind: 'subtask', text: s.text })
+        const sub = task.subtasks.find((sub) => sub.id === String(active.id))
+        if (sub) {
+          setDrag({ kind: 'subtask', text: sub.text })
           return
         }
       }
@@ -277,23 +277,23 @@ export default function App() {
 
   // Move a task to the front of another list.
   const moveTaskToList = (taskId: string, targetListId: string) => {
-    if (!list || list.id === targetListId) return
-    const task = list.tasks.find((t) => t.id === taskId)
+    if (!selectedList || selectedList.id === targetListId) return
+    const task = selectedList.tasks.find((task) => task.id === taskId)
     if (!task) return
-    setLists(lists.map((l) => {
-      if (l.id === list.id) return { ...l, tasks: l.tasks.filter((t) => t.id !== taskId) }
-      if (l.id === targetListId) {
-        const tasks = [task, ...l.tasks]
-        return { ...l, tasks: task.done ? moveAfterLastOpen(tasks, taskId) : tasks }
+    setLists(lists.map((list) => {
+      if (list.id === selectedList.id) return { ...list, tasks: list.tasks.filter((task) => task.id !== taskId) }
+      if (list.id === targetListId) {
+        const tasks = [task, ...list.tasks]
+        return { ...list, tasks: task.done ? moveAfterLastOpen(tasks, taskId) : tasks }
       }
-      return l
+      return list
     }))
     setSelectedItemId(null)
   }
 
   // Highlight the sidebar list row a task is hovering over.
   const onDragOver = ({ over }: DragOverEvent) => {
-    const listIds = lists.map((l) => l.id)
+    const listIds = lists.map((list) => list.id)
     setDragOverListId(
       over && drag?.kind === 'task' && listIds.includes(String(over.id)) ? String(over.id) : null,
     )
@@ -304,29 +304,29 @@ export default function App() {
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setDragOverListId(null)
     if (!over || active.id === over.id) return
-    const a = String(active.id)
-    const o = String(over.id)
+    const activeId = String(active.id)
+    const overId = String(over.id)
 
-    const listIds = lists.map((l) => l.id)
-    if (drag?.kind === 'task' && listIds.includes(o)) {
-      moveTaskToList(a, o)
+    const listIds = lists.map((list) => list.id)
+    if (drag?.kind === 'task' && listIds.includes(overId)) {
+      moveTaskToList(activeId, overId)
       return
     }
-    if (listIds.includes(a) && listIds.includes(o)) {
-      setLists(arrayMove(lists, listIds.indexOf(a), listIds.indexOf(o)))
+    if (listIds.includes(activeId) && listIds.includes(overId)) {
+      setLists(arrayMove(lists, listIds.indexOf(activeId), listIds.indexOf(overId)))
       return
     }
-    if (!list) return
-    const taskIds = list.tasks.map((t) => t.id)
+    if (!selectedList) return
+    const taskIds = selectedList.tasks.map((task) => task.id)
     const subtaskIds =
-      list.tasks.find((t) => t.id === selectedItemId)?.subtasks.map((t) => t.id) ?? []
-    if (taskIds.includes(a) && taskIds.includes(o)) {
+      selectedList.tasks.find((task) => task.id === selectedItemId)?.subtasks.map((sub) => sub.id) ?? []
+    if (taskIds.includes(activeId) && taskIds.includes(overId)) {
       updateTasks(selectedId, (tasks) =>
-        arrayMove(tasks, taskIds.indexOf(a), taskIds.indexOf(o)),
+        arrayMove(tasks, taskIds.indexOf(activeId), taskIds.indexOf(overId)),
       )
-    } else if (subtaskIds.includes(a) && subtaskIds.includes(o)) {
+    } else if (subtaskIds.includes(activeId) && subtaskIds.includes(overId)) {
       updateSubtasks((subtasks) =>
-        arrayMove(subtasks, subtaskIds.indexOf(a), subtaskIds.indexOf(o)),
+        arrayMove(subtasks, subtaskIds.indexOf(activeId), subtaskIds.indexOf(overId)),
       )
     }
     setDrag(null)
@@ -350,28 +350,28 @@ export default function App() {
         <div className="flex flex-1 min-h-0">
           <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
             <SortableContext items={lists} strategy={verticalListSortingStrategy}>
-              {lists.map((l) => (
+              {lists.map((list) => (
                 <SortableRow
-                  key={l.id}
-                  id={l.id}
+                  key={list.id}
+                  id={list.id}
                   tag="div"
                   onClick={() => {
-                    setSelectedId(l.id)
+                    setSelectedId(list.id)
                     setSelectedItemId(null)
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault()
-                    setMenu({ x: e.clientX, y: e.clientY, kind: 'list', id: l.id, text: l.name })
+                    setMenu({ x: e.clientX, y: e.clientY, kind: 'list', id: list.id, text: list.name })
                   }}
                   className={
-                    l.id === dragOverListId
+                    list.id === dragOverListId
                       ? 'group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800'
-                      : l.id === selectedId
+                      : list.id === selectedId
                       ? 'group flex select-none items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
                       : 'group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
                   }
                 >
-                  {renaming?.kind === 'list' && renaming.id === l.id ? (
+                  {renaming?.kind === 'list' && renaming.id === list.id ? (
                     <RenameInput
                       draft={renaming.draft}
                       onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -380,7 +380,7 @@ export default function App() {
                       className="w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none"
                     />
                   ) : (
-                    <span className="truncate">{l.name}</span>
+                    <span className="truncate">{list.name}</span>
                   )}
                 </SortableRow>
               ))}
@@ -416,11 +416,11 @@ export default function App() {
           </nav>
 
           <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-            {!list ? (
+            {!selectedList ? (
               <p className="text-sm text-gray-400">No lists yet — create one on the left</p>
             ) : (
               <>
-                <h1 className="font-semibold text-gray-800">{list.name}</h1>
+                <h1 className="font-semibold text-gray-800">{selectedList.name}</h1>
 
                 <input
                   value={text}
@@ -431,11 +431,11 @@ export default function App() {
                 />
 
                 <SortableContext
-                  items={list.tasks}
+                  items={selectedList.tasks}
                   strategy={verticalListSortingStrategy}
                 >
                   <ul className="mt-4 w-full">
-                    {list.tasks.map((task) => (
+                    {selectedList.tasks.map((task) => (
                       <SortableRow
                         key={task.id}
                         id={task.id}
@@ -479,7 +479,7 @@ export default function App() {
                   </ul>
                 </SortableContext>
 
-                {list.tasks.length === 0 && (
+                {selectedList.tasks.length === 0 && (
                   <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
                 )}
               </>
@@ -512,25 +512,25 @@ export default function App() {
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="mt-4 w-full">
-                  {selectedItem.subtasks.map((item) => (
+                  {selectedItem.subtasks.map((sub) => (
                     <SortableRow
-                      key={item.id}
-                      id={item.id}
+                      key={sub.id}
+                      id={sub.id}
                       tag="li"
                       onContextMenu={(e) => {
                         e.preventDefault()
-                        setMenu({ x: e.clientX, y: e.clientY, kind: 'subtask', id: item.id, text: item.text })
+                        setMenu({ x: e.clientX, y: e.clientY, kind: 'subtask', id: sub.id, text: sub.text })
                       }}
                       className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
                     >
                       <input
                         type="checkbox"
-                        checked={item.done}
+                        checked={sub.done}
                         onPointerDown={(e) => e.stopPropagation()}
-                        onChange={() => toggleSubtask(item.id)}
+                        onChange={() => toggleSubtask(sub.id)}
                         className="size-4 accent-blue-500"
                       />
-                      {renaming?.kind === 'subtask' && renaming.id === item.id ? (
+                      {renaming?.kind === 'subtask' && renaming.id === sub.id ? (
                         <RenameInput
                           draft={renaming.draft}
                           onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -541,12 +541,12 @@ export default function App() {
                       ) : (
                         <span
                           className={
-                            item.done
+                            sub.done
                               ? 'text-gray-400 line-through'
                               : 'text-gray-800'
                           }
                         >
-                          {item.text}
+                          {sub.text}
                         </span>
                       )}
                     </SortableRow>
