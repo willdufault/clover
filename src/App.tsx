@@ -201,6 +201,45 @@ export default function App() {
   const deleteItem = (id: string) =>
     updateItem(id, (items) => items.filter((item) => item.id !== id))
 
+  // Shared row rendered by both the task list and the subtask panel.
+  const taskRow = (item: Task, kind: 'task' | 'subtask', onToggle: () => void, onClick?: () => void) => (
+    <SortableRow
+      key={item.id}
+      id={item.id}
+      tag="li"
+      onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setMenu({ x: e.clientX, y: e.clientY, kind, id: item.id, text: item.text })
+      }}
+      className={kind === 'task'
+        ? 'group flex select-none items-center gap-3 border-b border-gray-100 py-2'
+        : 'group flex select-none items-center gap-3 border-b border-gray-200 py-2'}
+    >
+      <input
+        type="checkbox"
+        checked={item.done}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onChange={onToggle}
+        className="size-4 accent-blue-500"
+      />
+      {renaming?.kind === kind && renaming.id === item.id ? (
+        <RenameInput
+          draft={renaming.draft}
+          onChange={(draft) => setRenaming({ ...renaming, draft })}
+          onCommit={commitRename}
+          onCancel={() => setRenaming(null)}
+          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+        />
+      ) : (
+        <span className={item.done ? 'text-gray-400 line-through' : 'text-gray-800'}>
+          {item.text}
+        </span>
+      )}
+    </SortableRow>
+  )
+
   // Apply the in-progress rename (no-op on empty draft = cancel).
   const commitRename = () => {
     if (!renaming) return
@@ -419,47 +458,9 @@ export default function App() {
                   strategy={verticalListSortingStrategy}
                 >
                   <ul className="mt-4 w-full">
-                    {selectedList.tasks.map((task) => (
-                      <SortableRow
-                        key={task.id}
-                        id={task.id}
-                        tag="li"
-                        onClick={() => setSelectedItemId(task.id)}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          setMenu({ x: e.clientX, y: e.clientY, kind: 'task', id: task.id, text: task.text })
-                        }}
-                        className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={task.done}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => toggleItem(task.id)}
-                          className="size-4 accent-blue-500"
-                        />
-                        {renaming?.kind === 'task' && renaming.id === task.id ? (
-                          <RenameInput
-                            draft={renaming.draft}
-                            onChange={(draft) => setRenaming({ ...renaming, draft })}
-                            onCommit={commitRename}
-                            onCancel={() => setRenaming(null)}
-                            className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
-                          />
-                        ) : (
-                          <span
-                            className={
-                              task.done
-                                ? 'text-gray-400 line-through'
-                                : 'text-gray-800'
-                            }
-                          >
-                            {task.text}
-                          </span>
-                        )}
-                      </SortableRow>
-                    ))}
+                    {selectedList.tasks.map((task) =>
+                      taskRow(task, 'task', () => toggleItem(task.id), () => setSelectedItemId(task.id))
+                    )}
                   </ul>
                 </SortableContext>
 
@@ -496,45 +497,9 @@ export default function App() {
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="mt-4 w-full">
-                  {selectedItem.subtasks.map((sub) => (
-                    <SortableRow
-                      key={sub.id}
-                      id={sub.id}
-                      tag="li"
-                      onContextMenu={(e) => {
-                        e.preventDefault()
-                        setMenu({ x: e.clientX, y: e.clientY, kind: 'subtask', id: sub.id, text: sub.text })
-                      }}
-                      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={sub.done}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onChange={() => toggleItem(sub.id)}
-                        className="size-4 accent-blue-500"
-                      />
-                      {renaming?.kind === 'subtask' && renaming.id === sub.id ? (
-                        <RenameInput
-                          draft={renaming.draft}
-                          onChange={(draft) => setRenaming({ ...renaming, draft })}
-                          onCommit={commitRename}
-                          onCancel={() => setRenaming(null)}
-                          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
-                        />
-                      ) : (
-                        <span
-                          className={
-                            sub.done
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-800'
-                          }
-                        >
-                          {sub.text}
-                        </span>
-                      )}
-                    </SortableRow>
-                  ))}
+                  {selectedItem.subtasks.map((sub) =>
+                    taskRow(sub, 'subtask', () => toggleItem(sub.id))
+                  )}
                 </ul>
               </SortableContext>
 
