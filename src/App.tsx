@@ -230,9 +230,11 @@ export default function App() {
     const remaining = lists.filter((list) => list.id !== id)
     const index = lists.findIndex((list) => list.id === id)
     setLists(remaining)
-    setSelectedItemId(null)
-    if (id === selectedId && remaining.length > 0) {
-      setSelectedId((remaining[index - 1] ?? remaining[0]).id)
+    if (id === selectedId) {
+      setSelectedItemId(null)
+      if (remaining.length > 0) {
+        setSelectedId((remaining[index - 1] ?? remaining[0]).id)
+      }
     }
   }
 
