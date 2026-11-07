@@ -114,6 +114,12 @@ function RenameInput({
   )
 }
 
+// Apply f to the sibling array (tasks or subtasks) containing the item with id.
+const updateById = (tasks: Task[], id: string, f: (items: Task[]) => Task[]): Task[] => {
+  if (tasks.some((task) => task.id === id)) return f(tasks)
+  return tasks.map((task) => ({ ...task, subtasks: updateById(task.subtasks, id, f) }))
+}
+
 export default function App() {
   const [lists, setLists] = useState(seedLists)
   const [selectedId, setSelectedId] = useState(seedLists[0].id)
@@ -147,12 +153,9 @@ export default function App() {
     setLists(lists.map((list) => (list.id === listId ? { ...list, tasks: fn(list.tasks) } : list)))
   }
 
-  // Swap the selected item's subtasks through fn.
-  const updateSubtasks = (fn: (subtasks: Task[]) => Task[]) => {
-    updateTasks(selectedId, (tasks) =>
-      tasks.map((task) => (task.id === selectedItemId ? { ...task, subtasks: fn(task.subtasks) } : task)),
-    )
-  }
+  // Apply f to the task or subtask collection holding the item with id.
+  const updateItem = (id: string, f: (items: Task[]) => Task[]) =>
+    updateTasks(selectedId, (tasks) => updateById(tasks, id, f))
 
   const addTask = () => {
     if (!text.trim()) return
@@ -165,7 +168,7 @@ export default function App() {
 
   const addSubtask = () => {
     if (!subtaskText.trim() || !selectedItem) return
-    updateSubtasks((subtasks) => [
+    updateItem(selectedItem.id, (subtasks) => [
       { id: crypto.randomUUID(), text: subtaskText, done: false, subtasks: [] },
       ...subtasks,
     ])
@@ -187,31 +190,16 @@ export default function App() {
     ]
   }
 
-  const toggleTask = (id: string) => {
-    updateTasks(selectedId, (tasks) => {
-      const flipped = tasks.map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task,
+  const toggleItem = (id: string) =>
+    updateItem(id, (items) => {
+      const flipped = items.map((item) =>
+        item.id === id ? { ...item, done: !item.done } : item,
       )
       return moveAfterLastOpen(flipped, id)
     })
-  }
 
-  const toggleSubtask = (id: string) => {
-    updateSubtasks((subtasks) => {
-      const flipped = subtasks.map((sub) =>
-        sub.id === id ? { ...sub, done: !sub.done } : sub,
-      )
-      return moveAfterLastOpen(flipped, id)
-    })
-  }
-
-  const deleteTask = (id: string) => {
-    updateTasks(selectedId, (tasks) => tasks.filter((task) => task.id !== id))
-  }
-
-  const deleteSubtask = (id: string) => {
-    updateSubtasks((subtasks) => subtasks.filter((sub) => sub.id !== id))
-  }
+  const deleteItem = (id: string) =>
+    updateItem(id, (items) => items.filter((item) => item.id !== id))
 
   // Apply the in-progress rename (no-op on empty draft = cancel).
   const commitRename = () => {
@@ -222,14 +210,8 @@ export default function App() {
     if (!name) return
     if (kind === 'list') {
       setLists(lists.map((list) => (list.id === id ? { ...list, name } : list)))
-    } else if (kind === 'task') {
-      updateTasks(selectedId, (tasks) =>
-        tasks.map((task) => (task.id === id ? { ...task, text: name } : task)),
-      )
     } else {
-      updateSubtasks((subtasks) =>
-        subtasks.map((sub) => (sub.id === id ? { ...sub, text: name } : sub)),
-      )
+      updateItem(id, (items) => items.map((item) => (item.id === id ? { ...item, text: name } : item)))
     }
   }
 
@@ -325,7 +307,7 @@ export default function App() {
         arrayMove(tasks, taskIds.indexOf(activeId), taskIds.indexOf(overId)),
       )
     } else if (subtaskIds.includes(activeId) && subtaskIds.includes(overId)) {
-      updateSubtasks((subtasks) =>
+      updateItem(selectedItemId!, (subtasks) =>
         arrayMove(subtasks, subtaskIds.indexOf(activeId), subtaskIds.indexOf(overId)),
       )
     }
@@ -452,7 +434,7 @@ export default function App() {
                           checked={task.done}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
-                          onChange={() => toggleTask(task.id)}
+                          onChange={() => toggleItem(task.id)}
                           className="size-4 accent-blue-500"
                         />
                         {renaming?.kind === 'task' && renaming.id === task.id ? (
@@ -527,7 +509,7 @@ export default function App() {
                         type="checkbox"
                         checked={sub.done}
                         onPointerDown={(e) => e.stopPropagation()}
-                        onChange={() => toggleSubtask(sub.id)}
+                        onChange={() => toggleItem(sub.id)}
                         className="size-4 accent-blue-500"
                       />
                       {renaming?.kind === 'subtask' && renaming.id === sub.id ? (
@@ -595,11 +577,8 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                menu.kind === 'task'
-                  ? deleteTask(menu.id)
-                  : menu.kind === 'list'
-                  ? deleteList(menu.id)
-                  : deleteSubtask(menu.id)
+                if (menu.kind === 'list') deleteList(menu.id)
+                else deleteItem(menu.id)
                 setMenu(null)
               }}
               className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
