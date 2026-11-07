@@ -6,6 +6,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import {
@@ -83,6 +84,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(seedLists[0].id)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ kind: 'list' | 'task' | 'subtask'; text: string } | null>(null)
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [subtaskText, setSubtaskText] = useState('')
   const [addingList, setAddingList] = useState(false)
@@ -203,14 +205,43 @@ export default function App() {
     }
   }
 
+  // Move a task to the front of another list.
+  const moveTaskToList = (taskId: string, targetListId: string) => {
+    if (!list || list.id === targetListId) return
+    const task = list.tasks.find((t) => t.id === taskId)
+    if (!task) return
+    setLists(lists.map((l) => {
+      if (l.id === list.id) return { ...l, tasks: l.tasks.filter((t) => t.id !== taskId) }
+      if (l.id === targetListId) {
+        const tasks = [task, ...l.tasks]
+        return { ...l, tasks: task.done ? moveAfterLastOpen(tasks, taskId) : tasks }
+      }
+      return l
+    }))
+    setSelectedItemId(null)
+  }
+
+  // Highlight the sidebar list row a task is hovering over.
+  const onDragOver = ({ over }: DragOverEvent) => {
+    const listIds = lists.map((l) => l.id)
+    setDragOverListId(
+      over && drag?.kind === 'task' && listIds.includes(String(over.id)) ? String(over.id) : null,
+    )
+  }
+
   // Reorder only within the container (sidebar lists, main tasks and subtasks)
   // that both the dragged item and its drop target belong to.
   const onDragEnd = ({ active, over }: DragEndEvent) => {
+    setDragOverListId(null)
     if (!over || active.id === over.id) return
     const a = String(active.id)
     const o = String(over.id)
 
     const listIds = lists.map((l) => l.id)
+    if (drag?.kind === 'task' && listIds.includes(o)) {
+      moveTaskToList(a, o)
+      return
+    }
     if (listIds.includes(a) && listIds.includes(o)) {
       setLists(arrayMove(lists, listIds.indexOf(a), listIds.indexOf(o)))
       return
@@ -235,8 +266,12 @@ export default function App() {
     <DndContext
       sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
       onDragStart={onDragStart}
+      onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={() => setDrag(null)}
+      onDragCancel={() => {
+        setDrag(null)
+        setDragOverListId(null)
+      }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
         <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
@@ -256,9 +291,11 @@ export default function App() {
                     setSelectedItemId(null)
                   }}
                   className={
-                    l.id === selectedId
-                      ? 'group flex select-none cursor-default items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
-                      : 'group flex select-none cursor-default items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
+                    l.id === dragOverListId
+                      ? 'group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800'
+                      : l.id === selectedId
+                      ? 'group flex select-none items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
+                      : 'group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
                   }
                 >
                   <span className="truncate">{l.name}</span>
@@ -332,7 +369,7 @@ export default function App() {
                         id={task.id}
                         tag="li"
                         onClick={() => setSelectedItemId(task.id)}
-                        className="group flex cursor-default select-none items-center gap-3 border-b border-gray-100 py-2"
+                        className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
                       >
                         <input
                           type="checkbox"
@@ -405,7 +442,7 @@ export default function App() {
                       key={item.id}
                       id={item.id}
                       tag="li"
-                      className="group flex cursor-default select-none items-center gap-3 border-b border-gray-200 py-2"
+                      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
                     >
                       <input
                         type="checkbox"
@@ -445,7 +482,7 @@ export default function App() {
       </div>
       <DragOverlay>
         {drag && (
-          <div className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
+          <div className="cursor-default select-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
             {drag.text}
           </div>
         )}
