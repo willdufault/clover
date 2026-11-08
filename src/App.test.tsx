@@ -18,8 +18,8 @@ const newList = async (user: User, name: string) => {
   await user.click(screen.getByText('+ New list'))
   await user.type(screen.getByPlaceholderText('List name…'), `${name}{Enter}`)
 }
-const toggle = (user: User, text: string) =>
-  user.click(within(screen.getByText(text).closest('li')!).getByRole('checkbox'))
+const toggle = (user: User, text: string, root: { getByText: typeof screen.getByText } = screen) =>
+  user.click(within(root.getByText(text).closest('li')!).getByRole('checkbox'))
 
 test('add a task and toggle it done and back', async () => {
   const { user } = setup()
@@ -358,5 +358,89 @@ describe('stage', () => {
     const { user } = setup()
     await setStage(user, 'progress')
     expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText('⚡ In progress')).toBeNull()
+  })
+})
+
+describe('task fields', () => {
+  const main = () => screen.getByRole('main')
+  const setDate = (value: string) =>
+    fireEvent.change(within(aside()).getByLabelText('Due date'), { target: { value } })
+  const setAll = async (user: User) => {
+    await user.click(within(main()).getByText('Milk'))
+    setDate('2000-01-01')
+    await user.selectOptions(within(aside()).getByLabelText('Stage'), 'progress')
+    await user.selectOptions(within(aside()).getByLabelText('Priority'), 'high')
+  }
+  const rowSub = (text: string) => within(within(main()).getByText(text).closest('li')!)
+
+  test('overdue due date is red, future is not', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    setDate('2000-01-01')
+    expect(within(main()).getByText(/^Due /)).toHaveClass('text-red-600')
+    setDate('2999-01-01')
+    const future = within(main()).getByText(/^Due /)
+    expect(future.className).not.toMatch(/text-red-/)
+  })
+
+  test('remove due date button is hidden without a due date and clears it', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    expect(within(aside()).queryByRole('button', { name: 'Remove due date' })).toBeNull()
+    setDate('2000-01-01')
+    await user.click(within(aside()).getByRole('button', { name: 'Remove due date' }))
+    expect(within(aside()).getByLabelText('Due date')).toHaveValue('')
+    expect(within(main()).queryByText(/^Due /)).toBeNull()
+  })
+
+  test('row subtext order is due, stage, priority', async () => {
+    const { user } = setup()
+    await setAll(user)
+    const spans = [...within(main()).getByText('Milk').nextElementSibling!.children].map((e) => e.textContent)
+    expect(spans).toEqual(['Due Sat Jan 1', '⚡ In progress', '🔴 High priority'])
+  })
+
+  test('fields survive toggle and rename', async () => {
+    const { user } = setup()
+    await setAll(user)
+    await toggle(user, 'Milk', within(main()))
+    await menuAction(user, within(main()).getByText('Milk'), 'Rename')
+    await user.keyboard('Oat{Enter}')
+    const row = rowSub('Oat')
+    expect(row.getByText(/^Due /)).toBeInTheDocument()
+    expect(row.getByText('⚡ In progress')).toBeInTheDocument()
+    expect(row.getByText('🔴 High priority')).toBeInTheDocument()
+  })
+
+  test('sidebar shows the selected task own values', async () => {
+    const { user } = setup()
+    await setAll(user)
+    await user.click(within(main()).getByText('Eggs'))
+    expect(within(aside()).getByLabelText('Due date')).toHaveValue('')
+    expect(within(aside()).getByLabelText('Stage')).toHaveValue('')
+    expect(within(aside()).getByLabelText('Priority')).toHaveValue('')
+    expect(within(aside()).getByRole('option', { name: 'Open', selected: true })).toBeInTheDocument()
+    expect(within(aside()).getByRole('option', { name: 'Medium', selected: true })).toBeInTheDocument()
+  })
+
+  test('subtask context menu has only Rename and Delete', async () => {
+    const { user } = setup()
+    await user.click(screen.getByText('Milk'))
+    await rightClick(user, screen.getByText('2% lactose free'))
+    expect(screen.getByText('Rename').parentElement!.querySelectorAll('button, hr')).toHaveLength(2)
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+  })
+
+  test('subtask toggle and delete leave a same-named task unchanged', async () => {
+    const { user } = setup()
+    await user.click(screen.getByText('Eggs'))
+    await user.click(within(main()).getByText('Milk'))
+    await user.type(screen.getByPlaceholderText(/add a subtask/i), 'Eggs{Enter}')
+    const before = texts(main())
+    await toggle(user, 'Eggs', within(aside()))
+    expect(texts(main())).toEqual(before)
+    await menuAction(user, within(aside()).getByText('Eggs'), 'Delete')
+    expect(texts(main())).toEqual(before)
+    expect(within(aside()).queryByText('Eggs')).toBeNull()
   })
 })
