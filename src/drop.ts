@@ -12,7 +12,7 @@ export const moveSubtaskAfterLastOpen = (subtasks: Subtask[], id: string): Subta
   const item = subtasks.find((subtask) => subtask.id === id)
   if (!item) return subtasks
   const rest = subtasks.filter((subtask) => subtask.id !== id)
-  const lastOpen = rest.reduce((latestIndex, subtask, index) => (!subtask.done ? index : latestIndex), -1)
+  const lastOpen = rest.findLastIndex((subtask) => !subtask.done)
   return [...rest.slice(0, lastOpen + 1), item, ...rest.slice(lastOpen + 1)]
 }
 
