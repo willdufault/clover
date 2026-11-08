@@ -641,6 +641,26 @@ export default function App() {
               )}
 
               <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
+                Stage
+              </h3>
+              <select
+                aria-label="Stage"
+                value={selectedItem.stage ?? ""}
+                onChange={(e) =>
+                  setStage(
+                    selectedItem.id,
+                    (e.target.value || undefined) as Stage | undefined,
+                  )
+                }
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+              >
+                <option value="">Open</option>
+                <option value="progress">In progress</option>
+                <option value="waiting">Waiting</option>
+                <option value="done">Done</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
                 Due date
               </h3>
               <div className="flex items-center gap-2">
@@ -663,26 +683,6 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
-                Stage
-              </h3>
-              <select
-                aria-label="Stage"
-                value={selectedItem.stage ?? ""}
-                onChange={(e) =>
-                  setStage(
-                    selectedItem.id,
-                    (e.target.value || undefined) as Stage | undefined,
-                  )
-                }
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
-              >
-                <option value="">Open</option>
-                <option value="progress">In progress</option>
-                <option value="waiting">Waiting</option>
-                <option value="done">Done</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
               <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
                 Priority
               </h3>
