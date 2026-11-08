@@ -452,6 +452,29 @@ describe('stage', () => {
     expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
   })
 
+  test('switching between open stages keeps position', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), '⚡')
+    await user.selectOptions(stageSelect('Reply to emails'), '⏳')
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
+  })
+
+  test('closing from the detail panel moves the task', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.click(within(main()).getByText('Reply to emails'))
+    await user.selectOptions(within(aside()).getByDisplayValue('⬜ Open'), '✅ Done')
+    expect(tasks()).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
+  })
+
+  test('closing a task in All moves it after the last open task across lists', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('All'))
+    await user.selectOptions(stageSelect('Milk'), '✅')
+    expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
+  })
+
   test('context menu has no stage options', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
