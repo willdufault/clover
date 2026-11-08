@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
@@ -239,5 +239,53 @@ describe('changes only affect the touched item', () => {
     expect(texts(screen.getByRole('main'))).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.click(within(nav()).getByText('Groceries'))
     expect(texts(screen.getByRole('main'))).toEqual(['Milk', 'Eggs'])
+  })
+})
+
+describe('due dates', () => {
+  const setDate = async (user: User, value: string) => {
+    await user.click(screen.getByText('Milk'))
+    fireEvent.change(within(aside()).getByLabelText('Due date'), { target: { value } })
+  }
+
+  test('sidebar sets and removes a due date, subtext shows on the task row', async () => {
+    const { user } = setup()
+    await setDate(user, '2000-01-01')
+    expect(within(aside()).getByText(/^Due /)).toHaveClass('text-red-600')
+    expect(within(screen.getByRole('main')).getByText(/^Due /)).toBeInTheDocument()
+
+    await user.click(within(aside()).getByRole('button', { name: 'Remove due date' }))
+    expect(screen.queryByText(/^Due /)).toBeNull()
+  })
+
+  test('subtasks show no due subtext', async () => {
+    const { user } = setup()
+    await setDate(user, '2000-01-01')
+    expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText(/^Due /)).toBeNull()
+  })
+
+  test('context menu Due today sets today', async () => {
+    const { user } = setup()
+    await rightClick(user, screen.getByText('Milk'))
+    await user.click(screen.getByText('Due today'))
+    expect(screen.getByText('Due Today')).toBeInTheDocument()
+  })
+
+  test('task context menu has due options only for tasks', async () => {
+    const { user } = setup()
+    await rightClick(user, screen.getByText('Milk'))
+    expect(screen.queryByText('Remove due date')).toBeNull()
+    await user.click(screen.getByText('Due tomorrow'))
+    expect(screen.getByText('Due Tomorrow')).toBeInTheDocument()
+
+    await rightClick(user, screen.getByText('Milk'))
+    expect(screen.getByText('Due next Monday')).toBeInTheDocument()
+    expect(screen.getByText('Remove due date')).toBeInTheDocument()
+    await user.click(screen.getByText('Remove due date'))
+    expect(screen.queryByText(/^Due /)).toBeNull()
+
+    await user.click(screen.getByText('Milk'))
+    await rightClick(user, screen.getByText('2% lactose free'))
+    expect(screen.queryByText('Due tomorrow')).toBeNull()
   })
 })

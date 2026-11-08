@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { formatDue, isOverdue, nextMonday, today, tomorrow } from './due'
 import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from './drop'
 
 
@@ -125,7 +126,7 @@ export default function App() {
   const [drag, setDrag] = useState<{ kind: 'list' | 'task' | 'subtask'; text: string } | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [menu, setMenu] = useState<
-    { x: number; y: number; kind: 'list' | 'task' | 'subtask'; id: string; text: string } | null
+    { x: number; y: number; kind: 'list' | 'task' | 'subtask'; id: string; text: string; due?: string } | null
   >(null)
   const [renaming, setRenaming] = useState<
     { kind: 'list' | 'task' | 'subtask'; id: string; draft: string } | null
@@ -190,6 +191,11 @@ export default function App() {
   const deleteItem = (id: string) =>
     updateItem(id, (items) => items.filter((item) => item.id !== id))
 
+  const dueClass = (due: string) => 'text-xs ' + (isOverdue(due) ? 'text-red-600' : 'text-gray-500')
+
+  const setDue = (id: string, due?: string) =>
+    updateItem(id, (items) => items.map((item) => (item.id === id ? { ...item, due } : item)))
+
   // Shared row rendered by both the task list and the subtask panel.
   const taskRow = (item: Task, kind: 'task' | 'subtask', onToggle: () => void, onClick?: () => void) => (
     <SortableRow
@@ -199,7 +205,7 @@ export default function App() {
       onClick={onClick}
       onContextMenu={(e) => {
         e.preventDefault()
-        setMenu({ x: e.clientX, y: e.clientY, kind, id: item.id, text: item.text })
+        setMenu({ x: e.clientX, y: e.clientY, kind, id: item.id, text: item.text, due: item.due })
       }}
       className={kind === 'task'
         ? 'group flex select-none items-center gap-3 border-b border-gray-100 py-2'
@@ -222,9 +228,14 @@ export default function App() {
           className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
         />
       ) : (
-        <span className={item.done ? 'text-gray-400 line-through' : 'text-gray-800'}>
-          {item.text}
-        </span>
+        <div className="flex flex-col">
+          <span className={item.done ? 'text-gray-400 line-through' : 'text-gray-800'}>
+            {item.text}
+          </span>
+          {kind === 'task' && item.due && (
+            <span className={dueClass(item.due)}>Due {formatDue(item.due)}</span>
+          )}
+        </div>
       )}
     </SortableRow>
   )
@@ -453,7 +464,7 @@ export default function App() {
                 items={selectedItem.subtasks}
                 strategy={verticalListSortingStrategy}
               >
-                <ul className="mt-4 w-full">
+                <ul className="mt-4 max-h-64 w-full overflow-y-auto">
                   {selectedItem.subtasks.map((sub) =>
                     taskRow(sub, 'subtask', () => toggleItem(sub.id))
                   )}
@@ -462,6 +473,28 @@ export default function App() {
 
               {selectedItem.subtasks.length === 0 && (
                 <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
+              )}
+
+              <div className="mt-4 flex items-center gap-2">
+                <input
+                  type="date"
+                  aria-label="Due date"
+                  value={selectedItem.due ?? ''}
+                  onChange={(e) => setDue(selectedItem.id, e.target.value || undefined)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+                />
+                {selectedItem.due && (
+                  <button
+                    onClick={() => setDue(selectedItem.id)}
+                    aria-label="Remove due date"
+                    className="text-gray-500 hover:text-gray-800"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {selectedItem.due && (
+                <p className={'mt-2 ' + dueClass(selectedItem.due)}>Due {formatDue(selectedItem.due)}</p>
               )}
             </aside>
           )}
@@ -499,6 +532,37 @@ export default function App() {
             >
               Rename
             </button>
+            {menu.kind === 'task' && (
+              <>
+                {[
+                  ['Due today', today()],
+                  ['Due tomorrow', tomorrow()],
+                  ['Due next Monday', nextMonday()],
+                ].map(([label, date]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      setDue(menu.id, date)
+                      setMenu(null)
+                    }}
+                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    {label}
+                  </button>
+                ))}
+                {menu.due && (
+                  <button
+                    onClick={() => {
+                      setDue(menu.id)
+                      setMenu(null)
+                    }}
+                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    Remove due date
+                  </button>
+                )}
+              </>
+            )}
             <button
               onClick={() => {
                 if (menu.kind === 'list') deleteList(menu.id)
