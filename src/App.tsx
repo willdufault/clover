@@ -75,21 +75,19 @@ export default function App() {
     setSelectedTaskId(null)
   }
 
-  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn)
-
   // Apply f to the subtasks of the task with id.
   const updateSubtasks = (
     taskId: string,
     f: (subtasks: Subtask[]) => Subtask[],
   ) =>
-    updateTasks((tasks) =>
+    setTasks((tasks) =>
       tasks.map((task) =>
         task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
       ),
     )
 
   const addTask = (text: string) =>
-    updateTasks((tasks) => [
+    setTasks((tasks) => [
       {
         id: crypto.randomUUID(),
         text,
@@ -107,10 +105,10 @@ export default function App() {
     ])
 
   const deleteTask = (id: string) =>
-    updateTasks((tasks) => tasks.filter((task) => task.id !== id))
+    setTasks((tasks) => tasks.filter((task) => task.id !== id))
 
   const patchTask = (id: string, patch: Partial<Task>) =>
-    updateTasks((tasks) =>
+    setTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
