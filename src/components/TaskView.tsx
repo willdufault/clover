@@ -5,7 +5,7 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
 import type { Task } from '../drop'
-import { FIELD, ItemType, STAGE, dueClass, type Stage } from '../shared'
+import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
 import { SortableRow } from './rows'
 
 export default function TaskView({
@@ -95,9 +95,8 @@ export default function TaskView({
               )}
               {task.priority && (
                 <span className="text-xs text-gray-500">
-                  {task.priority === 'high'
-                    ? '🔴 High priority'
-                    : '🔵 Low priority'}
+                  {PRIORITY[task.priority].emoji}{' '}
+                  {PRIORITY[task.priority].label} priority
                 </span>
               )}
             </div>

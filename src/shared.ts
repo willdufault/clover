@@ -1,4 +1,4 @@
-import type { Task } from './drop'
+import type { Priority, Task } from './drop'
 import { isOverdue } from './due'
 
 export const ItemType = {
@@ -19,6 +19,11 @@ export const STAGE: Record<Stage, { emoji: string; label: string }> = {
   done: { emoji: '✅', label: 'Done' },
   // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
   cancelled: { emoji: '❌️', label: 'Cancelled' },
+}
+
+export const PRIORITY: Record<Priority, { emoji: string; label: string }> = {
+  low: { emoji: '🔵', label: 'Low' },
+  high: { emoji: '🔴', label: 'High' },
 }
 
 export function navRowClass(selected: boolean, dragOver: boolean) {

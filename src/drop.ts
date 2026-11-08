@@ -2,8 +2,9 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { today } from './due'
 import { ItemType } from './shared'
 
+export type Priority = 'low' | 'high'
 export type Subtask = { id: string; text: string; done: boolean }
-export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string; today?: boolean }
+export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: Priority; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string; today?: boolean }
 export type TaskList = { id: string; name: string }
 
 // Move a subtask right after the last open subtask.

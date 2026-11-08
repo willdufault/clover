@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
+import type { Priority } from '../drop'
 import { ItemType } from '../shared'
 
 export type MenuState = {
@@ -24,7 +25,7 @@ export default function ContextMenu({
   onRename: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
-  onSetPriority: (priority?: 'low' | 'high') => void
+  onSetPriority: (priority?: Priority) => void
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

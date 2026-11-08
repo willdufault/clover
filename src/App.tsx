@@ -15,6 +15,7 @@ import {
   applyDrop,
   visibleTasks,
   moveSubtaskAfterLastOpen,
+  type Priority,
   type Subtask,
   type Task,
   type TaskList,
@@ -142,7 +143,7 @@ export default function App() {
 
   const setDue = (id: string, due?: string) => patchTask(id, { due })
 
-  const setPriority = (id: string, priority?: 'low' | 'high') =>
+  const setPriority = (id: string, priority?: Priority) =>
     patchTask(id, { priority })
 
   const setStage = (id: string, stage?: Stage) => patchTask(id, { stage })

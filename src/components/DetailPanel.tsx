@@ -4,8 +4,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue, isOverdue, isRelative } from '../due'
-import type { Subtask, Task } from '../drop'
-import { FIELD, ItemType, STAGE, dueClass, type Stage } from '../shared'
+import type { Priority, Subtask, Task } from '../drop'
+import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
 import { SortableRow } from './rows'
 
 export default function DetailPanel({
@@ -25,7 +25,7 @@ export default function DetailPanel({
   onToggleSubtask: (id: string) => void
   onSetStage: (id: string, stage?: Stage) => void
   onSetDue: (id: string, due?: string) => void
-  onSetPriority: (id: string, priority?: 'low' | 'high') => void
+  onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: (
     kind: ItemType,
     id: string,
@@ -152,14 +152,18 @@ export default function DetailPanel({
         onChange={(e) =>
           onSetPriority(
             task.id,
-            (e.target.value || undefined) as 'low' | 'high' | undefined,
+            (e.target.value || undefined) as Priority | undefined,
           )
         }
         className={FIELD}
       >
-        <option value="low">🔵 Low</option>
+        <option value="low">
+          {PRIORITY.low.emoji} {PRIORITY.low.label}
+        </option>
         <option value="">Medium</option>
-        <option value="high">🔴 High</option>
+        <option value="high">
+          {PRIORITY.high.emoji} {PRIORITY.high.label}
+        </option>
       </select>
     </aside>
   )
