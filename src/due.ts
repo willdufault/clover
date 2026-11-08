@@ -1,5 +1,3 @@
-const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
-
 const addDays = (date: string, days: number) => {
   const d = new Date(`${date}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + days)
@@ -8,7 +6,7 @@ const addDays = (date: string, days: number) => {
 
 // Today as YYYY-MM-DD in the local timezone.
 export const today = (now = new Date()) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone }).format(now)
+  new Intl.DateTimeFormat('en-CA').format(now)
 
 export const tomorrow = (now = new Date()) => addDays(today(now), 1)
 
