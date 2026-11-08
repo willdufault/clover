@@ -1,15 +1,15 @@
-import { useEffect } from "react";
-import { nextMonday, today, tomorrow } from "../due";
-import { ItemType } from "../shared";
+import { useEffect } from 'react'
+import { nextMonday, today, tomorrow } from '../due'
+import { ItemType } from '../shared'
 
 export type MenuState = {
-  x: number;
-  y: number;
-  kind: ItemType;
-  id: string;
-  text: string;
-  due?: string;
-};
+  x: number
+  y: number
+  kind: ItemType
+  id: string
+  text: string
+  due?: string
+}
 
 export default function ContextMenu({
   menu,
@@ -19,36 +19,36 @@ export default function ContextMenu({
   onSetDue,
   onSetPriority,
 }: {
-  menu: MenuState;
-  onClose: () => void;
-  onRename: () => void;
-  onDelete: () => void;
-  onSetDue: (due?: string) => void;
-  onSetPriority: (priority?: "low" | "high") => void;
+  menu: MenuState
+  onClose: () => void
+  onRename: () => void
+  onDelete: () => void
+  onSetDue: (due?: string) => void
+  onSetPriority: (priority?: 'low' | 'high') => void
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   const item = (label: string, fn: () => void, danger?: boolean) => (
     <button
       key={label}
       onClick={() => {
-        fn();
-        onClose();
+        fn()
+        onClose()
       }}
       className={
-        "block w-full cursor-default px-3 py-1.5 text-left hover:bg-gray-100 " +
-        (danger ? "text-red-600" : "text-gray-700")
+        'block w-full cursor-default px-3 py-1.5 text-left hover:bg-gray-100 ' +
+        (danger ? 'text-red-600' : 'text-gray-700')
       }
     >
       {label}
     </button>
-  );
+  )
 
   return (
     <>
@@ -57,8 +57,8 @@ export default function ContextMenu({
         className="fixed inset-0"
         onClick={onClose}
         onContextMenu={(e) => {
-          e.preventDefault();
-          onClose();
+          e.preventDefault()
+          onClose()
         }}
       />
       <div
@@ -68,28 +68,28 @@ export default function ContextMenu({
           top: Math.min(menu.y, window.innerHeight - 256),
         }}
       >
-        {item("Rename", onRename)}
-        {item("Delete", onDelete, true)}
+        {item('Rename', onRename)}
+        {item('Delete', onDelete, true)}
         {menu.kind === ItemType.Task && (
           <>
             <hr className="my-1 border-gray-200" />
             {[
-              ["Due today", today()],
-              ["Due tomorrow", tomorrow()],
-              ["Due next week", nextMonday()],
+              ['Due today', today()],
+              ['Due tomorrow', tomorrow()],
+              ['Due next week', nextMonday()],
             ].map(([label, date]) => item(label, () => onSetDue(date)))}
-            {menu.due && item("Remove due date", () => onSetDue())}
+            {menu.due && item('Remove due date', () => onSetDue())}
             <hr className="my-1 border-gray-200" />
             {(
               [
-                ["Set low priority", "low"],
-                ["Set medium priority", undefined],
-                ["Set high priority", "high"],
+                ['Set low priority', 'low'],
+                ['Set medium priority', undefined],
+                ['Set high priority', 'high'],
               ] as const
             ).map(([label, p]) => item(label, () => onSetPriority(p)))}
           </>
         )}
       </div>
     </>
-  );
+  )
 }

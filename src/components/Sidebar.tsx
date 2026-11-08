@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useState } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { ALL, TODAY, visibleTasks, type Task, type TaskList } from "../drop";
-import { ItemType, navRowClass } from "../shared";
-import { Count, RenameInput, SortableRow } from "./rows";
+} from '@dnd-kit/sortable'
+import { ALL, TODAY, visibleTasks, type Task, type TaskList } from '../drop'
+import { ItemType, navRowClass } from '../shared'
+import { Count, RenameInput, SortableRow } from './rows'
 
 // Sidebar Today row: drop target only.
 function TodayRow({
@@ -15,12 +15,12 @@ function TodayRow({
   count,
   onClick,
 }: {
-  count: number;
-  selected: boolean;
-  dragOver: boolean;
-  onClick: () => void;
+  count: number
+  selected: boolean
+  dragOver: boolean
+  onClick: () => void
 }) {
-  const { setNodeRef } = useDroppable({ id: TODAY });
+  const { setNodeRef } = useDroppable({ id: TODAY })
   return (
     <div
       ref={setNodeRef}
@@ -30,7 +30,7 @@ function TodayRow({
       <span>Today</span>
       <Count n={count} />
     </div>
-  );
+  )
 }
 
 export default function Sidebar({
@@ -43,26 +43,26 @@ export default function Sidebar({
   onContextMenu,
   renameBox,
 }: {
-  lists: TaskList[];
-  tasks: Task[];
-  selectedId: string;
-  dragOverListId: string | null;
-  onSelect: (id: string) => void;
-  onCreateList: (name: string) => void;
+  lists: TaskList[]
+  tasks: Task[]
+  selectedId: string
+  dragOverListId: string | null
+  onSelect: (id: string) => void
+  onCreateList: (name: string) => void
   onContextMenu: (
     kind: ItemType,
     id: string,
     text: string,
-  ) => (e: React.MouseEvent) => void;
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode;
+  ) => (e: React.MouseEvent) => void
+  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
-  const [addingList, setAddingList] = useState(false);
-  const [newListName, setNewListName] = useState("");
+  const [addingList, setAddingList] = useState(false)
+  const [newListName, setNewListName] = useState('')
 
   const stopAdding = () => {
-    setAddingList(false);
-    setNewListName("");
-  };
+    setAddingList(false)
+    setNewListName('')
+  }
 
   return (
     <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
@@ -98,7 +98,7 @@ export default function Sidebar({
             {renameBox(
               ItemType.List,
               list.id,
-              "w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none",
+              'w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none',
             ) || (
               <>
                 <span className="truncate">{list.name}</span>
@@ -115,8 +115,8 @@ export default function Sidebar({
           draft={newListName}
           onChange={setNewListName}
           onCommit={() => {
-            onCreateList(newListName);
-            stopAdding();
+            onCreateList(newListName)
+            stopAdding()
           }}
           onCancel={stopAdding}
           placeholder="List name…"
@@ -131,5 +131,5 @@ export default function Sidebar({
         </button>
       )}
     </nav>
-  );
+  )
 }

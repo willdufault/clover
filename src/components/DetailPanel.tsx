@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   SortableContext,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { formatDue, isOverdue, isRelative } from "../due";
-import type { Subtask, Task } from "../drop";
-import { FIELD, ItemType, STAGE, dueClass, type Stage } from "../shared";
-import { SortableRow } from "./rows";
+} from '@dnd-kit/sortable'
+import { formatDue, isOverdue, isRelative } from '../due'
+import type { Subtask, Task } from '../drop'
+import { FIELD, ItemType, STAGE, dueClass, type Stage } from '../shared'
+import { SortableRow } from './rows'
 
 export default function DetailPanel({
   task,
@@ -19,27 +19,27 @@ export default function DetailPanel({
   onContextMenu,
   renameBox,
 }: {
-  task: Task;
-  onClose: () => void;
-  onAddSubtask: (text: string) => void;
-  onToggleSubtask: (id: string) => void;
-  onSetStage: (id: string, stage?: Stage) => void;
-  onSetDue: (id: string, due?: string) => void;
-  onSetPriority: (id: string, priority?: "low" | "high") => void;
+  task: Task
+  onClose: () => void
+  onAddSubtask: (text: string) => void
+  onToggleSubtask: (id: string) => void
+  onSetStage: (id: string, stage?: Stage) => void
+  onSetDue: (id: string, due?: string) => void
+  onSetPriority: (id: string, priority?: 'low' | 'high') => void
   onContextMenu: (
     kind: ItemType,
     id: string,
     text: string,
-  ) => (e: React.MouseEvent) => void;
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode;
+  ) => (e: React.MouseEvent) => void
+  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
-  const [subtaskText, setSubtaskText] = useState("");
+  const [subtaskText, setSubtaskText] = useState('')
 
   const add = () => {
-    if (!subtaskText.trim()) return;
-    onAddSubtask(subtaskText);
-    setSubtaskText("");
-  };
+    if (!subtaskText.trim()) return
+    onAddSubtask(subtaskText)
+    setSubtaskText('')
+  }
 
   const subtaskRow = (subtask: Subtask) => (
     <SortableRow
@@ -62,18 +62,18 @@ export default function DetailPanel({
       {renameBox(
         ItemType.Subtask,
         subtask.id,
-        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
+        'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
         <span
           className={
-            subtask.done ? "text-gray-400 line-through" : "text-gray-800"
+            subtask.done ? 'text-gray-400 line-through' : 'text-gray-800'
           }
         >
           {subtask.text}
         </span>
       )}
     </SortableRow>
-  );
+  )
 
   return (
     <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
@@ -90,9 +90,9 @@ export default function DetailPanel({
       <input
         value={subtaskText}
         onChange={(e) => setSubtaskText(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && add()}
+        onKeyDown={(e) => e.key === 'Enter' && add()}
         placeholder="Add a subtask and press Enter"
-        className={"mt-4 " + FIELD}
+        className={'mt-4 ' + FIELD}
       />
 
       <SortableContext
@@ -110,7 +110,7 @@ export default function DetailPanel({
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Stage</h3>
       <select
-        value={task.stage ?? ""}
+        value={task.stage ?? ''}
         onChange={(e) =>
           onSetStage(task.id, (e.target.value || undefined) as Stage | undefined)
         }
@@ -127,10 +127,10 @@ export default function DetailPanel({
       <div className="flex items-center gap-2">
         <input
           type="date"
-          value={task.due ?? ""}
+          value={task.due ?? ''}
           onChange={(e) => onSetDue(task.id, e.target.value || undefined)}
           className={
-            FIELD + (task.due && isOverdue(task.due) ? " text-red-600" : "")
+            FIELD + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
           }
         />
         {task.due && (
@@ -144,15 +144,15 @@ export default function DetailPanel({
       </div>
       {task.due &&
         isRelative(task.due) && (
-          <p className={"mt-1 " + dueClass(task.due)}>{formatDue(task.due)}</p>
+          <p className={'mt-1 ' + dueClass(task.due)}>{formatDue(task.due)}</p>
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
       <select
-        value={task.priority ?? ""}
+        value={task.priority ?? ''}
         onChange={(e) =>
           onSetPriority(
             task.id,
-            (e.target.value || undefined) as "low" | "high" | undefined,
+            (e.target.value || undefined) as 'low' | 'high' | undefined,
           )
         }
         className={FIELD}
@@ -162,5 +162,5 @@ export default function DetailPanel({
         <option value="high">🔴 High</option>
       </select>
     </aside>
-  );
+  )
 }

@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   SortableContext,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { formatDue } from "../due";
-import type { Task } from "../drop";
-import { FIELD, ItemType, STAGE, dueClass, type Stage } from "../shared";
-import { SortableRow } from "./rows";
+} from '@dnd-kit/sortable'
+import { formatDue } from '../due'
+import type { Task } from '../drop'
+import { FIELD, ItemType, STAGE, dueClass, type Stage } from '../shared'
+import { SortableRow } from './rows'
 
 export default function TaskView({
   name,
@@ -17,26 +17,26 @@ export default function TaskView({
   onContextMenu,
   renameBox,
 }: {
-  name: string | undefined;
-  tasks: Task[];
-  onAdd: (text: string) => void;
-  onSelectTask: (id: string) => void;
-  onSetStage: (id: string, stage?: Stage) => void;
+  name: string | undefined
+  tasks: Task[]
+  onAdd: (text: string) => void
+  onSelectTask: (id: string) => void
+  onSetStage: (id: string, stage?: Stage) => void
   onContextMenu: (
     kind: ItemType,
     id: string,
     text: string,
     due?: string,
-  ) => (e: React.MouseEvent) => void;
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode;
+  ) => (e: React.MouseEvent) => void
+  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState('')
 
   const add = () => {
-    if (!text.trim()) return;
-    onAdd(text);
-    setText("");
-  };
+    if (!text.trim()) return
+    onAdd(text)
+    setText('')
+  }
 
   const taskRow = (task: Task) => (
     <SortableRow
@@ -50,7 +50,7 @@ export default function TaskView({
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
       <select
-        value={task.stage ?? ""}
+        value={task.stage ?? ''}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onChange={(e) =>
@@ -68,14 +68,14 @@ export default function TaskView({
       {renameBox(
         ItemType.Task,
         task.id,
-        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
+        'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
         <div className="flex flex-col">
           <span
             className={
-              task.stage === "done" || task.stage === "cancelled"
-                ? "text-gray-400 line-through"
-                : "text-gray-800"
+              task.stage === 'done' || task.stage === 'cancelled'
+                ? 'text-gray-400 line-through'
+                : 'text-gray-800'
             }
           >
             {task.text}
@@ -95,9 +95,9 @@ export default function TaskView({
               )}
               {task.priority && (
                 <span className="text-xs text-gray-500">
-                  {task.priority === "high"
-                    ? "🔴 High priority"
-                    : "🔵 Low priority"}
+                  {task.priority === 'high'
+                    ? '🔴 High priority'
+                    : '🔵 Low priority'}
                 </span>
               )}
             </div>
@@ -105,7 +105,7 @@ export default function TaskView({
         </div>
       )}
     </SortableRow>
-  );
+  )
 
   return (
     <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
@@ -114,9 +114,9 @@ export default function TaskView({
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && add()}
+        onKeyDown={(e) => e.key === 'Enter' && add()}
         placeholder="Add a task and press Enter"
-        className={"mt-4 " + FIELD}
+        className={'mt-4 ' + FIELD}
       />
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
@@ -127,5 +127,5 @@ export default function TaskView({
         <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
       )}
     </main>
-  );
+  )
 }

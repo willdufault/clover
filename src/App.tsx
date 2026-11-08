@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -8,7 +8,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core'
 import {
   ALL,
   TODAY,
@@ -18,64 +18,64 @@ import {
   type Subtask,
   type Task,
   type TaskList,
-} from "./drop";
-import { ItemType, type Stage } from "./shared";
-import ContextMenu, { type MenuState } from "./components/ContextMenu";
-import DetailPanel from "./components/DetailPanel";
-import Sidebar from "./components/Sidebar";
-import TaskView from "./components/TaskView";
-import { RenameInput } from "./components/rows";
+} from './drop'
+import { ItemType, type Stage } from './shared'
+import ContextMenu, { type MenuState } from './components/ContextMenu'
+import DetailPanel from './components/DetailPanel'
+import Sidebar from './components/Sidebar'
+import TaskView from './components/TaskView'
+import { RenameInput } from './components/rows'
 
 const seedLists: TaskList[] = [
-  { id: "groceries", name: "Groceries" },
-  { id: "work", name: "Work" },
-  { id: "home", name: "Home" },
-];
+  { id: 'groceries', name: 'Groceries' },
+  { id: 'work', name: 'Work' },
+  { id: 'home', name: 'Home' },
+]
 
 const seedTasks: Task[] = [
   {
-    id: "g1",
-    text: "Milk",
-    listId: "groceries",
-    subtasks: [{ id: "g1a", text: "2% lactose free", done: false }],
+    id: 'g1',
+    text: 'Milk',
+    listId: 'groceries',
+    subtasks: [{ id: 'g1a', text: '2% lactose free', done: false }],
   },
-  { id: "g2", text: "Eggs", listId: "groceries", subtasks: [] },
-  { id: "w1", text: "Reply to emails", listId: "work", subtasks: [] },
-  { id: "w2", text: "Update docs", listId: "work", subtasks: [] },
-  { id: "w3", text: "Review PR", listId: "work", subtasks: [] },
-];
+  { id: 'g2', text: 'Eggs', listId: 'groceries', subtasks: [] },
+  { id: 'w1', text: 'Reply to emails', listId: 'work', subtasks: [] },
+  { id: 'w2', text: 'Update docs', listId: 'work', subtasks: [] },
+  { id: 'w3', text: 'Review PR', listId: 'work', subtasks: [] },
+]
 
 export default function App() {
-  const [lists, setLists] = useState(seedLists);
-  const [tasks, setTasks] = useState(seedTasks);
-  const [selectedId, setSelectedId] = useState(seedLists[0].id);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [lists, setLists] = useState(seedLists)
+  const [tasks, setTasks] = useState(seedTasks)
+  const [selectedId, setSelectedId] = useState(seedLists[0].id)
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ kind: ItemType; text: string } | null>(
     null,
-  );
-  const [dragOverListId, setDragOverListId] = useState<string | null>(null);
-  const [menu, setMenu] = useState<MenuState | null>(null);
+  )
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null)
+  const [menu, setMenu] = useState<MenuState | null>(null)
   const [renaming, setRenaming] = useState<{
-    kind: ItemType;
-    id: string;
-    draft: string;
-  } | null>(null);
+    kind: ItemType
+    id: string
+    draft: string
+  } | null>(null)
 
-  const viewTasks = visibleTasks(tasks, selectedId);
+  const viewTasks = visibleTasks(tasks, selectedId)
   const viewName =
     selectedId === ALL
-      ? "All"
+      ? 'All'
       : selectedId === TODAY
-        ? "Today"
-        : lists.find((list) => list.id === selectedId)?.name;
-  const selectedItem = viewTasks.find((task) => task.id === selectedItemId);
+        ? 'Today'
+        : lists.find((list) => list.id === selectedId)?.name
+  const selectedItem = viewTasks.find((task) => task.id === selectedItemId)
 
   const select = (id: string) => {
-    setSelectedId(id);
-    setSelectedItemId(null);
-  };
+    setSelectedId(id)
+    setSelectedItemId(null)
+  }
 
-  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn);
+  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn)
 
   // Apply f to the subtasks of the task with id.
   const updateSubtasks = (
@@ -86,7 +86,7 @@ export default function App() {
       tasks.map((task) =>
         task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
       ),
-    );
+    )
 
   const addTask = (text: string) =>
     updateTasks((tasks) => [
@@ -98,60 +98,60 @@ export default function App() {
         today: selectedId === TODAY ? true : undefined,
       },
       ...tasks,
-    ]);
+    ])
 
   const addSubtask = (text: string) =>
     updateSubtasks(selectedItem!.id, (subtasks) => [
       { id: crypto.randomUUID(), text, done: false },
       ...subtasks,
-    ]);
+    ])
 
   const deleteTask = (id: string) =>
-    updateTasks((tasks) => tasks.filter((task) => task.id !== id));
+    updateTasks((tasks) => tasks.filter((task) => task.id !== id))
 
   const patchTask = (id: string, patch: Partial<Task>) =>
     updateTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
-    );
+    )
 
   const patchSubtask = (id: string, patch: Partial<Subtask>) =>
     updateSubtasks(selectedItemId!, (subtasks) =>
       subtasks.map((subtask) =>
         subtask.id === id ? { ...subtask, ...patch } : subtask,
       ),
-    );
+    )
 
-  const renameTask = (id: string, text: string) => patchTask(id, { text });
+  const renameTask = (id: string, text: string) => patchTask(id, { text })
 
   const toggleSubtask = (id: string) => {
-    const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done;
-    patchSubtask(id, { done });
+    const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done
+    patchSubtask(id, { done })
     updateSubtasks(selectedItemId!, (subtasks) =>
       moveSubtaskAfterLastOpen(subtasks, id),
-    );
-  };
+    )
+  }
 
   const deleteSubtask = (id: string) =>
     updateSubtasks(selectedItemId!, (subtasks) =>
       subtasks.filter((subtask) => subtask.id !== id),
-    );
+    )
 
   const renameSubtask = (id: string, text: string) =>
-    patchSubtask(id, { text });
+    patchSubtask(id, { text })
 
-  const setDue = (id: string, due?: string) => patchTask(id, { due });
+  const setDue = (id: string, due?: string) => patchTask(id, { due })
 
-  const setPriority = (id: string, priority?: "low" | "high") =>
-    patchTask(id, { priority });
+  const setPriority = (id: string, priority?: 'low' | 'high') =>
+    patchTask(id, { priority })
 
-  const setStage = (id: string, stage?: Stage) => patchTask(id, { stage });
+  const setStage = (id: string, stage?: Stage) => patchTask(id, { stage })
 
   const openMenu =
     (kind: ItemType, id: string, text: string, due?: string) =>
     (e: React.MouseEvent) => {
-      e.preventDefault();
-      setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due });
-    };
+      e.preventDefault()
+      setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due })
+    }
 
   const renameBox = (kind: ItemType, id: string, className: string) =>
     renaming?.kind === kind && renaming.id === id && (
@@ -162,88 +162,88 @@ export default function App() {
         onCancel={() => setRenaming(null)}
         className={className}
       />
-    );
+    )
 
   // Apply the in-progress rename (no-op on empty draft = cancel).
   const commitRename = () => {
-    if (!renaming) return;
-    const { kind, id, draft } = renaming;
-    const name = draft.trim();
-    setRenaming(null);
-    if (!name) return;
+    if (!renaming) return
+    const { kind, id, draft } = renaming
+    const name = draft.trim()
+    setRenaming(null)
+    if (!name) return
     if (kind === ItemType.List) {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
-      );
+      )
     } else if (kind === ItemType.Task) {
-      renameTask(id, name);
+      renameTask(id, name)
     } else {
-      renameSubtask(id, name);
+      renameSubtask(id, name)
     }
-  };
+  }
 
   const createList = (draft: string) => {
-    const name = draft.trim();
-    if (!name) return;
-    const newList = { id: crypto.randomUUID(), name };
-    setLists([...lists, newList]);
-    select(newList.id);
-  };
+    const name = draft.trim()
+    if (!name) return
+    const newList = { id: crypto.randomUUID(), name }
+    setLists([...lists, newList])
+    select(newList.id)
+  }
 
   const deleteList = (id: string) => {
-    const remaining = lists.filter((list) => list.id !== id);
-    const index = lists.findIndex((list) => list.id === id);
-    setLists(remaining);
+    const remaining = lists.filter((list) => list.id !== id)
+    const index = lists.findIndex((list) => list.id === id)
+    setLists(remaining)
     setTasks(
       tasks.map((task) =>
         task.listId === id ? { ...task, listId: undefined } : task,
       ),
-    );
+    )
     if (id === selectedId) {
       select(
         remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL,
-      );
+      )
     }
-  };
+  }
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    setDrag(active.data.current as { kind: ItemType; text: string });
-  };
+    setDrag(active.data.current as { kind: ItemType; text: string })
+  }
 
   // Highlight the sidebar list row a task is hovering over.
   const onDragOver = ({ over }: DragOverEvent) => {
-    const listIds = lists.map((list) => list.id);
+    const listIds = lists.map((list) => list.id)
     setDragOverListId(
       over &&
         drag?.kind === ItemType.Task &&
         [...listIds, TODAY].includes(String(over.id))
         ? String(over.id)
         : null,
-    );
-  };
+    )
+  }
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    setDrag(null);
-    setDragOverListId(null);
-    if (!over) return;
-    const overId = String(over.id);
+    setDrag(null)
+    setDragOverListId(null)
+    if (!over) return
+    const overId = String(over.id)
     const next = applyDrop({ lists, tasks }, {
       selectedId,
       selectedItemId,
       dragKind: drag?.kind,
       activeId: String(active.id),
       overId,
-    });
-    if (next.lists === lists && next.tasks === tasks) return;
-    setLists(next.lists);
-    setTasks(next.tasks);
+    })
+    if (next.lists === lists && next.tasks === tasks) return
+    setLists(next.lists)
+    setTasks(next.tasks)
     if (
       drag?.kind === ItemType.Task &&
       (overId === TODAY || lists.some((list) => list.id === overId))
     )
-      setSelectedItemId(null);
-  };
+      setSelectedItemId(null)
+  }
 
   return (
     <DndContext
@@ -254,8 +254,8 @@ export default function App() {
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
-        setDrag(null);
-        setDragOverListId(null);
+        setDrag(null)
+        setDragOverListId(null)
       }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
@@ -313,14 +313,14 @@ export default function App() {
             setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
           }
           onDelete={() => {
-            if (menu.kind === ItemType.List) deleteList(menu.id);
-            else if (menu.kind === ItemType.Task) deleteTask(menu.id);
-            else deleteSubtask(menu.id);
+            if (menu.kind === ItemType.List) deleteList(menu.id)
+            else if (menu.kind === ItemType.Task) deleteTask(menu.id)
+            else deleteSubtask(menu.id)
           }}
           onSetDue={(due) => setDue(menu.id, due)}
           onSetPriority={(p) => setPriority(menu.id, p)}
         />
       )}
     </DndContext>
-  );
+  )
 }
