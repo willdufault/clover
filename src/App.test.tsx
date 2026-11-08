@@ -283,7 +283,7 @@ describe('due dates', () => {
     expect(screen.getByText('Due Tomorrow')).toBeInTheDocument()
 
     await rightClick(user, screen.getByText('Milk'))
-    expect(screen.getByText('Due next Monday')).toBeInTheDocument()
+    expect(screen.getByText('Due next week')).toBeInTheDocument()
     expect(screen.getByText('Remove due date')).toBeInTheDocument()
     await user.click(screen.getByText('Remove due date'))
     expect(screen.queryByText(/^Due (?!date$)/)).toBeNull()

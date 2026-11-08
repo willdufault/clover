@@ -755,7 +755,7 @@ export default function App() {
                 {[
                   ["Due today", today()],
                   ["Due tomorrow", tomorrow()],
-                  ["Due next Monday", nextMonday()],
+                  ["Due next week", nextMonday()],
                 ].map(([label, date]) => (
                   <button
                     key={label}
