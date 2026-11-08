@@ -122,13 +122,15 @@ export default function App() {
       ),
     )
 
-  const toggleSubtask = (id: string) => {
-    const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done
-    patchSubtask(id, { done })
+  const toggleSubtask = (id: string) =>
     updateSubtasks(selectedTaskId!, (subtasks) =>
-      moveSubtaskAfterLastOpen(subtasks, id),
+      moveSubtaskAfterLastOpen(
+        subtasks.map((subtask) =>
+          subtask.id === id ? { ...subtask, done: !subtask.done } : subtask,
+        ),
+        id,
+      ),
     )
-  }
 
   const deleteSubtask = (id: string) =>
     updateSubtasks(selectedTaskId!, (subtasks) =>
