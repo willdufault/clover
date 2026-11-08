@@ -672,7 +672,12 @@ export default function App() {
                   onChange={(e) =>
                     setDue(selectedItem.id, e.target.value || undefined)
                   }
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+                  className={
+                    "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500" +
+                    (selectedItem.due && isOverdue(selectedItem.due)
+                      ? " text-red-600"
+                      : "")
+                  }
                 />
                 {selectedItem.due && (
                   <button
@@ -684,6 +689,14 @@ export default function App() {
                   </button>
                 )}
               </div>
+              {selectedItem.due &&
+                ["Yesterday", "Today", "Tomorrow"].includes(
+                  formatDue(selectedItem.due),
+                ) && (
+                  <p className={"mt-1 " + dueClass(selectedItem.due)}>
+                    {formatDue(selectedItem.due)}
+                  </p>
+                )}
               <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
                 Priority
               </h3>

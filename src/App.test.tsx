@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
+import { today, tomorrow } from './due'
 
 const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const texts = (root: HTMLElement = document.body) =>
@@ -270,6 +271,23 @@ describe('due dates', () => {
     await user.click(within(aside()).getByRole('button', { name: 'Remove due date' }))
     expect(within(aside()).getByLabelText('Due date')).toHaveValue('')
     expect(screen.queryByText(/^Due (?!date$)/)).toBeNull()
+  })
+
+  test('sidebar shows a relative label only for yesterday, today and tomorrow', async () => {
+    const { user } = setup()
+    const yesterday = new Date(`${today()}T00:00:00Z`)
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    const side = () => within(aside())
+    await setDate(user, yesterday.toISOString().slice(0, 10))
+    expect(side().getByText('Yesterday')).toHaveClass('text-red-600')
+    expect(side().getByLabelText('Due date')).toHaveClass('text-red-600')
+    fireEvent.change(side().getByLabelText('Due date'), { target: { value: today() } })
+    expect(side().getByText('Today')).toHaveClass('text-gray-500')
+    expect(side().getByLabelText('Due date')).not.toHaveClass('text-red-600')
+    fireEvent.change(side().getByLabelText('Due date'), { target: { value: tomorrow() } })
+    expect(side().getByText('Tomorrow')).toBeInTheDocument()
+    fireEvent.change(side().getByLabelText('Due date'), { target: { value: '2099-01-01' } })
+    expect(side().queryByText(/^(Yesterday|Today|Tomorrow)$/)).toBeNull()
   })
 
   test('subtasks show no due subtext', async () => {
