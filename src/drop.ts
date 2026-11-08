@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import { today } from './due'
+import { ItemType } from './shared'
 
 export type Subtask = { id: string; text: string; done: boolean }
 export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string; today?: boolean }
@@ -23,7 +24,7 @@ const move = <T extends { id: string }>(items: T[], activeId: string, overId: st
 export type Drop = {
   viewId: string
   selectedTaskId: string | null
-  dragKind: 'list' | 'task' | 'subtask' | undefined
+  dragKind: ItemType | undefined
   activeId: string
   overId: string
 }
@@ -51,12 +52,12 @@ export const applyDrop = (
   const isList = (id: string) => lists.some((list) => list.id === id)
   const visible = visibleTasks(tasks, viewId)
 
-  if (dragKind === 'task' && overId === TODAY) {
+  if (dragKind === ItemType.Task && overId === TODAY) {
     const task = visible.find((task) => task.id === activeId)
     if (!task || task.today) return state
     return { lists, tasks: tasks.map((t) => (t === task ? { ...t, today: true } : t)) }
   }
-  if (dragKind === 'task' && isList(overId)) {
+  if (dragKind === ItemType.Task && isList(overId)) {
     const task = visible.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
     return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((t) => t.id !== activeId)] }
