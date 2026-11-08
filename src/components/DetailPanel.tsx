@@ -3,7 +3,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { formatDue, isOverdue, isRelative } from '../due'
+import { formatDue, isOverdue, relativeDay } from '../due'
 import type { Priority, Subtask, Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
 import type { OpenMenu } from './ContextMenu'
@@ -140,7 +140,7 @@ export default function DetailPanel({
         )}
       </div>
       {task.due &&
-        isRelative(task.due) && (
+        relativeDay(task.due) && (
           <p className={'mt-1 ' + dueClass(task.due)}>{formatDue(task.due)}</p>
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
