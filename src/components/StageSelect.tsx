@@ -18,8 +18,8 @@ export function StageSelect({
     <select
       value={value ?? ''}
       {...stopDrag}
-      onChange={(e) =>
-        onChange((e.target.value || undefined) as Stage | undefined)
+      onChange={(event) =>
+        onChange((event.target.value || undefined) as Stage | undefined)
       }
       className={className}
     >

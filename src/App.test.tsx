@@ -8,29 +8,29 @@ const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜⚡⏳✅❌️'
-const rowName = (li: HTMLElement) =>
-  (li.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|Due |🔴|🔵).*$/, '')
+const rowName = (rowElement: HTMLElement) =>
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|Due |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((b) => !/^[✕×]$/.test(b.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^[✕×]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const subtasks = () => namesIn(aside())
 const lists = () =>
   within(nav())
     .getAllByRole('button')
-    .map((b) => (b.textContent ?? '').replace(/\d+$/, ''))
-    .filter((t) => !t.startsWith('+'))
+    .map((button) => (button.textContent ?? '').replace(/\d+$/, ''))
+    .filter((text) => !text.startsWith('+'))
 const row = (name: string, root: HTMLElement = main()) =>
-  rowsIn(root).find((li) => rowName(li) === name)!
+  rowsIn(root).find((rowElement) => rowName(rowElement) === name)!
 const stageSelect = (name: string) => within(row(name)).getByRole('combobox')
 const dueInput = () => within(aside()).getAllByDisplayValue(/^(\d{4}-\d{2}-\d{2})?$/).at(-1)!
 const closeButton = () => within(aside()).getByText('✕')
 const removeDue = () => within(aside()).getByText('×')
 
 type User = ReturnType<typeof userEvent.setup>
-const rightClick = (user: User, el: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: el })
-const menuAction = async (user: User, el: HTMLElement, action: 'Rename' | 'Delete') => {
-  await rightClick(user, el)
+const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
+const menuAction = async (user: User, element: HTMLElement, action: 'Rename' | 'Delete') => {
+  await rightClick(user, element)
   await user.click(screen.getByText(action))
 }
 const newList = async (user: User, name: string) => {
@@ -253,16 +253,16 @@ describe('side panel closes', () => {
 
 describe('changes only affect the touched item', () => {
   const snapshot = async (user: User) => {
-    const out: Record<string, string[]> = {}
+    const result: Record<string, string[]> = {}
     for (const name of ['Groceries', 'Work', 'Home']) {
       await user.click(within(nav()).getByText(name))
-      out[name] = tasks()
+      result[name] = tasks()
     }
     await user.click(within(nav()).getByText('Groceries'))
     await user.click(screen.getByText('Milk'))
-    out.milkSubs = subtasks()
+    result.milkSubs = subtasks()
     await user.click(screen.getByText('Eggs'))
-    return out
+    return result
   }
 
   test('task and subtask add, toggle, rename, delete leave the rest unchanged', async () => {

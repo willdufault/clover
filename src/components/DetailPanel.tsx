@@ -108,7 +108,7 @@ export default function DetailPanel({
         <input
           type="date"
           value={task.due ?? ''}
-          onChange={(e) => onSetDue(task.id, e.target.value || undefined)}
+          onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
           className={
             FIELD_CLASS + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
           }
@@ -129,10 +129,10 @@ export default function DetailPanel({
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
       <select
         value={task.priority ?? ''}
-        onChange={(e) =>
+        onChange={(event) =>
           onSetPriority(
             task.id,
-            (e.target.value || undefined) as Priority | undefined,
+            (event.target.value || undefined) as Priority | undefined,
           )
         }
         className={FIELD_CLASS}

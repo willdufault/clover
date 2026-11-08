@@ -20,12 +20,12 @@ export function RenameInput({
     <input
       placeholder={placeholder}
       autoFocus
-      onFocus={(e) => e.target.select()}
+      onFocus={(event) => event.target.select()}
       value={draft}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onCommit()
-        if (e.key === 'Escape') onCancel()
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') onCommit()
+        if (event.key === 'Escape') onCancel()
       }}
       onBlur={onCancel}
       {...stopDrag}

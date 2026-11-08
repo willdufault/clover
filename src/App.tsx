@@ -53,14 +53,14 @@ export default function App() {
     setSelectedTaskId(null)
   }
 
-  // Apply f to the subtasks of the task with id.
+  // Apply update to the subtasks of the task with id.
   const updateSubtasks = (
     taskId: string,
-    f: (subtasks: Subtask[]) => Subtask[],
+    update: (subtasks: Subtask[]) => Subtask[],
   ) =>
     setTasks((tasks) =>
       tasks.map((task) =>
-        task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
+        task.id === taskId ? { ...task, subtasks: update(task.subtasks) } : task,
       ),
     )
 
@@ -114,9 +114,9 @@ export default function App() {
 
   const openMenu =
     (kind: ItemKind, id: string, text: string, due?: string) =>
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due })
+    (event: React.MouseEvent) => {
+      event.preventDefault()
+      setMenu({ x: event.clientX, y: event.clientY, kind, id, text, due })
     }
 
   const renderRenameInput = (kind: ItemKind, id: string, className: string) =>

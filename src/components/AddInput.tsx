@@ -20,8 +20,8 @@ export function AddInput({
   return (
     <input
       value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => e.key === 'Enter' && add()}
+      onChange={(event) => setText(event.target.value)}
+      onKeyDown={(event) => event.key === 'Enter' && add()}
       placeholder={placeholder}
       className={'mt-4 ' + FIELD_CLASS}
     />

@@ -19,7 +19,7 @@ export function SortableRow({
   tag: 'li' | 'div'
   className?: string
   onClick?: () => void
-  onContextMenu?: (e: React.MouseEvent) => void
+  onContextMenu?: (event: React.MouseEvent) => void
   children: React.ReactNode
 }) {
   const {

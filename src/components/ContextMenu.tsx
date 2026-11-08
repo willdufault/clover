@@ -16,7 +16,7 @@ export type OpenMenu = (
   id: string,
   text: string,
   due?: string,
-) => (e: React.MouseEvent) => void
+) => (event: React.MouseEvent) => void
 
 export default function ContextMenu({
   menu,
@@ -34,8 +34,8 @@ export default function ContextMenu({
   onSetPriority: (priority?: Priority) => void
 }) {
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -63,8 +63,8 @@ export default function ContextMenu({
       <div
         className="fixed inset-0"
         onClick={onClose}
-        onContextMenu={(e) => {
-          e.preventDefault()
+        onContextMenu={(event) => {
+          event.preventDefault()
           onClose()
         }}
       />
@@ -93,7 +93,7 @@ export default function ContextMenu({
                 ['Set medium priority', undefined],
                 ['Set high priority', 'high'],
               ] as const
-            ).map(([label, p]) => menuItem(label, () => onSetPriority(p)))}
+            ).map(([label, priority]) => menuItem(label, () => onSetPriority(priority)))}
           </>
         )}
       </div>

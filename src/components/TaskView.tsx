@@ -63,7 +63,7 @@ export default function TaskView({
             <div className="flex gap-3">
               {task.subtasks.length > 0 && (
                 <span className="text-xs text-gray-500">
-                  {task.subtasks.filter((s) => s.done).length}/
+                  {task.subtasks.filter((subtask) => subtask.done).length}/
                   {task.subtasks.length}
                 </span>
               )}

@@ -31,16 +31,16 @@ export const applyDrop = (
   if (dragKind === ItemKind.Task && overId === TODAY_VIEW_ID) {
     const task = visibleInView.find((task) => task.id === activeId)
     if (!task || task.addedToToday) return state
-    return { lists, tasks: tasks.map((t) => (t === task ? { ...t, addedToToday: true } : t)) }
+    return { lists, tasks: tasks.map((other) => (other === task ? { ...other, addedToToday: true } : other)) }
   }
   if (dragKind === ItemKind.Task && isList(overId)) {
     const task = visibleInView.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
-    return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((t) => t.id !== activeId)] }
+    return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((other) => other.id !== activeId)] }
   }
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
-  const containsBoth = (items: { id: string }[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
+  const containsBoth = (items: { id: string }[]) => items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(visibleInView)) return { lists, tasks: moveById(tasks, activeId, overId) }
   const selectedTask = visibleInView.find((task) => task.id === selectedTaskId)
   if (selectedTask && containsBoth(selectedTask.subtasks)) {
