@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -7,7 +6,7 @@ import { formatDue, isOverdue, relativeDay } from '../due'
 import type { Priority, Stage, Subtask, Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { SortableRow, stopDrag } from './rows'
+import { AddInput, SortableRow, stopDrag } from './rows'
 
 export default function DetailPanel({
   task,
@@ -30,14 +29,6 @@ export default function DetailPanel({
   onContextMenu: OpenMenu
   renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
-  const [subtaskText, setSubtaskText] = useState('')
-
-  const add = () => {
-    if (!subtaskText.trim()) return
-    onAddSubtask(subtaskText)
-    setSubtaskText('')
-  }
-
   const subtaskRow = (subtask: Subtask) => (
     <SortableRow
       key={subtask.id}
@@ -83,12 +74,9 @@ export default function DetailPanel({
         </button>
       </div>
 
-      <input
-        value={subtaskText}
-        onChange={(e) => setSubtaskText(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && add()}
+      <AddInput
         placeholder="Add a subtask and press Enter"
-        className={'mt-4 ' + FIELD}
+        onAdd={onAddSubtask}
       />
 
       <SortableContext

@@ -1,13 +1,12 @@
-import { useState } from 'react'
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
 import type { Stage, Task } from '../drop'
-import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
+import { ItemType, PRIORITY, STAGE, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { SortableRow, stopDrag } from './rows'
+import { AddInput, SortableRow, stopDrag } from './rows'
 
 export default function TaskView({
   name,
@@ -26,14 +25,6 @@ export default function TaskView({
   onContextMenu: OpenMenu
   renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
-  const [text, setText] = useState('')
-
-  const add = () => {
-    if (!text.trim()) return
-    onAdd(text)
-    setText('')
-  }
-
   const taskRow = (task: Task) => (
     <SortableRow
       key={task.id}
@@ -105,13 +96,7 @@ export default function TaskView({
     <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
       <h1 className="font-semibold text-gray-800">{name}</h1>
 
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && add()}
-        placeholder="Add a task and press Enter"
-        className={'mt-4 ' + FIELD}
-      />
+      <AddInput placeholder="Add a task and press Enter" onAdd={onAdd} />
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
         <ul className="mt-4 w-full">{tasks.map(taskRow)}</ul>
