@@ -42,9 +42,7 @@ const seedLists: TaskList[] = [
       {
         id: "g1",
         text: "Milk",
-        subtasks: [
-          { id: "g1a", text: "2% lactose free", done: false },
-        ],
+        subtasks: [{ id: "g1a", text: "2% lactose free", done: false }],
       },
       { id: "g2", text: "Eggs", subtasks: [] },
     ],
@@ -183,7 +181,10 @@ export default function App() {
   };
 
   // Apply f to the subtasks of the task with id.
-  const updateSubtasks = (taskId: string, f: (subtasks: Subtask[]) => Subtask[]) =>
+  const updateSubtasks = (
+    taskId: string,
+    f: (subtasks: Subtask[]) => Subtask[],
+  ) =>
     updateTasks(selectedId, (tasks) =>
       tasks.map((task) =>
         task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
@@ -292,7 +293,7 @@ export default function App() {
           </option>
         ))}
       </select>
-     {renaming?.kind === "task" && renaming.id === task.id ? (
+      {renaming?.kind === "task" && renaming.id === task.id ? (
         <RenameInput
           draft={renaming.draft}
           onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -319,14 +320,7 @@ export default function App() {
                 </span>
               )}
               {task.priority && (
-                <span
-                  className={
-                    "text-xs " +
-                    (task.priority === "high"
-                      ? "text-red-600"
-                      : "text-blue-600")
-                  }
-                >
+                <span className="text-xs text-gray-500">
                   {task.priority === "high"
                     ? "🔴 High priority"
                     : "🔵 Low priority"}
@@ -727,7 +721,10 @@ export default function App() {
           />
           <div
             className="fixed z-50 max-h-64 w-44 overflow-y-auto rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
-            style={{ left: Math.min(menu.x, window.innerWidth - 176), top: Math.min(menu.y, window.innerHeight - 256) }}
+            style={{
+              left: Math.min(menu.x, window.innerWidth - 176),
+              top: Math.min(menu.y, window.innerHeight - 256),
+            }}
           >
             <button
               onClick={() => {
