@@ -18,6 +18,15 @@ import { CSS } from "@dnd-kit/utilities";
 import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
 import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from "./drop";
 
+type Stage = NonNullable<Task["stage"]>;
+
+const STAGE: Record<Stage, [string, string]> = {
+  progress: ["⚡ In progress", "text-amber-600"],
+  waiting: ["⏳ Waiting", "text-amber-800"],
+  done: ["✅ Done", "text-green-600"],
+  cancelled: ["❌ Cancelled", "text-red-600"],
+};
+
 const seedLists: TaskList[] = [
   {
     id: "groceries",
@@ -234,6 +243,11 @@ export default function App() {
       items.map((item) => (item.id === id ? { ...item, priority } : item)),
     );
 
+  const setStage = (id: string, stage?: Stage) =>
+    updateItem(id, (items) =>
+      items.map((item) => (item.id === id ? { ...item, stage } : item)),
+    );
+
   // Shared row rendered by both the task list and the subtask panel.
   const taskRow = (
     item: Task,
@@ -288,11 +302,16 @@ export default function App() {
           >
             {item.text}
           </span>
-          {kind === "task" && (item.due || item.priority) && (
+          {kind === "task" && (item.due || item.stage || item.priority) && (
             <div className="flex gap-3">
               {item.due && (
                 <span className={dueClass(item.due)}>
                   Due {formatDue(item.due)}
+                </span>
+              )}
+              {item.stage && (
+                <span className={"text-xs " + STAGE[item.stage][1]}>
+                  {STAGE[item.stage][0]}
                 </span>
               )}
               {item.priority && (
@@ -605,6 +624,26 @@ export default function App() {
                 )}
               </div>
               <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
+                Stage
+              </h3>
+              <select
+                aria-label="Stage"
+                value={selectedItem.stage ?? ""}
+                onChange={(e) =>
+                  setStage(
+                    selectedItem.id,
+                    (e.target.value || undefined) as Stage | undefined,
+                  )
+                }
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+              >
+                <option value="">Open</option>
+                <option value="progress">In progress</option>
+                <option value="waiting">Waiting</option>
+                <option value="done">Done</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
                 Priority
               </h3>
               <select
@@ -698,6 +737,27 @@ export default function App() {
                     Remove due date
                   </button>
                 )}
+                <hr className="my-1 border-gray-200" />
+                {(
+                  [
+                    ["Set open", undefined],
+                    ["Set in progress", "progress"],
+                    ["Set waiting", "waiting"],
+                    ["Set done", "done"],
+                    ["Set cancelled", "cancelled"],
+                  ] as const
+                ).map(([label, c]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      setStage(menu.id, c);
+                      setMenu(null);
+                    }}
+                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    {label}
+                  </button>
+                ))}
                 <hr className="my-1 border-gray-200" />
                 {(
                   [

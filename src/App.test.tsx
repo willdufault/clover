@@ -323,3 +323,40 @@ describe('priority', () => {
     expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText(/priority$/)).toBeNull()
   })
 })
+
+describe('stage', () => {
+  const setStage = async (user: User, value: string) => {
+    await user.click(within(screen.getByRole('main')).getByText('Milk'))
+    await user.selectOptions(within(aside()).getByLabelText('Stage'), value)
+  }
+
+  test('sidebar select sets stage, row shows it, open clears it', async () => {
+    const { user } = setup()
+    await setStage(user, 'progress')
+    expect(within(screen.getByRole('main')).getByText('⚡ In progress')).toBeInTheDocument()
+    await setStage(user, 'waiting')
+    expect(within(screen.getByRole('main')).getByText('⏳ Waiting')).toBeInTheDocument()
+    await setStage(user, 'done')
+    expect(within(screen.getByRole('main')).getByText('✅ Done')).toBeInTheDocument()
+    await setStage(user, 'cancelled')
+    expect(within(screen.getByRole('main')).getByText('❌ Cancelled')).toBeInTheDocument()
+    await setStage(user, 'Open')
+    expect(within(screen.getByRole('main')).queryByText(/In progress|⏳|✅|❌/)).toBeNull()
+  })
+
+  test('context menu sets and clears stage', async () => {
+    const { user } = setup()
+    await rightClick(user, screen.getByText('Milk'))
+    await user.click(screen.getByText('Set in progress'))
+    expect(screen.getByText('⚡ In progress')).toBeInTheDocument()
+    await rightClick(user, screen.getByText('Milk'))
+    await user.click(screen.getByText('Set open'))
+    expect(screen.queryByText('⚡ In progress')).toBeNull()
+  })
+
+  test('subtasks show no stage', async () => {
+    const { user } = setup()
+    await setStage(user, 'progress')
+    expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText('⚡ In progress')).toBeNull()
+  })
+})
