@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  useDroppable,
   PointerSensor,
   useSensor,
   useSensors,
@@ -10,13 +9,6 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
 import {
   ALL,
   TODAY,
@@ -27,37 +19,12 @@ import {
   type Task,
   type TaskList,
 } from "./drop";
-
-type Stage = NonNullable<Task["stage"]>;
-
-const STAGE: Record<Stage, string> = {
-  progress: "⚡ In progress",
-  waiting: "⏳ Waiting",
-  done: "✅ Done",
-  // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
-  cancelled: "❌\uFE0F Cancelled",
-};
-
-const ItemType = {
-  List: "list",
-  Task: "task",
-  Subtask: "subtask",
-} as const;
-type ItemType = (typeof ItemType)[keyof typeof ItemType];
-
-const FIELD =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500";
-
-function navRowClass(selected: boolean, dragOver: boolean) {
-  return (
-    "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
-    (dragOver
-      ? "bg-blue-100 outline-2 outline-blue-300 text-gray-800"
-      : selected
-        ? "bg-gray-200 font-medium text-gray-800"
-        : "text-gray-600 hover:bg-gray-200/60")
-  );
-}
+import { ItemType, type Stage } from "./shared";
+import ContextMenu, { type MenuState } from "./components/ContextMenu";
+import DetailPanel from "./components/DetailPanel";
+import Sidebar from "./components/Sidebar";
+import TaskView from "./components/TaskView";
+import { RenameInput } from "./components/rows";
 
 const seedLists: TaskList[] = [
   { id: "groceries", name: "Groceries" },
@@ -78,111 +45,6 @@ const seedTasks: Task[] = [
   { id: "w3", text: "Review PR", listId: "work", subtasks: [] },
 ];
 
-function Count({ n }: { n: number }) {
-  return n > 0 ? <span className="text-xs text-gray-500">{n}</span> : null;
-}
-
-// Sidebar Today row: drop target only.
-function TodayRow({
-  selected,
-  dragOver,
-  count,
-  onClick,
-}: {
-  count: number;
-  selected: boolean;
-  dragOver: boolean;
-  onClick: () => void;
-}) {
-  const { setNodeRef } = useDroppable({ id: TODAY });
-  return (
-    <div
-      ref={setNodeRef}
-      onClick={onClick}
-      className={navRowClass(selected, dragOver)}
-    >
-      <span>Today</span>
-      <Count n={count} />
-    </div>
-  );
-}
-
-// Row that can be dragged among its SortableContext siblings.
-function SortableRow({
-  id,
-  kind,
-  text,
-  tag,
-  className,
-  onClick,
-  onContextMenu,
-  children,
-}: {
-  id: string;
-  kind: ItemType;
-  text: string;
-  tag: "li" | "div";
-  className?: string;
-  onClick?: () => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, data: { kind, text } });
-  const Tag = tag;
-  return (
-    <Tag
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      className={isDragging ? "opacity-60 shadow-lg " + className : className}
-      {...attributes}
-      {...listeners}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-// In-place rename box: Enter commits, Escape or blur cancels.
-function RenameInput({
-  draft,
-  onChange,
-  onCommit,
-  onCancel,
-  className,
-}: {
-  draft: string;
-  onChange: (draft: string) => void;
-  onCommit: () => void;
-  onCancel: () => void;
-  className: string;
-}) {
-  return (
-    <input
-      autoFocus
-      onFocus={(e) => e.target.select()}
-      value={draft}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onCommit();
-        if (e.key === "Escape") onCancel();
-      }}
-      onBlur={onCancel}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      className={className}
-    />
-  );
-}
-
 export default function App() {
   const [lists, setLists] = useState(seedLists);
   const [tasks, setTasks] = useState(seedTasks);
@@ -192,23 +54,12 @@ export default function App() {
     null,
   );
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{
-    x: number;
-    y: number;
-    kind: ItemType;
-    id: string;
-    text: string;
-    due?: string;
-  } | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
   const [renaming, setRenaming] = useState<{
     kind: ItemType;
     id: string;
     draft: string;
   } | null>(null);
-  const [text, setText] = useState("");
-  const [subtaskText, setSubtaskText] = useState("");
-  const [addingList, setAddingList] = useState(false);
-  const [newListName, setNewListName] = useState("");
 
   const viewTasks = visibleTasks(tasks, selectedId);
   const viewName =
@@ -218,15 +69,6 @@ export default function App() {
         ? "Today"
         : lists.find((list) => list.id === selectedId)?.name;
   const selectedItem = viewTasks.find((task) => task.id === selectedItemId);
-
-  useEffect(() => {
-    if (!menu) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenu(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menu]);
 
   const select = (id: string) => {
     setSelectedId(id);
@@ -246,8 +88,7 @@ export default function App() {
       ),
     );
 
-  const addTask = () => {
-    if (!text.trim()) return;
+  const addTask = (text: string) =>
     updateTasks((tasks) => [
       {
         id: crypto.randomUUID(),
@@ -258,22 +99,15 @@ export default function App() {
       },
       ...tasks,
     ]);
-    setText("");
-  };
 
-  const addSubtask = () => {
-    if (!subtaskText.trim() || !selectedItem) return;
-    updateSubtasks(selectedItem.id, (subtasks) => [
-      { id: crypto.randomUUID(), text: subtaskText, done: false },
+  const addSubtask = (text: string) =>
+    updateSubtasks(selectedItem!.id, (subtasks) => [
+      { id: crypto.randomUUID(), text, done: false },
       ...subtasks,
     ]);
-    setSubtaskText("");
-  };
 
   const deleteTask = (id: string) =>
     updateTasks((tasks) => tasks.filter((task) => task.id !== id));
-
-  const renameTask = (id: string, text: string) => patchTask(id, { text });
 
   const patchTask = (id: string, patch: Partial<Task>) =>
     updateTasks((tasks) =>
@@ -286,6 +120,8 @@ export default function App() {
         subtask.id === id ? { ...subtask, ...patch } : subtask,
       ),
     );
+
+  const renameTask = (id: string, text: string) => patchTask(id, { text });
 
   const toggleSubtask = (id: string) => {
     const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done;
@@ -302,9 +138,6 @@ export default function App() {
 
   const renameSubtask = (id: string, text: string) =>
     patchSubtask(id, { text });
-
-  const dueClass = (due: string) =>
-    "text-xs " + (isOverdue(due) ? "text-red-600" : "text-gray-500");
 
   const setDue = (id: string, due?: string) => patchTask(id, { due });
 
@@ -331,110 +164,6 @@ export default function App() {
       />
     );
 
-  const taskRow = (task: Task) => (
-    <SortableRow
-      key={task.id}
-      id={task.id}
-      kind={ItemType.Task}
-      text={task.text}
-      tag="li"
-      onClick={() => setSelectedItemId(task.id)}
-      onContextMenu={openMenu(ItemType.Task, task.id, task.text, task.due)}
-      className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
-    >
-      <select
-        aria-label="Task stage"
-        value={task.stage ?? ""}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) =>
-          setStage(task.id, (e.target.value || undefined) as Stage | undefined)
-        }
-        className="bg-transparent"
-      >
-        <option value="">⬜</option>
-        {(Object.keys(STAGE) as Stage[]).map((stage) => (
-          <option key={stage} value={stage}>
-            {STAGE[stage].split(" ")[0]}
-          </option>
-        ))}
-      </select>
-      {renameBox(
-        ItemType.Task,
-        task.id,
-        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
-      ) || (
-        <div className="flex flex-col">
-          <span
-            className={
-              task.stage === "done" || task.stage === "cancelled"
-                ? "text-gray-400 line-through"
-                : "text-gray-800"
-            }
-          >
-            {task.text}
-          </span>
-          {(task.subtasks.length > 0 || task.due || task.priority) && (
-            <div className="flex gap-3">
-              {task.subtasks.length > 0 && (
-                <span className="text-xs text-gray-500">
-                  {task.subtasks.filter((s) => s.done).length}/
-                  {task.subtasks.length}
-                </span>
-              )}
-              {task.due && (
-                <span className={dueClass(task.due)}>
-                  Due {formatDue(task.due)}
-                </span>
-              )}
-              {task.priority && (
-                <span className="text-xs text-gray-500">
-                  {task.priority === "high"
-                    ? "🔴 High priority"
-                    : "🔵 Low priority"}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </SortableRow>
-  );
-
-  const subtaskRow = (subtask: Subtask) => (
-    <SortableRow
-      key={subtask.id}
-      id={subtask.id}
-      kind={ItemType.Subtask}
-      text={subtask.text}
-      tag="li"
-      onContextMenu={openMenu(ItemType.Subtask, subtask.id, subtask.text)}
-      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
-    >
-      <input
-        type="checkbox"
-        checked={subtask.done}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-        onChange={() => toggleSubtask(subtask.id)}
-        className="size-4 accent-blue-500"
-      />
-      {renameBox(
-        ItemType.Subtask,
-        subtask.id,
-        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
-      ) || (
-        <span
-          className={
-            subtask.done ? "text-gray-400 line-through" : "text-gray-800"
-          }
-        >
-          {subtask.text}
-        </span>
-      )}
-    </SortableRow>
-  );
-
   // Apply the in-progress rename (no-op on empty draft = cancel).
   const commitRename = () => {
     if (!renaming) return;
@@ -453,10 +182,8 @@ export default function App() {
     }
   };
 
-  const createList = () => {
-    const name = newListName.trim();
-    setAddingList(false);
-    setNewListName("");
+  const createList = (draft: string) => {
+    const name = draft.trim();
     if (!name) return;
     const newList = { id: crypto.randomUUID(), name };
     setLists([...lists, newList]);
@@ -536,218 +263,37 @@ export default function App() {
           <span className="font-semibold text-gray-800">todo</span>
         </header>
         <div className="flex flex-1 min-h-0">
-          <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
-            <TodayRow
-              count={visibleTasks(tasks, TODAY).length}
-              selected={selectedId === TODAY}
-              dragOver={dragOverListId === TODAY}
-              onClick={() => select(TODAY)}
-            />
-            <div
-              onClick={() => select(ALL)}
-              className={navRowClass(selectedId === ALL, false)}
-            >
-              <span>All</span>
-              <Count n={visibleTasks(tasks, ALL).length} />
-            </div>
-            <hr className="my-1 border-gray-300" />
-            <SortableContext
-              items={lists}
-              strategy={verticalListSortingStrategy}
-            >
-              {lists.map((list) => (
-                <SortableRow
-                  key={list.id}
-                  id={list.id}
-                  kind={ItemType.List}
-                  text={list.name}
-                  tag="div"
-                  onClick={() => select(list.id)}
-                  onContextMenu={openMenu(ItemType.List, list.id, list.name)}
-                  className={navRowClass(
-                    list.id === selectedId,
-                    list.id === dragOverListId,
-                  )}
-                >
-                  {renameBox(
-                    ItemType.List,
-                    list.id,
-                    "w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none",
-                  ) || (
-                    <>
-                      <span className="truncate">{list.name}</span>
-                      <Count n={visibleTasks(tasks, list.id).length} />
-                    </>
-                  )}
-                </SortableRow>
-              ))}
-            </SortableContext>
-
-            <hr className="my-1 border-gray-300" />
-            {addingList ? (
-              <input
-                autoFocus
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") createList();
-                  if (e.key === "Escape") {
-                    setAddingList(false);
-                    setNewListName("");
-                  }
-                }}
-                onBlur={() => {
-                  setAddingList(false);
-                  setNewListName("");
-                }}
-                placeholder="List name…"
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-              />
-            ) : (
-              <button
-                onClick={() => setAddingList(true)}
-                className="rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
-              >
-                + New list
-              </button>
-            )}
-          </nav>
-
-          <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-            <h1 className="font-semibold text-gray-800">{viewName}</h1>
-
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTask()}
-              placeholder="Add a task and press Enter"
-              className={"mt-4 " + FIELD}
-            />
-
-            <SortableContext
-              items={viewTasks}
-              strategy={verticalListSortingStrategy}
-            >
-              <ul className="mt-4 w-full">{viewTasks.map(taskRow)}</ul>
-            </SortableContext>
-
-            {viewTasks.length === 0 && (
-              <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
-            )}
-          </main>
-
+          <Sidebar
+            lists={lists}
+            tasks={tasks}
+            selectedId={selectedId}
+            dragOverListId={dragOverListId}
+            onSelect={select}
+            onCreateList={createList}
+            onContextMenu={openMenu}
+            renameBox={renameBox}
+          />
+          <TaskView
+            name={viewName}
+            tasks={viewTasks}
+            onAdd={addTask}
+            onSelectTask={setSelectedItemId}
+            onSetStage={setStage}
+            onContextMenu={openMenu}
+            renameBox={renameBox}
+          />
           {selectedItem && (
-            <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
-              <div className="flex items-center">
-                <h2 className="font-semibold text-gray-800">
-                  {selectedItem.text}
-                </h2>
-                <button
-                  onClick={() => setSelectedItemId(null)}
-                  className="ml-auto rounded text-gray-400 hover:text-gray-600"
-                  aria-label="Close panel"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <input
-                value={subtaskText}
-                onChange={(e) => setSubtaskText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addSubtask()}
-                placeholder="Add a subtask and press Enter"
-                className={"mt-4 " + FIELD}
-              />
-
-              <SortableContext
-                items={selectedItem.subtasks}
-                strategy={verticalListSortingStrategy}
-              >
-                <ul className="mt-4 max-h-64 w-full overflow-y-auto">
-                  {selectedItem.subtasks.map(subtaskRow)}
-                </ul>
-              </SortableContext>
-
-              {selectedItem.subtasks.length === 0 && (
-                <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
-              )}
-
-              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
-                Stage
-              </h3>
-              <select
-                aria-label="Stage"
-                value={selectedItem.stage ?? ""}
-                onChange={(e) =>
-                  setStage(
-                    selectedItem.id,
-                    (e.target.value || undefined) as Stage | undefined,
-                  )
-                }
-                className={FIELD}
-              >
-                <option value="">⬜ Open</option>
-                {(Object.keys(STAGE) as Stage[]).map((stage) => (
-                  <option key={stage} value={stage}>
-                    {STAGE[stage]}
-                  </option>
-                ))}
-              </select>
-              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
-                Due date
-              </h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  aria-label="Due date"
-                  value={selectedItem.due ?? ""}
-                  onChange={(e) =>
-                    setDue(selectedItem.id, e.target.value || undefined)
-                  }
-                  className={
-                    FIELD +
-                    (selectedItem.due && isOverdue(selectedItem.due)
-                      ? " text-red-600"
-                      : "")
-                  }
-                />
-                {selectedItem.due && (
-                  <button
-                    onClick={() => setDue(selectedItem.id)}
-                    aria-label="Remove due date"
-                    className="text-gray-500 hover:text-gray-800"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              {selectedItem.due &&
-                ["Yesterday", "Today", "Tomorrow"].includes(
-                  formatDue(selectedItem.due),
-                ) && (
-                  <p className={"mt-1 " + dueClass(selectedItem.due)}>
-                    {formatDue(selectedItem.due)}
-                  </p>
-                )}
-              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
-                Priority
-              </h3>
-              <select
-                aria-label="Priority"
-                value={selectedItem.priority ?? ""}
-                onChange={(e) =>
-                  setPriority(
-                    selectedItem.id,
-                    (e.target.value || undefined) as "low" | "high" | undefined,
-                  )
-                }
-                className={FIELD}
-              >
-                <option value="low">🔵 Low</option>
-                <option value="">Medium</option>
-                <option value="high">🔴 High</option>
-              </select>
-            </aside>
+            <DetailPanel
+              task={selectedItem}
+              onClose={() => setSelectedItemId(null)}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtask}
+              onSetStage={setStage}
+              onSetDue={setDue}
+              onSetPriority={setPriority}
+              onContextMenu={openMenu}
+              renameBox={renameBox}
+            />
           )}
         </div>
       </div>
@@ -760,96 +306,20 @@ export default function App() {
       </DragOverlay>
 
       {menu && (
-        <>
-          {/* Invisible backdrop to catch clicks outside the menu. */}
-          <div
-            className="fixed inset-0"
-            onClick={() => setMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenu(null);
-            }}
-          />
-          <div
-            className="fixed z-50 max-h-64 w-44 overflow-y-auto rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
-            style={{
-              left: Math.min(menu.x, window.innerWidth - 176),
-              top: Math.min(menu.y, window.innerHeight - 256),
-            }}
-          >
-            <button
-              onClick={() => {
-                setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text });
-                setMenu(null);
-              }}
-              className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
-            >
-              Rename
-            </button>
-            <button
-              onClick={() => {
-                if (menu.kind === ItemType.List) deleteList(menu.id);
-                else if (menu.kind === ItemType.Task) deleteTask(menu.id);
-                else deleteSubtask(menu.id);
-                setMenu(null);
-              }}
-              className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
-            >
-              Delete
-            </button>
-            {menu.kind === ItemType.Task && (
-              <>
-                <hr className="my-1 border-gray-200" />
-                {[
-                  ["Due today", today()],
-                  ["Due tomorrow", tomorrow()],
-                  ["Due next week", nextMonday()],
-                ].map(([label, date]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      setDue(menu.id, date);
-                      setMenu(null);
-                    }}
-                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    {label}
-                  </button>
-                ))}
-                {menu.due && (
-                  <button
-                    onClick={() => {
-                      setDue(menu.id);
-                      setMenu(null);
-                    }}
-                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    Remove due date
-                  </button>
-                )}
-                <hr className="my-1 border-gray-200" />
-                {(
-                  [
-                    ["Set low priority", "low"],
-                    ["Set medium priority", undefined],
-                    ["Set high priority", "high"],
-                  ] as const
-                ).map(([label, p]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      setPriority(menu.id, p);
-                      setMenu(null);
-                    }}
-                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        </>
+        <ContextMenu
+          menu={menu}
+          onClose={() => setMenu(null)}
+          onRename={() =>
+            setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
+          }
+          onDelete={() => {
+            if (menu.kind === ItemType.List) deleteList(menu.id);
+            else if (menu.kind === ItemType.Task) deleteTask(menu.id);
+            else deleteSubtask(menu.id);
+          }}
+          onSetDue={(due) => setDue(menu.id, due)}
+          onSetPriority={(p) => setPriority(menu.id, p)}
+        />
       )}
     </DndContext>
   );
