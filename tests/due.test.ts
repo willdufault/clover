@@ -5,7 +5,7 @@ import {
   relativeDay,
   today,
   tomorrow,
-} from './due'
+} from '../src/due'
 
 const now = new Date('2026-11-08T17:00:00Z') // Sunday
 

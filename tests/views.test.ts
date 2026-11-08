@@ -1,5 +1,5 @@
-import type { Task } from './types'
-import { TODAY_VIEW_ID, visibleTasks } from './views'
+import type { Task } from '../src/types'
+import { TODAY_VIEW_ID, visibleTasks } from '../src/views'
 
 const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, subtasks: [] })
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
