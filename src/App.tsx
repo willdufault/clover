@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
+  useDroppable,
   PointerSensor,
   useSensor,
   useSensors,
@@ -18,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
 import {
   ALL,
+  TODAY,
   applyDrop,
   visibleTasks,
   moveSubtaskAfterLastOpen,
@@ -56,6 +58,34 @@ const seedTasks: Task[] = [
 ];
 
 // Row that can be dragged among its SortableContext siblings.
+function TodayRow({
+  selected,
+  dragOver,
+  onClick,
+}: {
+  selected: boolean;
+  dragOver: boolean;
+  onClick: () => void;
+}) {
+  const { setNodeRef } = useDroppable({ id: TODAY });
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={onClick}
+      className={
+        "flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm " +
+        (dragOver
+          ? "bg-blue-100 outline-2 outline-blue-300 text-gray-800"
+          : selected
+            ? "bg-gray-200 font-medium text-gray-800"
+            : "text-gray-600 hover:bg-gray-200/60")
+      }
+    >
+      Today
+    </div>
+  );
+}
+
 function SortableRow({
   id,
   tag,
@@ -158,8 +188,10 @@ export default function App() {
   const viewTasks = visibleTasks(tasks, selectedId);
   const viewName =
     selectedId === ALL
-      ? "All tasks"
-      : lists.find((list) => list.id === selectedId)?.name;
+      ? "All"
+      : selectedId === TODAY
+        ? "Today"
+        : lists.find((list) => list.id === selectedId)?.name;
   const selectedItem = viewTasks.find((task) => task.id === selectedItemId);
 
   useEffect(() => {
@@ -191,7 +223,8 @@ export default function App() {
         id: crypto.randomUUID(),
         text,
         subtasks: [],
-        listId: selectedId === ALL ? undefined : selectedId,
+        listId: selectedId === ALL || selectedId === TODAY ? undefined : selectedId,
+        today: selectedId === TODAY ? true : undefined,
       },
       ...tasks,
     ]);
@@ -444,7 +477,9 @@ export default function App() {
   const onDragOver = ({ over }: DragOverEvent) => {
     const listIds = lists.map((list) => list.id);
     setDragOverListId(
-      over && drag?.kind === "task" && listIds.includes(String(over.id))
+      over &&
+        drag?.kind === "task" &&
+        [...listIds, TODAY].includes(String(over.id))
         ? String(over.id)
         : null,
     );
@@ -465,7 +500,10 @@ export default function App() {
     if (next.lists === lists && next.tasks === tasks) return;
     setLists(next.lists);
     setTasks(next.tasks);
-    if (drag?.kind === "task" && lists.some((list) => list.id === overId))
+    if (
+      drag?.kind === "task" &&
+      (overId === TODAY || lists.some((list) => list.id === overId))
+    )
       setSelectedItemId(null);
   };
 
@@ -489,6 +527,14 @@ export default function App() {
         </header>
         <div className="flex flex-1 min-h-0">
           <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
+            <TodayRow
+              selected={selectedId === TODAY}
+              dragOver={dragOverListId === TODAY}
+              onClick={() => {
+                setSelectedId(TODAY);
+                setSelectedItemId(null);
+              }}
+            />
             <div
               onClick={() => {
                 setSelectedId(ALL);
@@ -501,7 +547,7 @@ export default function App() {
                   : "text-gray-600 hover:bg-gray-200/60")
               }
             >
-              All tasks
+              All
             </div>
             <hr className="my-1 border-gray-300" />
             <SortableContext

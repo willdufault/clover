@@ -128,12 +128,12 @@ test('deleting the last list shows an empty state', async () => {
   for (const name of ['Groceries', 'Work', 'Home']) {
     await menuAction(user, within(nav()).getByText(name), 'Delete')
   }
-  expect(screen.getByRole('heading', { name: 'All tasks' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'All' })).toBeInTheDocument()
   expect(texts()).toHaveLength(5)
 })
 
 const allTexts = async (user: User) => {
-  await user.click(within(nav()).getByText('All tasks'))
+  await user.click(within(nav()).getByText('All'))
   return texts(screen.getByRole('main'))
 }
 
@@ -147,7 +147,7 @@ test('an edit made in a list is reflected in All', async () => {
   await menuAction(user, screen.getByText('Milk'), 'Rename')
   await user.keyboard('Oat milk{Enter}')
   await user.selectOptions(within(screen.getByText('Eggs').closest('li')!).getByLabelText('Task stage'), 'done')
-  await user.click(within(nav()).getByText('All tasks'))
+  await user.click(within(nav()).getByText('All'))
   expect(screen.getByText('Oat milk')).toBeInTheDocument()
   expect(within(screen.getByText('Eggs').closest('li')!).getByLabelText('Task stage')).toHaveValue('done')
 })
@@ -160,7 +160,7 @@ test('deleting a list keeps its tasks in All', async () => {
 
 test('adding in All creates a task visible only in All', async () => {
   const { user } = setup()
-  await user.click(within(nav()).getByText('All tasks'))
+  await user.click(within(nav()).getByText('All'))
   await user.type(screen.getByPlaceholderText(/add a task/i), 'Loose{Enter}')
   expect(texts()[0]).toBe('Loose')
   for (const name of ['Groceries', 'Work', 'Home']) {
@@ -179,7 +179,7 @@ test('whitespace-only names are ignored', async () => {
   expect(texts(aside())).toEqual(['2% lactose free'])
 
   await newList(user, '   ')
-  expect(nav().textContent).toBe('All tasksGroceriesWorkHome+ New list')
+  expect(nav().textContent).toBe('TodayAllGroceriesWorkHome+ New list')
 })
 
 test('new list, task and subtask land in the right place', async () => {
@@ -187,7 +187,7 @@ test('new list, task and subtask land in the right place', async () => {
 
   await newList(user, 'Fun')
   expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
-  expect(nav().textContent).toBe('All tasksGroceriesWorkHomeFun+ New list')
+  expect(nav().textContent).toBe('TodayAllGroceriesWorkHomeFun+ New list')
   expect(screen.queryByText('Milk')).not.toBeInTheDocument()
   expect(screen.queryByText('Eggs')).not.toBeInTheDocument()
 
@@ -284,9 +284,9 @@ describe('changes only affect the touched item', () => {
     await newList(user, 'Fun')
     await menuAction(user, within(nav()).getByText('Fun'), 'Rename')
     await user.keyboard('Play{Enter}')
-    expect(nav().textContent).toBe('All tasksGroceriesWorkHomePlay+ New list')
+    expect(nav().textContent).toBe('TodayAllGroceriesWorkHomePlay+ New list')
     await menuAction(user, within(nav()).getByText('Play'), 'Delete')
-    expect(nav().textContent).toBe('All tasksGroceriesWorkHome+ New list')
+    expect(nav().textContent).toBe('TodayAllGroceriesWorkHome+ New list')
     await user.click(within(nav()).getByText('Work'))
     expect(texts(screen.getByRole('main'))).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.click(within(nav()).getByText('Groceries'))
@@ -504,4 +504,34 @@ describe('task fields', () => {
     expect(texts(main())).toEqual(before)
     expect(within(aside()).queryByText('Eggs')).toBeNull()
   })
+})
+
+test('adding in Today creates a task visible in Today and All', async () => {
+  const { user } = setup()
+  await user.click(within(nav()).getByText('Today'))
+  expect(texts()).toEqual([])
+  await user.type(screen.getByPlaceholderText(/add a task/i), 'Now{Enter}')
+  expect(texts()).toEqual(['Now'])
+  await user.click(within(nav()).getByText('All'))
+  expect(screen.getByText('Now')).toBeInTheDocument()
+  await user.click(within(nav()).getByText('Groceries'))
+  expect(screen.queryByText('Now')).not.toBeInTheDocument()
+})
+
+test('Today shows overdue and due-today tasks but not others', async () => {
+  const { user } = setup()
+  const due = async (name: string, value: string) => {
+    await user.click(screen.getByText(name))
+    fireEvent.change(within(aside()).getByLabelText('Due date'), { target: { value } })
+  }
+  await due('Milk', '2000-01-01')
+  await due('Eggs', tomorrow())
+  await user.click(within(nav()).getByText('Work'))
+  await due('Review PR', today())
+  await user.click(within(nav()).getByText('Today'))
+  const main = within(screen.getByRole('main'))
+  expect(main.getByText('Milk')).toBeInTheDocument()
+  expect(main.getByText('Review PR')).toBeInTheDocument()
+  expect(main.queryByText('Eggs')).toBeNull()
+  expect(main.queryByText('Update docs')).toBeNull()
 })

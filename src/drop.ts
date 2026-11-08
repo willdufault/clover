@@ -1,7 +1,8 @@
 import { arrayMove } from '@dnd-kit/sortable'
+import { today } from './due'
 
 export type Subtask = { id: string; text: string; done: boolean }
-export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string }
+export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string; today?: boolean }
 export type TaskList = { id: string; name: string }
 
 // Move a subtask right after the last open subtask.
@@ -29,8 +30,14 @@ export type Drop = {
 
 export const ALL = 'all'
 
-export const visibleTasks = (tasks: Task[], selectedId: string) =>
-  selectedId === ALL ? tasks : tasks.filter((task) => task.listId === selectedId)
+export const TODAY = 'today'
+
+export const visibleTasks = (tasks: Task[], selectedId: string, now = today()) =>
+  selectedId === ALL
+    ? tasks
+    : selectedId === TODAY
+      ? tasks.filter((task) => task.today || (task.due && task.due <= now))
+      : tasks.filter((task) => task.listId === selectedId)
 
 export type State = { lists: TaskList[]; tasks: Task[] }
 
@@ -44,6 +51,11 @@ export const applyDrop = (
   const isList = (id: string) => lists.some((list) => list.id === id)
   const visible = visibleTasks(tasks, selectedId)
 
+  if (dragKind === 'task' && overId === TODAY) {
+    const task = visible.find((task) => task.id === activeId)
+    if (!task || task.today) return state
+    return { lists, tasks: tasks.map((t) => (t === task ? { ...t, today: true } : t)) }
+  }
   if (dragKind === 'task' && isList(overId)) {
     const task = visible.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state

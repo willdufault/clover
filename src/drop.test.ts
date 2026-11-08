@@ -1,4 +1,4 @@
-import { applyDrop, type State, type Subtask, type Task } from './drop'
+import { TODAY, applyDrop, visibleTasks, type State, type Subtask, type Task } from './drop'
 
 const s = (id: string, done = false): Subtask => ({ id, text: id, done })
 const t = (id: string, listId: string, subtasks: Subtask[] = []): Task => ({ id, text: id, listId, subtasks })
@@ -81,4 +81,26 @@ test('moving a task to another list keeps due, priority and stage', () => {
   state.tasks[2] = task
   const out = applyDrop(state, { ...base, dragKind: 'task', activeId: 'a3', overId: 'C' })
   expect(out.tasks[0]).toEqual({ ...task, listId: 'C' })
+})
+
+test('Today view shows flagged, due today and overdue tasks only', () => {
+  const tasks: Task[] = [
+    { ...t('flag', 'A'), today: true },
+    { ...t('due', 'A'), due: '2026-01-02' },
+    { ...t('late', 'B'), due: '2026-01-01' },
+    { ...t('future', 'B'), due: '2026-01-03' },
+    t('plain', 'B'),
+  ]
+  expect(ids(visibleTasks(tasks, TODAY, '2026-01-02'))).toEqual(['flag', 'due', 'late'])
+})
+
+test('dropping a task on Today flags it and keeps its list and position', () => {
+  const out = applyDrop(make(), { ...base, dragKind: 'task', activeId: 'a2', overId: TODAY })
+  expect(ids(out.tasks)).toEqual(ids(make().tasks))
+  expect(out.tasks[1]).toEqual({ ...make().tasks[1], today: true })
+})
+
+test('dropping a task on All is a no-op', () => {
+  const out = applyDrop(make(), { ...base, dragKind: 'task', activeId: 'a2', overId: 'all' })
+  expect(out).toEqual(make())
 })
