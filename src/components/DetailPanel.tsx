@@ -4,9 +4,9 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDue, isOverdue, relativeDay } from '../due'
 import type { Priority, Stage, Subtask, Task } from '../drop'
-import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
+import { FIELD, ItemType, PRIORITY, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { AddInput, SortableRow, stopDrag } from './rows'
+import { AddInput, SortableRow, StageSelect, stopDrag } from './rows'
 
 export default function DetailPanel({
   task,
@@ -93,20 +93,12 @@ export default function DetailPanel({
       )}
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Stage</h3>
-      <select
-        value={task.stage ?? ''}
-        onChange={(e) =>
-          onSetStage(task.id, (e.target.value || undefined) as Stage | undefined)
-        }
+      <StageSelect
+        value={task.stage}
+        onChange={(stage) => onSetStage(task.id, stage)}
+        showLabel
         className={FIELD}
-      >
-        <option value="">⬜ Open</option>
-        {(Object.keys(STAGE) as Stage[]).map((stage) => (
-          <option key={stage} value={stage}>
-            {STAGE[stage].emoji} {STAGE[stage].label}
-          </option>
-        ))}
-      </select>
+      />
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
       <div className="flex items-center gap-2">
         <input

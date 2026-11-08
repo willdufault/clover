@@ -4,9 +4,9 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
 import type { Stage, Task } from '../drop'
-import { ItemType, PRIORITY, STAGE, dueClass } from '../shared'
+import { ItemType, PRIORITY, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { AddInput, SortableRow, stopDrag } from './rows'
+import { AddInput, SortableRow, StageSelect } from './rows'
 
 export default function TaskView({
   name,
@@ -36,21 +36,11 @@ export default function TaskView({
       onContextMenu={onContextMenu(ItemType.Task, task.id, task.text, task.due)}
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
-      <select
-        value={task.stage ?? ''}
-        {...stopDrag}
-        onChange={(e) =>
-          onSetStage(task.id, (e.target.value || undefined) as Stage | undefined)
-        }
+      <StageSelect
+        value={task.stage}
+        onChange={(stage) => onSetStage(task.id, stage)}
         className="bg-transparent"
-      >
-        <option value="">⬜</option>
-        {(Object.keys(STAGE) as Stage[]).map((stage) => (
-          <option key={stage} value={stage}>
-            {STAGE[stage].emoji}
-          </option>
-        ))}
-      </select>
+      />
       {renameBox(
         ItemType.Task,
         task.id,
