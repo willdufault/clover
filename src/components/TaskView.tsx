@@ -4,8 +4,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
-import type { Task } from '../drop'
-import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
+import type { Stage, Task } from '../drop'
+import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './rows'
 

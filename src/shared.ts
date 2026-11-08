@@ -1,4 +1,4 @@
-import type { Priority, Task } from './drop'
+import type { Priority, Stage } from './drop'
 import { isOverdue } from './due'
 
 export const ItemType = {
@@ -7,8 +7,6 @@ export const ItemType = {
   Subtask: 'subtask',
 } as const
 export type ItemType = (typeof ItemType)[keyof typeof ItemType]
-
-export type Stage = NonNullable<Task['stage']>
 
 export const FIELD =
   'w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500'

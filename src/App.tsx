@@ -16,11 +16,12 @@ import {
   visibleTasks,
   moveSubtaskAfterLastOpen,
   type Priority,
+  type Stage,
   type Subtask,
   type Task,
   type TaskList,
 } from './drop'
-import { ItemType, type Stage } from './shared'
+import { ItemType } from './shared'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
 import DetailPanel from './components/DetailPanel'
 import Sidebar from './components/Sidebar'
