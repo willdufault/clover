@@ -36,7 +36,7 @@ function TodayRow({
 export default function Sidebar({
   lists,
   tasks,
-  selectedId,
+  viewId,
   dragOverListId,
   onSelect,
   onCreateList,
@@ -45,7 +45,7 @@ export default function Sidebar({
 }: {
   lists: TaskList[]
   tasks: Task[]
-  selectedId: string
+  viewId: string
   dragOverListId: string | null
   onSelect: (id: string) => void
   onCreateList: (name: string) => void
@@ -68,13 +68,13 @@ export default function Sidebar({
     <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
       <TodayRow
         count={visibleTasks(tasks, TODAY).length}
-        selected={selectedId === TODAY}
+        selected={viewId === TODAY}
         dragOver={dragOverListId === TODAY}
         onClick={() => onSelect(TODAY)}
       />
       <div
         onClick={() => onSelect(ALL)}
-        className={navRowClass(selectedId === ALL, false)}
+        className={navRowClass(viewId === ALL, false)}
       >
         <span>All</span>
         <Count n={visibleTasks(tasks, ALL).length} />
@@ -91,7 +91,7 @@ export default function Sidebar({
             onClick={() => onSelect(list.id)}
             onContextMenu={onContextMenu(ItemType.List, list.id, list.name)}
             className={navRowClass(
-              list.id === selectedId,
+              list.id === viewId,
               list.id === dragOverListId,
             )}
           >

@@ -21,8 +21,8 @@ const move = <T extends { id: string }>(items: T[], activeId: string, overId: st
 }
 
 export type Drop = {
-  selectedId: string
-  selectedItemId: string | null
+  viewId: string
+  selectedTaskId: string | null
   dragKind: 'list' | 'task' | 'subtask' | undefined
   activeId: string
   overId: string
@@ -32,24 +32,24 @@ export const ALL = 'all'
 
 export const TODAY = 'today'
 
-export const visibleTasks = (tasks: Task[], selectedId: string, now = today()) =>
-  selectedId === ALL
+export const visibleTasks = (tasks: Task[], viewId: string, now = today()) =>
+  viewId === ALL
     ? tasks
-    : selectedId === TODAY
+    : viewId === TODAY
       ? tasks.filter((task) => task.today || (task.due && task.due <= now))
-      : tasks.filter((task) => task.listId === selectedId)
+      : tasks.filter((task) => task.listId === viewId)
 
 export type State = { lists: TaskList[]; tasks: Task[] }
 
 // Reorder only within the container that both the dragged item and its drop target belong to.
 export const applyDrop = (
   state: State,
-  { selectedId, selectedItemId, dragKind, activeId, overId }: Drop,
+  { viewId, selectedTaskId, dragKind, activeId, overId }: Drop,
 ): State => {
   const { lists, tasks } = state
   if (activeId === overId) return state
   const isList = (id: string) => lists.some((list) => list.id === id)
-  const visible = visibleTasks(tasks, selectedId)
+  const visible = visibleTasks(tasks, viewId)
 
   if (dragKind === 'task' && overId === TODAY) {
     const task = visible.find((task) => task.id === activeId)
@@ -65,7 +65,7 @@ export const applyDrop = (
 
   const has = (items: { id: string }[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
   if (has(visible)) return { lists, tasks: move(tasks, activeId, overId) }
-  const parent = visible.find((task) => task.id === selectedItemId)
+  const parent = visible.find((task) => task.id === selectedTaskId)
   if (parent && has(parent.subtasks)) {
     return { lists, tasks: tasks.map((task) => (task === parent ? { ...task, subtasks: move(task.subtasks, activeId, overId) } : task)) }
   }

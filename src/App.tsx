@@ -48,8 +48,8 @@ const seedTasks: Task[] = [
 export default function App() {
   const [lists, setLists] = useState(seedLists)
   const [tasks, setTasks] = useState(seedTasks)
-  const [selectedId, setSelectedId] = useState(seedLists[0].id)
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [viewId, setViewId] = useState(seedLists[0].id)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ kind: ItemType; text: string } | null>(
     null,
   )
@@ -61,18 +61,18 @@ export default function App() {
     draft: string
   } | null>(null)
 
-  const viewTasks = visibleTasks(tasks, selectedId)
+  const viewTasks = visibleTasks(tasks, viewId)
   const viewName =
-    selectedId === ALL
+    viewId === ALL
       ? 'All'
-      : selectedId === TODAY
+      : viewId === TODAY
         ? 'Today'
-        : lists.find((list) => list.id === selectedId)?.name
-  const selectedItem = viewTasks.find((task) => task.id === selectedItemId)
+        : lists.find((list) => list.id === viewId)?.name
+  const selectedItem = viewTasks.find((task) => task.id === selectedTaskId)
 
   const select = (id: string) => {
-    setSelectedId(id)
-    setSelectedItemId(null)
+    setViewId(id)
+    setSelectedTaskId(null)
   }
 
   const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn)
@@ -94,8 +94,8 @@ export default function App() {
         id: crypto.randomUUID(),
         text,
         subtasks: [],
-        listId: selectedId === ALL || selectedId === TODAY ? undefined : selectedId,
-        today: selectedId === TODAY ? true : undefined,
+        listId: viewId === ALL || viewId === TODAY ? undefined : viewId,
+        today: viewId === TODAY ? true : undefined,
       },
       ...tasks,
     ])
@@ -115,7 +115,7 @@ export default function App() {
     )
 
   const patchSubtask = (id: string, patch: Partial<Subtask>) =>
-    updateSubtasks(selectedItemId!, (subtasks) =>
+    updateSubtasks(selectedTaskId!, (subtasks) =>
       subtasks.map((subtask) =>
         subtask.id === id ? { ...subtask, ...patch } : subtask,
       ),
@@ -126,13 +126,13 @@ export default function App() {
   const toggleSubtask = (id: string) => {
     const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done
     patchSubtask(id, { done })
-    updateSubtasks(selectedItemId!, (subtasks) =>
+    updateSubtasks(selectedTaskId!, (subtasks) =>
       moveSubtaskAfterLastOpen(subtasks, id),
     )
   }
 
   const deleteSubtask = (id: string) =>
-    updateSubtasks(selectedItemId!, (subtasks) =>
+    updateSubtasks(selectedTaskId!, (subtasks) =>
       subtasks.filter((subtask) => subtask.id !== id),
     )
 
@@ -199,7 +199,7 @@ export default function App() {
         task.listId === id ? { ...task, listId: undefined } : task,
       ),
     )
-    if (id === selectedId) {
+    if (id === viewId) {
       select(
         remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL,
       )
@@ -229,8 +229,8 @@ export default function App() {
     if (!over) return
     const overId = String(over.id)
     const next = applyDrop({ lists, tasks }, {
-      selectedId,
-      selectedItemId,
+      viewId,
+      selectedTaskId,
       dragKind: drag?.kind,
       activeId: String(active.id),
       overId,
@@ -242,7 +242,7 @@ export default function App() {
       drag?.kind === ItemType.Task &&
       (overId === TODAY || lists.some((list) => list.id === overId))
     )
-      setSelectedItemId(null)
+      setSelectedTaskId(null)
   }
 
   return (
@@ -266,7 +266,7 @@ export default function App() {
           <Sidebar
             lists={lists}
             tasks={tasks}
-            selectedId={selectedId}
+            viewId={viewId}
             dragOverListId={dragOverListId}
             onSelect={select}
             onCreateList={createList}
@@ -277,7 +277,7 @@ export default function App() {
             name={viewName}
             tasks={viewTasks}
             onAdd={addTask}
-            onSelectTask={setSelectedItemId}
+            onSelectTask={setSelectedTaskId}
             onSetStage={setStage}
             onContextMenu={openMenu}
             renameBox={renameBox}
@@ -285,7 +285,7 @@ export default function App() {
           {selectedItem && (
             <DetailPanel
               task={selectedItem}
-              onClose={() => setSelectedItemId(null)}
+              onClose={() => setSelectedTaskId(null)}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onSetStage={setStage}

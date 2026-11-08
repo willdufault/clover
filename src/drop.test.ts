@@ -17,7 +17,7 @@ const make = (): State => ({
     t('c1', 'C', [s('z1')]),
   ],
 })
-const base = { selectedId: 'A', selectedItemId: null as string | null }
+const base = { viewId: 'A', selectedTaskId: null as string | null }
 const ids = (items: { id: string }[]) => items.map((i) => i.id)
 
 test('reorder lists: only list order changes', () => {
@@ -34,12 +34,12 @@ test('reorder tasks in a list: other tasks untouched', () => {
 })
 
 test('reorder tasks in All', () => {
-  const out = applyDrop(make(), { ...base, selectedId: 'all', dragKind: 'task', activeId: 'c1', overId: 'a1' })
+  const out = applyDrop(make(), { ...base, viewId: 'all', dragKind: 'task', activeId: 'c1', overId: 'a1' })
   expect(ids(out.tasks)).toEqual(['c1', 'a1', 'a2', 'a3', 'b1', 'b2'])
 })
 
 test('reorder subtasks: task order and other tasks untouched', () => {
-  const out = applyDrop(make(), { ...base, selectedItemId: 'a1', dragKind: 'subtask', activeId: 's1', overId: 's3' })
+  const out = applyDrop(make(), { ...base, selectedTaskId: 'a1', dragKind: 'subtask', activeId: 's1', overId: 's3' })
   const expected = make()
   expect(ids(out.tasks)).toEqual(ids(expected.tasks))
   expect(ids(out.tasks[0].subtasks)).toEqual(['s2', 's3', 's1'])
@@ -54,7 +54,7 @@ test('task dropped on a list sets its listId and moves to front', () => {
 })
 
 test('task dropped on a list from All sets its listId', () => {
-  const out = applyDrop(make(), { ...base, selectedId: 'all', dragKind: 'task', activeId: 'c1', overId: 'A' })
+  const out = applyDrop(make(), { ...base, viewId: 'all', dragKind: 'task', activeId: 'c1', overId: 'A' })
   expect(out.tasks[0]).toEqual({ ...make().tasks[5], listId: 'A' })
 })
 
@@ -67,7 +67,7 @@ test('task dropped on its own list or on All is a no-op', () => {
 test('mismatched ids are no-ops', () => {
   const state = make()
   const noop = (d: Partial<Parameters<typeof applyDrop>[1]>) =>
-    expect(applyDrop(state, { ...base, selectedItemId: 'a1', dragKind: 'task', activeId: 'a1', overId: 'a2', ...d })).toEqual(make())
+    expect(applyDrop(state, { ...base, selectedTaskId: 'a1', dragKind: 'task', activeId: 'a1', overId: 'a2', ...d })).toEqual(make())
   noop({ dragKind: 'subtask', activeId: 's1', overId: 'a2' }) // subtask over task
   noop({ dragKind: 'task', activeId: 'a1', overId: 's1' }) // task over subtask
   noop({ dragKind: 'subtask', activeId: 's1', overId: 'x1' }) // subtask of another task
