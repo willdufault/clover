@@ -7,7 +7,7 @@ import { formatDue, isOverdue, relativeDay } from '../due'
 import type { Priority, Stage, Subtask, Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { SortableRow } from './rows'
+import { SortableRow, stopDrag } from './rows'
 
 export default function DetailPanel({
   task,
@@ -51,8 +51,7 @@ export default function DetailPanel({
       <input
         type="checkbox"
         checked={subtask.done}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
+        {...stopDrag}
         onChange={() => onToggleSubtask(subtask.id)}
         className="size-4 accent-blue-500"
       />

@@ -2,6 +2,10 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ItemType } from '../shared'
 
+// Keep clicks on controls inside a draggable row from starting a drag or selecting the row.
+const stop = (e: React.SyntheticEvent) => e.stopPropagation()
+export const stopDrag = { onPointerDown: stop, onClick: stop }
+
 export function Count({ n }: { n: number }) {
   return n > 0 ? <span className="text-xs text-gray-500">{n}</span> : null
 }
@@ -78,8 +82,7 @@ export function RenameInput({
         if (e.key === 'Escape') onCancel()
       }}
       onBlur={onCancel}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
+      {...stopDrag}
       className={className}
     />
   )

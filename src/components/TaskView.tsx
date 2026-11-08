@@ -7,7 +7,7 @@ import { formatDue } from '../due'
 import type { Stage, Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass } from '../shared'
 import type { OpenMenu } from './ContextMenu'
-import { SortableRow } from './rows'
+import { SortableRow, stopDrag } from './rows'
 
 export default function TaskView({
   name,
@@ -47,8 +47,7 @@ export default function TaskView({
     >
       <select
         value={task.stage ?? ''}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
+        {...stopDrag}
         onChange={(e) =>
           onSetStage(task.id, (e.target.value || undefined) as Stage | undefined)
         }
