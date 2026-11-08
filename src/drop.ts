@@ -1,6 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable'
 
-export type Task = { id: string; text: string; done: boolean; subtasks: Task[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled' }
+export type Subtask = { id: string; text: string; done: boolean }
+export type Task = { id: string; text: string; done: boolean; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled' }
 export type TaskList = { id: string; name: string; tasks: Task[] }
 
 // Move an item right after the last open (unchecked) item:
@@ -11,6 +12,14 @@ export const moveAfterLastOpen = (tasks: Task[], id: string): Task[] => {
   if (!item) return tasks
   const rest = tasks.filter((task) => task.id !== id)
   const lastOpen = rest.reduce((latestIndex, task, index) => (!task.done ? index : latestIndex), -1)
+  return [...rest.slice(0, lastOpen + 1), item, ...rest.slice(lastOpen + 1)]
+}
+
+export const moveSubtaskAfterLastOpen = (subtasks: Subtask[], id: string): Subtask[] => {
+  const item = subtasks.find((subtask) => subtask.id === id)
+  if (!item) return subtasks
+  const rest = subtasks.filter((subtask) => subtask.id !== id)
+  const lastOpen = rest.reduce((latestIndex, subtask, index) => (!subtask.done ? index : latestIndex), -1)
   return [...rest.slice(0, lastOpen + 1), item, ...rest.slice(lastOpen + 1)]
 }
 
@@ -52,12 +61,14 @@ export const applyDrop = (
   if (isList(activeId) && isList(overId)) return move(lists, activeId, overId)
   if (!selected) return lists
 
-  const has = (items: Task[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
+  const has = (tasks: Task[]) => tasks.some((t) => t.id === activeId) && tasks.some((t) => t.id === overId)
+  const hasSubtask = (subtasks: Subtask[]) =>
+    subtasks.some((t) => t.id === activeId) && subtasks.some((t) => t.id === overId)
   if (has(selected.tasks)) {
     return lists.map((list) => (list === selected ? { ...list, tasks: move(list.tasks, activeId, overId) } : list))
   }
   const parent = selected.tasks.find((task) => task.id === selectedItemId)
-  if (parent && has(parent.subtasks)) {
+  if (parent && hasSubtask(parent.subtasks)) {
     const tasks = selected.tasks.map((task) =>
       task === parent ? { ...task, subtasks: move(task.subtasks, activeId, overId) } : task,
     )

@@ -1,10 +1,11 @@
-import { applyDrop, type Task, type TaskList } from './drop'
+import { applyDrop, type Subtask, type Task, type TaskList } from './drop'
 
-const t = (id: string, subtasks: Task[] = [], done = false): Task => ({ id, text: id, done, subtasks })
+const s = (id: string, done = false): Subtask => ({ id, text: id, done })
+const t = (id: string, subtasks: Subtask[] = [], done = false): Task => ({ id, text: id, done, subtasks })
 const make = (): TaskList[] => [
-  { id: 'A', name: 'A', tasks: [t('a1', [t('s1'), t('s2'), t('s3')]), t('a2', [t('x1'), t('x2')]), t('a3')] },
-  { id: 'B', name: 'B', tasks: [t('b1', [t('y1')]), t('b2', [], true)] },
-  { id: 'C', name: 'C', tasks: [t('c1', [t('z1')])] },
+  { id: 'A', name: 'A', tasks: [t('a1', [s('s1'), s('s2'), s('s3')]), t('a2', [s('x1'), s('x2')]), t('a3')] },
+  { id: 'B', name: 'B', tasks: [t('b1', [s('y1')]), t('b2', [], true)] },
+  { id: 'C', name: 'C', tasks: [t('c1', [s('z1')])] },
 ]
 const base = { selectedId: 'A', selectedItemId: null as string | null }
 const ids = (items: { id: string }[]) => items.map((i) => i.id)
@@ -46,7 +47,7 @@ test('task to another list: moves to front with subtasks, third list untouched',
   expect(ids(out)).toEqual(['A', 'B', 'C'])
   expect(out[0].tasks).toEqual([expected[0].tasks[0], expected[0].tasks[2]])
   expect(out[1].tasks).toEqual([expected[0].tasks[1], ...expected[1].tasks])
-  expect(out[1].tasks[0].subtasks).toEqual([t('x1'), t('x2')])
+  expect(out[1].tasks[0].subtasks).toEqual([s('x1'), s('x2')])
   expect(out[2]).toEqual(expected[2])
 })
 
@@ -71,4 +72,12 @@ test('mismatched ids are no-ops', () => {
   noop({ dragKind: 'subtask', activeId: 's1', overId: 'x1' }) // subtask of another task
   noop({ dragKind: 'list', activeId: 'A', overId: 'a1' }) // list over task
   noop({ dragKind: 'task', activeId: 'b1', overId: 'a1' }) // task from unselected list
+})
+
+test('moving a task to another list keeps due, priority and stage', () => {
+  const lists = make()
+  const task = { ...lists[0].tasks[2], due: '2000-01-01', priority: 'high' as const, stage: 'waiting' as const }
+  lists[0].tasks[2] = task
+  const out = applyDrop(lists, { ...base, dragKind: 'task', activeId: 'a3', overId: 'C' })
+  expect(out[2].tasks[0]).toEqual(task)
 })

@@ -16,7 +16,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
-import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from "./drop";
+import {
+  applyDrop,
+  moveAfterLastOpen,
+  moveSubtaskAfterLastOpen,
+  type Subtask,
+  type Task,
+  type TaskList,
+} from "./drop";
 
 type Stage = NonNullable<Task["stage"]>;
 
@@ -37,7 +44,7 @@ const seedLists: TaskList[] = [
         text: "Milk",
         done: false,
         subtasks: [
-          { id: "g1a", text: "2% lactose free", done: false, subtasks: [] },
+          { id: "g1a", text: "2% lactose free", done: false },
         ],
       },
       { id: "g2", text: "Eggs", done: false, subtasks: [] },
@@ -127,19 +134,6 @@ function RenameInput({
   );
 }
 
-// Apply f to the sibling array (tasks or subtasks) containing the item with id.
-const updateById = (
-  tasks: Task[],
-  id: string,
-  f: (items: Task[]) => Task[],
-): Task[] => {
-  if (tasks.some((task) => task.id === id)) return f(tasks);
-  return tasks.map((task) => ({
-    ...task,
-    subtasks: updateById(task.subtasks, id, f),
-  }));
-};
-
 export default function App() {
   const [lists, setLists] = useState(seedLists);
   const [selectedId, setSelectedId] = useState(seedLists[0].id);
@@ -189,12 +183,8 @@ export default function App() {
     );
   };
 
-  // Apply f to the task or subtask collection holding the item with id.
-  const updateItem = (id: string, f: (items: Task[]) => Task[]) =>
-    updateTasks(selectedId, (tasks) => updateById(tasks, id, f));
-
   // Apply f to the subtasks of the task with id.
-  const updateSubtasks = (taskId: string, f: (subtasks: Task[]) => Task[]) =>
+  const updateSubtasks = (taskId: string, f: (subtasks: Subtask[]) => Subtask[]) =>
     updateTasks(selectedId, (tasks) =>
       tasks.map((task) =>
         task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
@@ -213,79 +203,98 @@ export default function App() {
   const addSubtask = () => {
     if (!subtaskText.trim() || !selectedItem) return;
     updateSubtasks(selectedItem.id, (subtasks) => [
-      { id: crypto.randomUUID(), text: subtaskText, done: false, subtasks: [] },
+      { id: crypto.randomUUID(), text: subtaskText, done: false },
       ...subtasks,
     ]);
     setSubtaskText("");
   };
 
-  const toggleItem = (id: string) =>
-    updateItem(id, (items) => {
-      const flipped = items.map((item) =>
-        item.id === id ? { ...item, done: !item.done } : item,
-      );
-      return moveAfterLastOpen(flipped, id);
-    });
+  const toggleTask = (id: string) =>
+    updateTasks(selectedId, (tasks) =>
+      moveAfterLastOpen(
+        tasks.map((task) =>
+          task.id === id ? { ...task, done: !task.done } : task,
+        ),
+        id,
+      ),
+    );
 
-  const deleteItem = (id: string) =>
-    updateItem(id, (items) => items.filter((item) => item.id !== id));
+  const deleteTask = (id: string) =>
+    updateTasks(selectedId, (tasks) => tasks.filter((task) => task.id !== id));
+
+  const renameTask = (id: string, text: string) =>
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((task) => (task.id === id ? { ...task, text } : task)),
+    );
+
+  const toggleSubtask = (id: string) =>
+    updateSubtasks(selectedItemId!, (subtasks) =>
+      moveSubtaskAfterLastOpen(
+        subtasks.map((subtask) =>
+          subtask.id === id ? { ...subtask, done: !subtask.done } : subtask,
+        ),
+        id,
+      ),
+    );
+
+  const deleteSubtask = (id: string) =>
+    updateSubtasks(selectedItemId!, (subtasks) =>
+      subtasks.filter((subtask) => subtask.id !== id),
+    );
+
+  const renameSubtask = (id: string, text: string) =>
+    updateSubtasks(selectedItemId!, (subtasks) =>
+      subtasks.map((subtask) =>
+        subtask.id === id ? { ...subtask, text } : subtask,
+      ),
+    );
 
   const dueClass = (due: string) =>
     "text-xs " + (isOverdue(due) ? "text-red-600" : "text-gray-500");
 
   const setDue = (id: string, due?: string) =>
-    updateItem(id, (items) =>
-      items.map((item) => (item.id === id ? { ...item, due } : item)),
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((task) => (task.id === id ? { ...task, due } : task)),
     );
 
   const setPriority = (id: string, priority?: "low" | "high") =>
-    updateItem(id, (items) =>
-      items.map((item) => (item.id === id ? { ...item, priority } : item)),
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((task) => (task.id === id ? { ...task, priority } : task)),
     );
 
   const setStage = (id: string, stage?: Stage) =>
-    updateItem(id, (items) =>
-      items.map((item) => (item.id === id ? { ...item, stage } : item)),
+    updateTasks(selectedId, (tasks) =>
+      tasks.map((task) => (task.id === id ? { ...task, stage } : task)),
     );
 
-  // Shared row rendered by both the task list and the subtask panel.
-  const taskRow = (
-    item: Task,
-    kind: "task" | "subtask",
-    onToggle: () => void,
-    onClick?: () => void,
-  ) => (
+  const taskRow = (task: Task) => (
     <SortableRow
-      key={item.id}
-      id={item.id}
+      key={task.id}
+      id={task.id}
       tag="li"
-      onClick={onClick}
+      onClick={() => setSelectedItemId(task.id)}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu({
           x: e.clientX,
           y: e.clientY,
-          kind,
-          id: item.id,
-          text: item.text,
-          due: item.due,
+          kind: "task",
+          id: task.id,
+          text: task.text,
+          due: task.due,
         });
       }}
-      className={
-        kind === "task"
-          ? "group flex select-none items-center gap-3 border-b border-gray-100 py-2"
-          : "group flex select-none items-center gap-3 border-b border-gray-200 py-2"
-      }
+      className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
       <input
         type="checkbox"
-        checked={item.done}
+        checked={task.done}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onChange={onToggle}
+        onChange={() => toggleTask(task.id)}
         className="size-4 accent-blue-500"
       />
-      {renaming?.kind === kind && renaming.id === item.id ? (
+      {renaming?.kind === "task" && renaming.id === task.id ? (
         <RenameInput
           draft={renaming.draft}
           onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -297,33 +306,33 @@ export default function App() {
         <div className="flex flex-col">
           <span
             className={
-              item.done ? "text-gray-400 line-through" : "text-gray-800"
+              task.done ? "text-gray-400 line-through" : "text-gray-800"
             }
           >
-            {item.text}
+            {task.text}
           </span>
-          {kind === "task" && (item.due || item.stage || item.priority) && (
+          {(task.due || task.stage || task.priority) && (
             <div className="flex gap-3">
-              {item.due && (
-                <span className={dueClass(item.due)}>
-                  Due {formatDue(item.due)}
+              {task.due && (
+                <span className={dueClass(task.due)}>
+                  Due {formatDue(task.due)}
                 </span>
               )}
-              {item.stage && (
-                <span className={"text-xs " + STAGE[item.stage][1]}>
-                  {STAGE[item.stage][0]}
+              {task.stage && (
+                <span className={"text-xs " + STAGE[task.stage][1]}>
+                  {STAGE[task.stage][0]}
                 </span>
               )}
-              {item.priority && (
+              {task.priority && (
                 <span
                   className={
                     "text-xs " +
-                    (item.priority === "high"
+                    (task.priority === "high"
                       ? "text-red-600"
                       : "text-blue-600")
                   }
                 >
-                  {item.priority === "high"
+                  {task.priority === "high"
                     ? "🔴 High priority"
                     : "🔵 Low priority"}
                 </span>
@@ -331,6 +340,51 @@ export default function App() {
             </div>
           )}
         </div>
+      )}
+    </SortableRow>
+  );
+
+  const subtaskRow = (subtask: Subtask) => (
+    <SortableRow
+      key={subtask.id}
+      id={subtask.id}
+      tag="li"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu({
+          x: e.clientX,
+          y: e.clientY,
+          kind: "subtask",
+          id: subtask.id,
+          text: subtask.text,
+        });
+      }}
+      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
+    >
+      <input
+        type="checkbox"
+        checked={subtask.done}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onChange={() => toggleSubtask(subtask.id)}
+        className="size-4 accent-blue-500"
+      />
+      {renaming?.kind === "subtask" && renaming.id === subtask.id ? (
+        <RenameInput
+          draft={renaming.draft}
+          onChange={(draft) => setRenaming({ ...renaming, draft })}
+          onCommit={commitRename}
+          onCancel={() => setRenaming(null)}
+          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+        />
+      ) : (
+        <span
+          className={
+            subtask.done ? "text-gray-400 line-through" : "text-gray-800"
+          }
+        >
+          {subtask.text}
+        </span>
       )}
     </SortableRow>
   );
@@ -346,10 +400,10 @@ export default function App() {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
       );
+    } else if (kind === "task") {
+      renameTask(id, name);
     } else {
-      updateItem(id, (items) =>
-        items.map((item) => (item.id === id ? { ...item, text: name } : item)),
-      );
+      renameSubtask(id, name);
     }
   };
 
@@ -544,14 +598,7 @@ export default function App() {
                   strategy={verticalListSortingStrategy}
                 >
                   <ul className="mt-4 w-full">
-                    {selectedList.tasks.map((task) =>
-                      taskRow(
-                        task,
-                        "task",
-                        () => toggleItem(task.id),
-                        () => setSelectedItemId(task.id),
-                      ),
-                    )}
+                    {selectedList.tasks.map(taskRow)}
                   </ul>
                 </SortableContext>
 
@@ -590,9 +637,7 @@ export default function App() {
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="mt-4 max-h-64 w-full overflow-y-auto">
-                  {selectedItem.subtasks.map((sub) =>
-                    taskRow(sub, "subtask", () => toggleItem(sub.id)),
-                  )}
+                  {selectedItem.subtasks.map(subtaskRow)}
                 </ul>
               </SortableContext>
 
@@ -685,8 +730,8 @@ export default function App() {
             }}
           />
           <div
-            className="fixed z-50 min-w-32 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
-            style={{ left: menu.x, top: menu.y }}
+            className="fixed z-50 max-h-64 w-44 overflow-y-auto rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+            style={{ left: Math.min(menu.x, window.innerWidth - 176), top: Math.min(menu.y, window.innerHeight - 256) }}
           >
             <button
               onClick={() => {
@@ -700,7 +745,8 @@ export default function App() {
             <button
               onClick={() => {
                 if (menu.kind === "list") deleteList(menu.id);
-                else deleteItem(menu.id);
+                else if (menu.kind === "task") deleteTask(menu.id);
+                else deleteSubtask(menu.id);
                 setMenu(null);
               }}
               className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
