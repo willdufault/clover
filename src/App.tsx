@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -8,44 +8,43 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
-} from '@dnd-kit/core'
+} from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { formatDue, isOverdue, nextMonday, today, tomorrow } from './due'
-import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from './drop'
-
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
+import { applyDrop, moveAfterLastOpen, type Task, type TaskList } from "./drop";
 
 const seedLists: TaskList[] = [
   {
-    id: 'groceries',
-    name: 'Groceries',
+    id: "groceries",
+    name: "Groceries",
     tasks: [
       {
-        id: 'g1',
-        text: 'Milk',
+        id: "g1",
+        text: "Milk",
         done: false,
         subtasks: [
-          { id: 'g1a', text: '2% lactose free', done: false, subtasks: [] },
+          { id: "g1a", text: "2% lactose free", done: false, subtasks: [] },
         ],
       },
-      { id: 'g2', text: 'Eggs', done: false, subtasks: [] },
+      { id: "g2", text: "Eggs", done: false, subtasks: [] },
     ],
   },
   {
-    id: 'work',
-    name: 'Work',
+    id: "work",
+    name: "Work",
     tasks: [
-      { id: 'w1', text: 'Reply to emails', done: false, subtasks: [] },
-      { id: 'w2', text: 'Update docs', done: false, subtasks: [] },
-      { id: 'w3', text: 'Review PR', done: false, subtasks: [] },
+      { id: "w1", text: "Reply to emails", done: false, subtasks: [] },
+      { id: "w2", text: "Update docs", done: false, subtasks: [] },
+      { id: "w3", text: "Review PR", done: false, subtasks: [] },
     ],
   },
-  { id: 'home', name: 'Home', tasks: [] },
-]
+  { id: "home", name: "Home", tasks: [] },
+];
 
 // Row that can be dragged among its SortableContext siblings.
 function SortableRow({
@@ -56,29 +55,35 @@ function SortableRow({
   onContextMenu,
   children,
 }: {
-  id: string
-  tag: 'li' | 'div'
-  className?: string
-  onClick?: () => void
-  onContextMenu?: (e: React.MouseEvent) => void
-  children: React.ReactNode
+  id: string;
+  tag: "li" | "div";
+  className?: string;
+  onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id })
-  const Tag = tag
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  const Tag = tag;
   return (
     <Tag
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      className={isDragging ? 'opacity-60 shadow-lg ' + className : className}
+      className={isDragging ? "opacity-60 shadow-lg " + className : className}
       {...attributes}
       {...listeners}
     >
       {children}
     </Tag>
-  )
+  );
 }
 
 // In-place rename box: Enter commits, Escape or blur cancels.
@@ -89,11 +94,11 @@ function RenameInput({
   onCancel,
   className,
 }: {
-  draft: string
-  onChange: (draft: string) => void
-  onCommit: () => void
-  onCancel: () => void
-  className: string
+  draft: string;
+  onChange: (draft: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+  className: string;
 }) {
   return (
     <input
@@ -102,114 +107,161 @@ function RenameInput({
       value={draft}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onCommit()
-        if (e.key === 'Escape') onCancel()
+        if (e.key === "Enter") onCommit();
+        if (e.key === "Escape") onCancel();
       }}
       onBlur={onCancel}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       className={className}
     />
-  )
+  );
 }
 
 // Apply f to the sibling array (tasks or subtasks) containing the item with id.
-const updateById = (tasks: Task[], id: string, f: (items: Task[]) => Task[]): Task[] => {
-  if (tasks.some((task) => task.id === id)) return f(tasks)
-  return tasks.map((task) => ({ ...task, subtasks: updateById(task.subtasks, id, f) }))
-}
+const updateById = (
+  tasks: Task[],
+  id: string,
+  f: (items: Task[]) => Task[],
+): Task[] => {
+  if (tasks.some((task) => task.id === id)) return f(tasks);
+  return tasks.map((task) => ({
+    ...task,
+    subtasks: updateById(task.subtasks, id, f),
+  }));
+};
 
 export default function App() {
-  const [lists, setLists] = useState(seedLists)
-  const [selectedId, setSelectedId] = useState(seedLists[0].id)
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
-  const [drag, setDrag] = useState<{ kind: 'list' | 'task' | 'subtask'; text: string } | null>(null)
-  const [dragOverListId, setDragOverListId] = useState<string | null>(null)
-  const [menu, setMenu] = useState<
-    { x: number; y: number; kind: 'list' | 'task' | 'subtask'; id: string; text: string; due?: string } | null
-  >(null)
-  const [renaming, setRenaming] = useState<
-    { kind: 'list' | 'task' | 'subtask'; id: string; draft: string } | null
-  >(null)
-  const [text, setText] = useState('')
-  const [subtaskText, setSubtaskText] = useState('')
-  const [addingList, setAddingList] = useState(false)
-  const [newListName, setNewListName] = useState('')
+  const [lists, setLists] = useState(seedLists);
+  const [selectedId, setSelectedId] = useState(seedLists[0].id);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{
+    kind: "list" | "task" | "subtask";
+    text: string;
+  } | null>(null);
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    kind: "list" | "task" | "subtask";
+    id: string;
+    text: string;
+    due?: string;
+  } | null>(null);
+  const [renaming, setRenaming] = useState<{
+    kind: "list" | "task" | "subtask";
+    id: string;
+    draft: string;
+  } | null>(null);
+  const [text, setText] = useState("");
+  const [subtaskText, setSubtaskText] = useState("");
+  const [addingList, setAddingList] = useState(false);
+  const [newListName, setNewListName] = useState("");
 
-  const selectedList = lists.find((list) => list.id === selectedId)
-  const selectedItem = selectedList?.tasks.find((task) => task.id === selectedItemId)
+  const selectedList = lists.find((list) => list.id === selectedId);
+  const selectedItem = selectedList?.tasks.find(
+    (task) => task.id === selectedItemId,
+  );
 
   useEffect(() => {
-    if (!menu) return
+    if (!menu) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenu(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [menu])
+      if (e.key === "Escape") setMenu(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menu]);
 
   const updateTasks = (listId: string, fn: (tasks: Task[]) => Task[]) => {
-    setLists(lists.map((list) => (list.id === listId ? { ...list, tasks: fn(list.tasks) } : list)))
-  }
+    setLists(
+      lists.map((list) =>
+        list.id === listId ? { ...list, tasks: fn(list.tasks) } : list,
+      ),
+    );
+  };
 
   // Apply f to the task or subtask collection holding the item with id.
   const updateItem = (id: string, f: (items: Task[]) => Task[]) =>
-    updateTasks(selectedId, (tasks) => updateById(tasks, id, f))
+    updateTasks(selectedId, (tasks) => updateById(tasks, id, f));
 
   // Apply f to the subtasks of the task with id.
   const updateSubtasks = (taskId: string, f: (subtasks: Task[]) => Task[]) =>
     updateTasks(selectedId, (tasks) =>
-      tasks.map((task) => (task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task)),
-    )
+      tasks.map((task) =>
+        task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
+      ),
+    );
 
   const addTask = () => {
-    if (!text.trim()) return
+    if (!text.trim()) return;
     updateTasks(selectedId, (tasks) => [
       { id: crypto.randomUUID(), text, done: false, subtasks: [] },
       ...tasks,
-    ])
-    setText('')
-  }
+    ]);
+    setText("");
+  };
 
   const addSubtask = () => {
-    if (!subtaskText.trim() || !selectedItem) return
+    if (!subtaskText.trim() || !selectedItem) return;
     updateSubtasks(selectedItem.id, (subtasks) => [
       { id: crypto.randomUUID(), text: subtaskText, done: false, subtasks: [] },
       ...subtasks,
-    ])
-    setSubtaskText('')
-  }
+    ]);
+    setSubtaskText("");
+  };
 
   const toggleItem = (id: string) =>
     updateItem(id, (items) => {
       const flipped = items.map((item) =>
         item.id === id ? { ...item, done: !item.done } : item,
-      )
-      return moveAfterLastOpen(flipped, id)
-    })
+      );
+      return moveAfterLastOpen(flipped, id);
+    });
 
   const deleteItem = (id: string) =>
-    updateItem(id, (items) => items.filter((item) => item.id !== id))
+    updateItem(id, (items) => items.filter((item) => item.id !== id));
 
-  const dueClass = (due: string) => 'text-xs ' + (isOverdue(due) ? 'text-red-600' : 'text-gray-500')
+  const dueClass = (due: string) =>
+    "text-xs " + (isOverdue(due) ? "text-red-600" : "text-gray-500");
 
   const setDue = (id: string, due?: string) =>
-    updateItem(id, (items) => items.map((item) => (item.id === id ? { ...item, due } : item)))
+    updateItem(id, (items) =>
+      items.map((item) => (item.id === id ? { ...item, due } : item)),
+    );
+
+  const setPriority = (id: string, priority?: "low" | "high") =>
+    updateItem(id, (items) =>
+      items.map((item) => (item.id === id ? { ...item, priority } : item)),
+    );
 
   // Shared row rendered by both the task list and the subtask panel.
-  const taskRow = (item: Task, kind: 'task' | 'subtask', onToggle: () => void, onClick?: () => void) => (
+  const taskRow = (
+    item: Task,
+    kind: "task" | "subtask",
+    onToggle: () => void,
+    onClick?: () => void,
+  ) => (
     <SortableRow
       key={item.id}
       id={item.id}
       tag="li"
       onClick={onClick}
       onContextMenu={(e) => {
-        e.preventDefault()
-        setMenu({ x: e.clientX, y: e.clientY, kind, id: item.id, text: item.text, due: item.due })
+        e.preventDefault();
+        setMenu({
+          x: e.clientX,
+          y: e.clientY,
+          kind,
+          id: item.id,
+          text: item.text,
+          due: item.due,
+        });
       }}
-      className={kind === 'task'
-        ? 'group flex select-none items-center gap-3 border-b border-gray-100 py-2'
-        : 'group flex select-none items-center gap-3 border-b border-gray-200 py-2'}
+      className={
+        kind === "task"
+          ? "group flex select-none items-center gap-3 border-b border-gray-100 py-2"
+          : "group flex select-none items-center gap-3 border-b border-gray-200 py-2"
+      }
     >
       <input
         type="checkbox"
@@ -229,140 +281,183 @@ export default function App() {
         />
       ) : (
         <div className="flex flex-col">
-          <span className={item.done ? 'text-gray-400 line-through' : 'text-gray-800'}>
+          <span
+            className={
+              item.done ? "text-gray-400 line-through" : "text-gray-800"
+            }
+          >
             {item.text}
           </span>
-          {kind === 'task' && item.due && (
-            <span className={dueClass(item.due)}>Due {formatDue(item.due)}</span>
+          {kind === "task" && (item.due || item.priority) && (
+            <div className="flex gap-3">
+              {item.due && (
+                <span className={dueClass(item.due)}>
+                  Due {formatDue(item.due)}
+                </span>
+              )}
+              {item.priority && (
+                <span
+                  className={
+                    "text-xs " +
+                    (item.priority === "high"
+                      ? "text-red-600"
+                      : "text-blue-600")
+                  }
+                >
+                  {item.priority === "high"
+                    ? "🔴 High priority"
+                    : "🔵 Low priority"}
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}
     </SortableRow>
-  )
+  );
 
   // Apply the in-progress rename (no-op on empty draft = cancel).
   const commitRename = () => {
-    if (!renaming) return
-    const { kind, id, draft } = renaming
-    const name = draft.trim()
-    setRenaming(null)
-    if (!name) return
-    if (kind === 'list') {
-      setLists(lists.map((list) => (list.id === id ? { ...list, name } : list)))
+    if (!renaming) return;
+    const { kind, id, draft } = renaming;
+    const name = draft.trim();
+    setRenaming(null);
+    if (!name) return;
+    if (kind === "list") {
+      setLists(
+        lists.map((list) => (list.id === id ? { ...list, name } : list)),
+      );
     } else {
-      updateItem(id, (items) => items.map((item) => (item.id === id ? { ...item, text: name } : item)))
+      updateItem(id, (items) =>
+        items.map((item) => (item.id === id ? { ...item, text: name } : item)),
+      );
     }
-  }
+  };
 
   const createList = () => {
-    const name = newListName.trim()
-    setAddingList(false)
-    setNewListName('')
-    if (!name) return
-    const newList = { id: crypto.randomUUID(), name, tasks: [] }
-    setLists([...lists, newList])
-    setSelectedId(newList.id)
-    setSelectedItemId(null)
-  }
+    const name = newListName.trim();
+    setAddingList(false);
+    setNewListName("");
+    if (!name) return;
+    const newList = { id: crypto.randomUUID(), name, tasks: [] };
+    setLists([...lists, newList]);
+    setSelectedId(newList.id);
+    setSelectedItemId(null);
+  };
 
   const deleteList = (id: string) => {
-    const remaining = lists.filter((list) => list.id !== id)
-    const index = lists.findIndex((list) => list.id === id)
-    setLists(remaining)
+    const remaining = lists.filter((list) => list.id !== id);
+    const index = lists.findIndex((list) => list.id === id);
+    setLists(remaining);
     if (id === selectedId) {
-      setSelectedItemId(null)
+      setSelectedItemId(null);
       if (remaining.length > 0) {
-        setSelectedId((remaining[index - 1] ?? remaining[0]).id)
+        setSelectedId((remaining[index - 1] ?? remaining[0]).id);
       }
     }
-  }
+  };
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
     for (const list of lists) {
       if (list.id === String(active.id)) {
-        setDrag({ kind: 'list', text: list.name })
-        return
+        setDrag({ kind: "list", text: list.name });
+        return;
       }
       for (const task of list.tasks) {
         if (task.id === String(active.id)) {
-          setDrag({ kind: 'task', text: task.text })
-          return
+          setDrag({ kind: "task", text: task.text });
+          return;
         }
-        const sub = task.subtasks.find((sub) => sub.id === String(active.id))
+        const sub = task.subtasks.find((sub) => sub.id === String(active.id));
         if (sub) {
-          setDrag({ kind: 'subtask', text: sub.text })
-          return
+          setDrag({ kind: "subtask", text: sub.text });
+          return;
         }
       }
     }
-  }
+  };
 
   // Highlight the sidebar list row a task is hovering over.
   const onDragOver = ({ over }: DragOverEvent) => {
-    const listIds = lists.map((list) => list.id)
+    const listIds = lists.map((list) => list.id);
     setDragOverListId(
-      over && drag?.kind === 'task' && listIds.includes(String(over.id)) ? String(over.id) : null,
-    )
-  }
+      over && drag?.kind === "task" && listIds.includes(String(over.id))
+        ? String(over.id)
+        : null,
+    );
+  };
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    setDrag(null)
-    setDragOverListId(null)
-    if (!over) return
-    const overId = String(over.id)
+    setDrag(null);
+    setDragOverListId(null);
+    if (!over) return;
+    const overId = String(over.id);
     const next = applyDrop(lists, {
       selectedId,
       selectedItemId,
       dragKind: drag?.kind,
       activeId: String(active.id),
       overId,
-    })
-    if (next === lists) return
-    setLists(next)
-    if (drag?.kind === 'task' && lists.some((list) => list.id === overId)) setSelectedItemId(null)
-  }
+    });
+    if (next === lists) return;
+    setLists(next);
+    if (drag?.kind === "task" && lists.some((list) => list.id === overId))
+      setSelectedItemId(null);
+  };
 
   return (
     <DndContext
-      sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))}
+      sensors={useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+      )}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
-        setDrag(null)
-        setDragOverListId(null)
+        setDrag(null);
+        setDragOverListId(null);
       }}
     >
-      <div className="flex h-screen overflow-hidden flex-col font-sans">        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
+      <div className="flex h-screen overflow-hidden flex-col font-sans">
+        {" "}
+        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
           <span className="font-semibold text-gray-800">todo</span>
         </header>
-
         <div className="flex flex-1 min-h-0">
           <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
-            <SortableContext items={lists} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={lists}
+              strategy={verticalListSortingStrategy}
+            >
               {lists.map((list) => (
                 <SortableRow
                   key={list.id}
                   id={list.id}
                   tag="div"
                   onClick={() => {
-                    setSelectedId(list.id)
-                    setSelectedItemId(null)
+                    setSelectedId(list.id);
+                    setSelectedItemId(null);
                   }}
                   onContextMenu={(e) => {
-                    e.preventDefault()
-                    setMenu({ x: e.clientX, y: e.clientY, kind: 'list', id: list.id, text: list.name })
+                    e.preventDefault();
+                    setMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      kind: "list",
+                      id: list.id,
+                      text: list.name,
+                    });
                   }}
                   className={
                     list.id === dragOverListId
-                      ? 'group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800'
+                      ? "group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800"
                       : list.id === selectedId
-                      ? 'group flex select-none items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800'
-                      : 'group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60'
+                        ? "group flex select-none items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800"
+                        : "group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
                   }
                 >
-                  {renaming?.kind === 'list' && renaming.id === list.id ? (
+                  {renaming?.kind === "list" && renaming.id === list.id ? (
                     <RenameInput
                       draft={renaming.draft}
                       onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -383,15 +478,15 @@ export default function App() {
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') createList()
-                  if (e.key === 'Escape') {
-                    setAddingList(false)
-                    setNewListName('')
+                  if (e.key === "Enter") createList();
+                  if (e.key === "Escape") {
+                    setAddingList(false);
+                    setNewListName("");
                   }
                 }}
                 onBlur={() => {
-                  setAddingList(false)
-                  setNewListName('')
+                  setAddingList(false);
+                  setNewListName("");
                 }}
                 placeholder="List name…"
                 className="mt-auto w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
@@ -408,15 +503,19 @@ export default function App() {
 
           <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
             {!selectedList ? (
-              <p className="text-sm text-gray-400">No lists yet — create one on the left</p>
+              <p className="text-sm text-gray-400">
+                No lists yet — create one on the left
+              </p>
             ) : (
               <>
-                <h1 className="font-semibold text-gray-800">{selectedList.name}</h1>
+                <h1 className="font-semibold text-gray-800">
+                  {selectedList.name}
+                </h1>
 
                 <input
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                  onKeyDown={(e) => e.key === "Enter" && addTask()}
                   placeholder="Add a task and press Enter"
                   className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
                 />
@@ -427,7 +526,12 @@ export default function App() {
                 >
                   <ul className="mt-4 w-full">
                     {selectedList.tasks.map((task) =>
-                      taskRow(task, 'task', () => toggleItem(task.id), () => setSelectedItemId(task.id))
+                      taskRow(
+                        task,
+                        "task",
+                        () => toggleItem(task.id),
+                        () => setSelectedItemId(task.id),
+                      ),
                     )}
                   </ul>
                 </SortableContext>
@@ -442,7 +546,9 @@ export default function App() {
           {selectedItem && (
             <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
               <div className="flex items-center">
-                <h2 className="font-semibold text-gray-800">{selectedItem.text}</h2>
+                <h2 className="font-semibold text-gray-800">
+                  {selectedItem.text}
+                </h2>
                 <button
                   onClick={() => setSelectedItemId(null)}
                   className="ml-auto rounded text-gray-400 hover:text-gray-600"
@@ -455,7 +561,7 @@ export default function App() {
               <input
                 value={subtaskText}
                 onChange={(e) => setSubtaskText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
+                onKeyDown={(e) => e.key === "Enter" && addSubtask()}
                 placeholder="Add a subtask and press Enter"
                 className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
               />
@@ -466,7 +572,7 @@ export default function App() {
               >
                 <ul className="mt-4 max-h-64 w-full overflow-y-auto">
                   {selectedItem.subtasks.map((sub) =>
-                    taskRow(sub, 'subtask', () => toggleItem(sub.id))
+                    taskRow(sub, "subtask", () => toggleItem(sub.id)),
                   )}
                 </ul>
               </SortableContext>
@@ -475,12 +581,17 @@ export default function App() {
                 <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
               )}
 
-              <div className="mt-4 flex items-center gap-2">
+              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
+                Due date
+              </h3>
+              <div className="flex items-center gap-2">
                 <input
                   type="date"
                   aria-label="Due date"
-                  value={selectedItem.due ?? ''}
-                  onChange={(e) => setDue(selectedItem.id, e.target.value || undefined)}
+                  value={selectedItem.due ?? ""}
+                  onChange={(e) =>
+                    setDue(selectedItem.id, e.target.value || undefined)
+                  }
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
                 />
                 {selectedItem.due && (
@@ -493,9 +604,24 @@ export default function App() {
                   </button>
                 )}
               </div>
-              {selectedItem.due && (
-                <p className={'mt-2 ' + dueClass(selectedItem.due)}>Due {formatDue(selectedItem.due)}</p>
-              )}
+              <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
+                Priority
+              </h3>
+              <select
+                aria-label="Priority"
+                value={selectedItem.priority ?? ""}
+                onChange={(e) =>
+                  setPriority(
+                    selectedItem.id,
+                    (e.target.value || undefined) as "low" | "high" | undefined,
+                  )
+                }
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+              >
+                <option value="low">Low</option>
+                <option value="">Medium</option>
+                <option value="high">High</option>
+              </select>
             </aside>
           )}
         </div>
@@ -515,8 +641,8 @@ export default function App() {
             className="fixed inset-0"
             onClick={() => setMenu(null)}
             onContextMenu={(e) => {
-              e.preventDefault()
-              setMenu(null)
+              e.preventDefault();
+              setMenu(null);
             }}
           />
           <div
@@ -525,25 +651,36 @@ export default function App() {
           >
             <button
               onClick={() => {
-                setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
-                setMenu(null)
+                setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text });
+                setMenu(null);
               }}
               className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
             >
               Rename
             </button>
-            {menu.kind === 'task' && (
+            <button
+              onClick={() => {
+                if (menu.kind === "list") deleteList(menu.id);
+                else deleteItem(menu.id);
+                setMenu(null);
+              }}
+              className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
+            >
+              Delete
+            </button>
+            {menu.kind === "task" && (
               <>
+                <hr className="my-1 border-gray-200" />
                 {[
-                  ['Due today', today()],
-                  ['Due tomorrow', tomorrow()],
-                  ['Due next Monday', nextMonday()],
+                  ["Due today", today()],
+                  ["Due tomorrow", tomorrow()],
+                  ["Due next Monday", nextMonday()],
                 ].map(([label, date]) => (
                   <button
                     key={label}
                     onClick={() => {
-                      setDue(menu.id, date)
-                      setMenu(null)
+                      setDue(menu.id, date);
+                      setMenu(null);
                     }}
                     className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
                   >
@@ -553,29 +690,38 @@ export default function App() {
                 {menu.due && (
                   <button
                     onClick={() => {
-                      setDue(menu.id)
-                      setMenu(null)
+                      setDue(menu.id);
+                      setMenu(null);
                     }}
                     className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
                   >
                     Remove due date
                   </button>
                 )}
+                <hr className="my-1 border-gray-200" />
+                {(
+                  [
+                    ["Set low priority", "low"],
+                    ["Set medium priority", undefined],
+                    ["Set high priority", "high"],
+                  ] as const
+                ).map(([label, p]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      setPriority(menu.id, p);
+                      setMenu(null);
+                    }}
+                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    {label}
+                  </button>
+                ))}
               </>
             )}
-            <button
-              onClick={() => {
-                if (menu.kind === 'list') deleteList(menu.id)
-                else deleteItem(menu.id)
-                setMenu(null)
-              }}
-              className="block w-full cursor-default px-3 py-1.5 text-left text-red-600 hover:bg-gray-100"
-            >
-              Delete
-            </button>
           </div>
         </>
       )}
     </DndContext>
-  )
+  );
 }

@@ -1,6 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 
-export type Task = { id: string; text: string; done: boolean; subtasks: Task[]; due?: string }
+export type Task = { id: string; text: string; done: boolean; subtasks: Task[]; due?: string; priority?: 'low' | 'high' }
 export type TaskList = { id: string; name: string; tasks: Task[] }
 
 // Move an item right after the last open (unchecked) item:

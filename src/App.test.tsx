@@ -251,11 +251,12 @@ describe('due dates', () => {
   test('sidebar sets and removes a due date, subtext shows on the task row', async () => {
     const { user } = setup()
     await setDate(user, '2000-01-01')
-    expect(within(aside()).getByText(/^Due /)).toHaveClass('text-red-600')
+    expect(within(aside()).getByLabelText('Due date')).toHaveValue('2000-01-01')
     expect(within(screen.getByRole('main')).getByText(/^Due /)).toBeInTheDocument()
 
     await user.click(within(aside()).getByRole('button', { name: 'Remove due date' }))
-    expect(screen.queryByText(/^Due /)).toBeNull()
+    expect(within(aside()).getByLabelText('Due date')).toHaveValue('')
+    expect(screen.queryByText(/^Due (?!date$)/)).toBeNull()
   })
 
   test('subtasks show no due subtext', async () => {
@@ -282,10 +283,43 @@ describe('due dates', () => {
     expect(screen.getByText('Due next Monday')).toBeInTheDocument()
     expect(screen.getByText('Remove due date')).toBeInTheDocument()
     await user.click(screen.getByText('Remove due date'))
-    expect(screen.queryByText(/^Due /)).toBeNull()
+    expect(screen.queryByText(/^Due (?!date$)/)).toBeNull()
 
     await user.click(screen.getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
     expect(screen.queryByText('Due tomorrow')).toBeNull()
+  })
+})
+
+describe('priority', () => {
+  const setPriority = async (user: User, value: string) => {
+    await user.click(within(screen.getByRole('main')).getByText('Milk'))
+    await user.selectOptions(within(aside()).getByLabelText('Priority'), value)
+  }
+
+  test('sidebar select sets priority, row shows it, medium clears it', async () => {
+    const { user } = setup()
+    await setPriority(user, 'high')
+    expect(within(screen.getByRole('main')).getByText('🔴 High priority')).toBeInTheDocument()
+    await setPriority(user, 'low')
+    expect(within(screen.getByRole('main')).getByText('🔵 Low priority')).toBeInTheDocument()
+    await setPriority(user, 'Medium')
+    expect(screen.queryByText(/priority$/)).toBeNull()
+  })
+
+  test('context menu sets and clears priority', async () => {
+    const { user } = setup()
+    await rightClick(user, screen.getByText('Milk'))
+    await user.click(screen.getByText('Set high priority'))
+    expect(screen.getByText('🔴 High priority')).toBeInTheDocument()
+    await rightClick(user, screen.getByText('Milk'))
+    await user.click(screen.getByText('Set medium priority'))
+    expect(screen.queryByText(/priority$/)).toBeNull()
+  })
+
+  test('subtasks show no priority', async () => {
+    const { user } = setup()
+    await setPriority(user, 'high')
+    expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText(/priority$/)).toBeNull()
   })
 })
