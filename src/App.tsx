@@ -57,12 +57,18 @@ const seedTasks: Task[] = [
   { id: "w3", text: "Review PR", listId: "work", subtasks: [] },
 ];
 
+function Count({ n }: { n: number }) {
+  return n > 0 ? <span className="text-xs text-gray-500">{n}</span> : null;
+}
+
 // Row that can be dragged among its SortableContext siblings.
 function TodayRow({
   selected,
   dragOver,
+  count,
   onClick,
 }: {
+  count: number;
   selected: boolean;
   dragOver: boolean;
   onClick: () => void;
@@ -73,7 +79,7 @@ function TodayRow({
       ref={setNodeRef}
       onClick={onClick}
       className={
-        "flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm " +
+        "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
         (dragOver
           ? "bg-blue-100 outline-2 outline-blue-300 text-gray-800"
           : selected
@@ -81,7 +87,8 @@ function TodayRow({
             : "text-gray-600 hover:bg-gray-200/60")
       }
     >
-      Today
+      <span>Today</span>
+      <Count n={count} />
     </div>
   );
 }
@@ -528,6 +535,7 @@ export default function App() {
         <div className="flex flex-1 min-h-0">
           <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
             <TodayRow
+              count={visibleTasks(tasks, TODAY).length}
               selected={selectedId === TODAY}
               dragOver={dragOverListId === TODAY}
               onClick={() => {
@@ -541,13 +549,14 @@ export default function App() {
                 setSelectedItemId(null);
               }}
               className={
-                "flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm " +
+                "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
                 (selectedId === ALL
                   ? "bg-gray-200 font-medium text-gray-800"
                   : "text-gray-600 hover:bg-gray-200/60")
               }
             >
-              All
+              <span>All</span>
+              <Count n={visibleTasks(tasks, ALL).length} />
             </div>
             <hr className="my-1 border-gray-300" />
             <SortableContext
@@ -575,10 +584,10 @@ export default function App() {
                   }}
                   className={
                     list.id === dragOverListId
-                      ? "group flex select-none items-center rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800"
+                      ? "group flex select-none items-center justify-between rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800"
                       : list.id === selectedId
-                        ? "group flex select-none items-center rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800"
-                        : "group flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
+                        ? "group flex select-none items-center justify-between rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800"
+                        : "group flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
                   }
                 >
                   {renaming?.kind === "list" && renaming.id === list.id ? (
@@ -590,7 +599,10 @@ export default function App() {
                       className="w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none"
                     />
                   ) : (
-                    <span className="truncate">{list.name}</span>
+                    <>
+                      <span className="truncate">{list.name}</span>
+                      <Count n={visibleTasks(tasks, list.id).length} />
+                    </>
                   )}
                 </SortableRow>
               ))}

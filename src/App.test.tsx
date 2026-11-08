@@ -179,7 +179,7 @@ test('whitespace-only names are ignored', async () => {
   expect(texts(aside())).toEqual(['2% lactose free'])
 
   await newList(user, '   ')
-  expect(nav().textContent).toBe('TodayAllGroceriesWorkHome+ New list')
+  expect(nav().textContent).toBe('TodayAll5Groceries2Work3Home+ New list')
 })
 
 test('new list, task and subtask land in the right place', async () => {
@@ -187,7 +187,7 @@ test('new list, task and subtask land in the right place', async () => {
 
   await newList(user, 'Fun')
   expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
-  expect(nav().textContent).toBe('TodayAllGroceriesWorkHomeFun+ New list')
+  expect(nav().textContent).toBe('TodayAll5Groceries2Work3HomeFun+ New list')
   expect(screen.queryByText('Milk')).not.toBeInTheDocument()
   expect(screen.queryByText('Eggs')).not.toBeInTheDocument()
 
@@ -284,9 +284,9 @@ describe('changes only affect the touched item', () => {
     await newList(user, 'Fun')
     await menuAction(user, within(nav()).getByText('Fun'), 'Rename')
     await user.keyboard('Play{Enter}')
-    expect(nav().textContent).toBe('TodayAllGroceriesWorkHomePlay+ New list')
+    expect(nav().textContent).toBe('TodayAll5Groceries2Work3HomePlay+ New list')
     await menuAction(user, within(nav()).getByText('Play'), 'Delete')
-    expect(nav().textContent).toBe('TodayAllGroceriesWorkHome+ New list')
+    expect(nav().textContent).toBe('TodayAll5Groceries2Work3Home+ New list')
     await user.click(within(nav()).getByText('Work'))
     expect(texts(screen.getByRole('main'))).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.click(within(nav()).getByText('Groceries'))
@@ -534,4 +534,22 @@ test('Today shows overdue and due-today tasks but not others', async () => {
   expect(main.getByText('Review PR')).toBeInTheDocument()
   expect(main.queryByText('Eggs')).toBeNull()
   expect(main.queryByText('Update docs')).toBeNull()
+})
+
+describe('sidebar counts', () => {
+  const count = (name: string) => within(within(nav()).getByText(name).parentElement!)
+  test('shown, hidden at 0, and updated on add/delete', async () => {
+    const { user } = setup()
+    expect(count('Groceries').getByText('2')).toBeInTheDocument()
+    expect(count('Work').getByText('3')).toBeInTheDocument()
+    expect(count('All').getByText('5')).toBeInTheDocument()
+    expect(within(within(nav()).getByText('Home').parentElement!).queryByText(/\d/)).toBeNull()
+    expect(within(within(nav()).getByText('Today').parentElement!).queryByText(/\d/)).toBeNull()
+    await user.type(screen.getByPlaceholderText(/add a task/i), 'Bread{Enter}')
+    expect(count('Groceries').getByText('3')).toBeInTheDocument()
+    expect(count('All').getByText('6')).toBeInTheDocument()
+    await menuAction(user, screen.getByText('Bread'), 'Delete')
+    expect(count('Groceries').getByText('2')).toBeInTheDocument()
+    expect(count('All').getByText('5')).toBeInTheDocument()
+  })
 })
