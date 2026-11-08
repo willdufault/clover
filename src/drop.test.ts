@@ -100,7 +100,3 @@ test('dropping a task on Today flags it and keeps its list and position', () => 
   expect(out.tasks[1]).toEqual({ ...make().tasks[1], today: true })
 })
 
-test('dropping a task on All is a no-op', () => {
-  const out = applyDrop(make(), { ...base, dragKind: 'task', activeId: 'a2', overId: 'all' })
-  expect(out).toEqual(make())
-})

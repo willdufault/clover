@@ -123,7 +123,7 @@ test('create, switch, rename and delete lists', async () => {
   expect(screen.getByRole('heading', { name: 'Groceries' })).toBeInTheDocument()
 })
 
-test('deleting the last list shows an empty state', async () => {
+test('deleting every list falls back to the All view with all tasks', async () => {
   const { user } = setup()
   for (const name of ['Groceries', 'Work', 'Home']) {
     await menuAction(user, within(nav()).getByText(name), 'Delete')
