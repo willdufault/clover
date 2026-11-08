@@ -46,6 +46,9 @@ const seedTasks: Task[] = [
 ]
 
 export default function App() {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
   const [lists, setLists] = useState(seedLists)
   const [tasks, setTasks] = useState(seedTasks)
   const [viewId, setViewId] = useState(seedLists[0].id)
@@ -245,9 +248,7 @@ export default function App() {
 
   return (
     <DndContext
-      sensors={useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-      )}
+      sensors={sensors}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
