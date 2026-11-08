@@ -260,7 +260,7 @@ export default function App() {
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
         <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
-          <span className="font-semibold text-gray-800">clover</span>
+          <span className="font-semibold text-gray-800">🍀 clover</span>
         </header>
         <div className="flex flex-1 min-h-0">
           <Sidebar
