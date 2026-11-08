@@ -81,7 +81,6 @@ export default function DetailPanel({
         <h2 className="font-semibold text-gray-800">{task.text}</h2>
         <button
           onClick={onClose}
-          aria-label="Close panel"
           className="ml-auto rounded text-gray-400 hover:text-gray-600"
         >
           ✕
@@ -111,7 +110,6 @@ export default function DetailPanel({
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Stage</h3>
       <select
-        aria-label="Stage"
         value={task.stage ?? ""}
         onChange={(e) =>
           onSetStage(task.id, (e.target.value || undefined) as Stage | undefined)
@@ -129,7 +127,6 @@ export default function DetailPanel({
       <div className="flex items-center gap-2">
         <input
           type="date"
-          aria-label="Due date"
           value={task.due ?? ""}
           onChange={(e) => onSetDue(task.id, e.target.value || undefined)}
           className={
@@ -139,7 +136,6 @@ export default function DetailPanel({
         {task.due && (
           <button
             onClick={() => onSetDue(task.id)}
-            aria-label="Remove due date"
             className="text-gray-500 hover:text-gray-800"
           >
             ×
@@ -152,7 +148,6 @@ export default function DetailPanel({
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
       <select
-        aria-label="Priority"
         value={task.priority ?? ""}
         onChange={(e) =>
           onSetPriority(

@@ -50,7 +50,6 @@ export default function TaskView({
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
       <select
-        aria-label="Task stage"
         value={task.stage ?? ""}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
