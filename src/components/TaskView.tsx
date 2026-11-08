@@ -3,10 +3,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
-import type { Stage, Task } from '../drop'
-import { ItemType, PRIORITY, dueClass } from '../shared'
+import { PRIORITY } from '../labels'
+import { dueClass } from '../styles'
+import { ItemType, type Stage, type Task } from '../types'
+import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
-import { AddInput, SortableRow, StageSelect } from './rows'
+import { SortableRow } from './SortableRow'
+import { StageSelect } from './StageSelect'
 
 export default function TaskView({
   name,

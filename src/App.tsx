@@ -9,41 +9,16 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import {
-  ALL,
-  TODAY,
-  applyDrop,
-  visibleTasks,
-  moveSubtaskAfterLastOpen,
-  type Subtask,
-  type Task,
-  type TaskList,
-} from './drop'
-import { ItemType } from './shared'
+import { applyDrop } from './drop'
+import { seedLists, seedTasks } from './seed'
+import { moveSubtaskAfterLastOpen } from './subtasks'
+import { ItemType, type Subtask, type Task } from './types'
+import { ALL, TODAY, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
 import DetailPanel from './components/DetailPanel'
 import Sidebar from './components/Sidebar'
 import TaskView from './components/TaskView'
-import { RenameInput } from './components/rows'
-
-const seedLists: TaskList[] = [
-  { id: 'groceries', name: 'Groceries' },
-  { id: 'work', name: 'Work' },
-  { id: 'home', name: 'Home' },
-]
-
-const seedTasks: Task[] = [
-  {
-    id: 'g1',
-    text: 'Milk',
-    listId: 'groceries',
-    subtasks: [{ id: 'g1a', text: '2% lactose free', done: false }],
-  },
-  { id: 'g2', text: 'Eggs', listId: 'groceries', subtasks: [] },
-  { id: 'w1', text: 'Reply to emails', listId: 'work', subtasks: [] },
-  { id: 'w2', text: 'Update docs', listId: 'work', subtasks: [] },
-  { id: 'w3', text: 'Review PR', listId: 'work', subtasks: [] },
-]
+import { RenameInput } from './components/RenameInput'
 
 export default function App() {
   const sensors = useSensors(

@@ -3,10 +3,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue, isOverdue, relativeDay } from '../due'
-import type { Priority, Stage, Subtask, Task } from '../drop'
-import { FIELD, ItemType, PRIORITY, dueClass } from '../shared'
+import { PRIORITY } from '../labels'
+import { FIELD, dueClass } from '../styles'
+import { ItemType, type Priority, type Stage, type Subtask, type Task } from '../types'
+import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
-import { AddInput, SortableRow, StageSelect, stopDrag } from './rows'
+import { SortableRow } from './SortableRow'
+import { StageSelect } from './StageSelect'
+import { stopDrag } from './stopDrag'
 
 export default function DetailPanel({
   task,

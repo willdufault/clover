@@ -1,38 +1,16 @@
 import { useState } from 'react'
-import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { ALL, TODAY, visibleTasks, type Task, type TaskList } from '../drop'
-import { ItemType, navRowClass } from '../shared'
-import { Count, RenameInput, SortableRow } from './rows'
+import { navRowClass } from '../styles'
+import { ItemType, type Task, type TaskList } from '../types'
+import { ALL, TODAY, visibleTasks } from '../views'
+import { Count } from './Count'
+import { RenameInput } from './RenameInput'
+import { SortableRow } from './SortableRow'
+import { TodayRow } from './TodayRow'
 import type { OpenMenu } from './ContextMenu'
-
-// Sidebar Today row: drop target only.
-function TodayRow({
-  selected,
-  dragOver,
-  count,
-  onClick,
-}: {
-  count: number
-  selected: boolean
-  dragOver: boolean
-  onClick: () => void
-}) {
-  const { setNodeRef } = useDroppable({ id: TODAY })
-  return (
-    <div
-      ref={setNodeRef}
-      onClick={onClick}
-      className={navRowClass(selected, dragOver)}
-    >
-      <span>Today</span>
-      <Count n={count} />
-    </div>
-  )
-}
 
 export default function Sidebar({
   lists,

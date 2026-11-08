@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
-import type { Priority } from '../drop'
-import { ItemType } from '../shared'
+import { ItemType, type Priority } from '../types'
 
 export type MenuState = {
   x: number

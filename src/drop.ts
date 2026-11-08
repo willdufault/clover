@@ -1,21 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
-import { today } from './due'
-import { ItemType } from './shared'
-
-export type Priority = 'low' | 'high'
-export type Stage = 'progress' | 'waiting' | 'done' | 'cancelled'
-export type Subtask = { id: string; text: string; done: boolean }
-export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: Priority; stage?: Stage; listId?: string; today?: boolean }
-export type TaskList = { id: string; name: string }
-
-// Move a subtask right after the last open subtask.
-export const moveSubtaskAfterLastOpen = (subtasks: Subtask[], id: string): Subtask[] => {
-  const item = subtasks.find((subtask) => subtask.id === id)
-  if (!item) return subtasks
-  const rest = subtasks.filter((subtask) => subtask.id !== id)
-  const lastOpen = rest.findLastIndex((subtask) => !subtask.done)
-  return [...rest.slice(0, lastOpen + 1), item, ...rest.slice(lastOpen + 1)]
-}
+import { ItemType, type Task, type TaskList } from './types'
+import { TODAY, visibleTasks } from './views'
 
 const move = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
   const from = items.findIndex((item) => item.id === activeId)
@@ -30,17 +15,6 @@ export type Drop = {
   activeId: string
   overId: string
 }
-
-export const ALL = 'all'
-
-export const TODAY = 'today'
-
-export const visibleTasks = (tasks: Task[], viewId: string, now = today()) =>
-  viewId === ALL
-    ? tasks
-    : viewId === TODAY
-      ? tasks.filter((task) => task.today || (task.due && task.due <= now))
-      : tasks.filter((task) => task.listId === viewId)
 
 export type State = { lists: TaskList[]; tasks: Task[] }
 
