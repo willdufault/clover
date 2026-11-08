@@ -3,7 +3,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { formatDue, isOverdue } from "../due";
+import { formatDue, isOverdue, isRelative } from "../due";
 import type { Subtask, Task } from "../drop";
 import { FIELD, ItemType, STAGE, dueClass, type Stage } from "../shared";
 import { SortableRow } from "./rows";
@@ -121,7 +121,7 @@ export default function DetailPanel({
         <option value="">⬜ Open</option>
         {(Object.keys(STAGE) as Stage[]).map((stage) => (
           <option key={stage} value={stage}>
-            {STAGE[stage]}
+            {STAGE[stage].emoji} {STAGE[stage].label}
           </option>
         ))}
       </select>
@@ -147,7 +147,7 @@ export default function DetailPanel({
         )}
       </div>
       {task.due &&
-        ["Yesterday", "Today", "Tomorrow"].includes(formatDue(task.due)) && (
+        isRelative(task.due) && (
           <p className={"mt-1 " + dueClass(task.due)}>{formatDue(task.due)}</p>
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>

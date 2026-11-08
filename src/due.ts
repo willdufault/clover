@@ -21,6 +21,10 @@ export const nextMonday = (now = new Date()) => {
 
 export const isOverdue = (due: string, now = new Date()) => due < today(now)
 
+// Yesterday, today or tomorrow.
+export const isRelative = (due: string, now = new Date()) =>
+  Math.abs(Date.parse(due) - Date.parse(today(now))) <= 86400000
+
 export const formatDue = (due: string, now = new Date()) => {
   const t = today(now)
   if (due === addDays(t, -1)) return 'Yesterday'

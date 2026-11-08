@@ -13,12 +13,12 @@ export type Stage = NonNullable<Task["stage"]>;
 export const FIELD =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500";
 
-export const STAGE: Record<Stage, string> = {
-  progress: "⚡ In progress",
-  waiting: "⏳ Waiting",
-  done: "✅ Done",
+export const STAGE: Record<Stage, { emoji: string; label: string }> = {
+  progress: { emoji: "⚡", label: "In progress" },
+  waiting: { emoji: "⏳", label: "Waiting" },
+  done: { emoji: "✅", label: "Done" },
   // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
-  cancelled: "❌\uFE0F Cancelled",
+  cancelled: { emoji: "❌️", label: "Cancelled" },
 };
 
 export function navRowClass(selected: boolean, dragOver: boolean) {

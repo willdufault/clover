@@ -62,7 +62,7 @@ export default function TaskView({
         <option value="">⬜</option>
         {(Object.keys(STAGE) as Stage[]).map((stage) => (
           <option key={stage} value={stage}>
-            {STAGE[stage].split(" ")[0]}
+            {STAGE[stage].emoji}
           </option>
         ))}
       </select>

@@ -1,4 +1,4 @@
-import { formatDue, isOverdue, nextMonday, today, tomorrow } from './due'
+import { formatDue, isOverdue, isRelative, nextMonday, today, tomorrow } from './due'
 
 const now = new Date('2026-11-08T17:00:00Z') // Sunday
 
@@ -23,4 +23,12 @@ test('formatDue', () => {
 test('isOverdue', () => {
   expect(isOverdue('2026-11-07', now)).toBe(true)
   expect(isOverdue('2026-11-08', now)).toBe(false)
+})
+
+test('isRelative', () => {
+  expect(isRelative('2026-11-07', now)).toBe(true)
+  expect(isRelative('2026-11-08', now)).toBe(true)
+  expect(isRelative('2026-11-09', now)).toBe(true)
+  expect(isRelative('2026-11-06', now)).toBe(false)
+  expect(isRelative('2026-11-10', now)).toBe(false)
 })
