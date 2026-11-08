@@ -18,7 +18,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
 import {
   applyDrop,
-  moveAfterLastOpen,
   moveSubtaskAfterLastOpen,
   type Subtask,
   type Task,
@@ -27,11 +26,12 @@ import {
 
 type Stage = NonNullable<Task["stage"]>;
 
-const STAGE: Record<Stage, [string, string]> = {
-  progress: ["⚡ In progress", "text-amber-600"],
-  waiting: ["⏳ Waiting", "text-amber-800"],
-  done: ["✅ Done", "text-green-600"],
-  cancelled: ["❌ Cancelled", "text-red-600"],
+const STAGE: Record<Stage, string> = {
+  progress: "⚡ In progress",
+  waiting: "⏳ Waiting",
+  done: "✅ Done",
+  // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
+  cancelled: "❌\uFE0F Cancelled",
 };
 
 const seedLists: TaskList[] = [
@@ -42,21 +42,20 @@ const seedLists: TaskList[] = [
       {
         id: "g1",
         text: "Milk",
-        done: false,
         subtasks: [
           { id: "g1a", text: "2% lactose free", done: false },
         ],
       },
-      { id: "g2", text: "Eggs", done: false, subtasks: [] },
+      { id: "g2", text: "Eggs", subtasks: [] },
     ],
   },
   {
     id: "work",
     name: "Work",
     tasks: [
-      { id: "w1", text: "Reply to emails", done: false, subtasks: [] },
-      { id: "w2", text: "Update docs", done: false, subtasks: [] },
-      { id: "w3", text: "Review PR", done: false, subtasks: [] },
+      { id: "w1", text: "Reply to emails", subtasks: [] },
+      { id: "w2", text: "Update docs", subtasks: [] },
+      { id: "w3", text: "Review PR", subtasks: [] },
     ],
   },
   { id: "home", name: "Home", tasks: [] },
@@ -194,7 +193,7 @@ export default function App() {
   const addTask = () => {
     if (!text.trim()) return;
     updateTasks(selectedId, (tasks) => [
-      { id: crypto.randomUUID(), text, done: false, subtasks: [] },
+      { id: crypto.randomUUID(), text, subtasks: [] },
       ...tasks,
     ]);
     setText("");
@@ -208,16 +207,6 @@ export default function App() {
     ]);
     setSubtaskText("");
   };
-
-  const toggleTask = (id: string) =>
-    updateTasks(selectedId, (tasks) =>
-      moveAfterLastOpen(
-        tasks.map((task) =>
-          task.id === id ? { ...task, done: !task.done } : task,
-        ),
-        id,
-      ),
-    );
 
   const deleteTask = (id: string) =>
     updateTasks(selectedId, (tasks) => tasks.filter((task) => task.id !== id));
@@ -286,15 +275,24 @@ export default function App() {
       }}
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
-      <input
-        type="checkbox"
-        checked={task.done}
+      <select
+        aria-label="Task stage"
+        value={task.stage ?? ""}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onChange={() => toggleTask(task.id)}
-        className="size-4 accent-blue-500"
-      />
-      {renaming?.kind === "task" && renaming.id === task.id ? (
+        onChange={(e) =>
+          setStage(task.id, (e.target.value || undefined) as Stage | undefined)
+        }
+        className="bg-transparent"
+      >
+        <option value="">⬜</option>
+        {(Object.keys(STAGE) as Stage[]).map((stage) => (
+          <option key={stage} value={stage}>
+            {STAGE[stage].split(" ")[0]}
+          </option>
+        ))}
+      </select>
+     {renaming?.kind === "task" && renaming.id === task.id ? (
         <RenameInput
           draft={renaming.draft}
           onChange={(draft) => setRenaming({ ...renaming, draft })}
@@ -306,21 +304,18 @@ export default function App() {
         <div className="flex flex-col">
           <span
             className={
-              task.done ? "text-gray-400 line-through" : "text-gray-800"
+              task.stage === "done" || task.stage === "cancelled"
+                ? "text-gray-400 line-through"
+                : "text-gray-800"
             }
           >
             {task.text}
           </span>
-          {(task.due || task.stage || task.priority) && (
+          {(task.due || task.priority) && (
             <div className="flex gap-3">
               {task.due && (
                 <span className={dueClass(task.due)}>
                   Due {formatDue(task.due)}
-                </span>
-              )}
-              {task.stage && (
-                <span className={"text-xs " + STAGE[task.stage][1]}>
-                  {STAGE[task.stage][0]}
                 </span>
               )}
               {task.priority && (
@@ -783,27 +778,6 @@ export default function App() {
                     Remove due date
                   </button>
                 )}
-                <hr className="my-1 border-gray-200" />
-                {(
-                  [
-                    ["Set open", undefined],
-                    ["Set in progress", "progress"],
-                    ["Set waiting", "waiting"],
-                    ["Set done", "done"],
-                    ["Set cancelled", "cancelled"],
-                  ] as const
-                ).map(([label, c]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      setStage(menu.id, c);
-                      setMenu(null);
-                    }}
-                    className="block w-full cursor-default px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    {label}
-                  </button>
-                ))}
                 <hr className="my-1 border-gray-200" />
                 {(
                   [

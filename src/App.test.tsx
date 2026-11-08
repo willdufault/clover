@@ -4,7 +4,7 @@ import App from './App'
 
 const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const texts = (root: HTMLElement = document.body) =>
-  [...root.querySelectorAll('li')].map((li) => li.textContent)
+  [...root.querySelectorAll('li')].map((li) => li.textContent!.replace(/^(?:[⬜⚡⏳✅❌]|\uFE0F)+/, ''))
 const nav = () => screen.getByRole('navigation')
 const aside = () => screen.getByRole('complementary')
 
@@ -21,19 +21,23 @@ const newList = async (user: User, name: string) => {
 const toggle = (user: User, text: string, root: { getByText: typeof screen.getByText } = screen) =>
   user.click(within(root.getByText(text).closest('li')!).getByRole('checkbox'))
 
-test('add a task and toggle it done and back', async () => {
+test('add a task and set its stage from the row', async () => {
   const { user } = setup()
   await user.type(screen.getByPlaceholderText(/add a task/i), 'Bread{Enter}')
   expect(texts()).toEqual(['Bread', 'Milk', 'Eggs'])
 
-  await toggle(user, 'Bread')
-  expect(texts()).toEqual(['Milk', 'Eggs', 'Bread'])
+  const row = within(screen.getByText('Bread').closest('li')!)
+  await user.selectOptions(row.getByLabelText('Task stage'), 'done')
+  expect(screen.getByText('Bread')).toHaveClass('text-gray-400', 'line-through')
+  expect(texts()).toEqual(['Bread', 'Milk', 'Eggs'])
 
-  await toggle(user, 'Milk')
-  expect(texts()).toEqual(['Eggs', 'Milk', 'Bread'])
+  await user.selectOptions(row.getByLabelText('Task stage'), 'cancelled')
+  expect(screen.getByText('Bread')).toHaveClass('line-through')
 
-  await toggle(user, 'Bread')
-  expect(texts()).toEqual(['Eggs', 'Bread', 'Milk'])
+  await user.selectOptions(row.getByLabelText('Task stage'), 'progress')
+  expect(screen.getByText('Bread')).not.toHaveClass('line-through')
+  await user.selectOptions(row.getByLabelText('Task stage'), '')
+  expect(row.getByLabelText('Task stage')).toHaveValue('')
 })
 
 test('open side panel, add and toggle a subtask', async () => {
@@ -199,7 +203,6 @@ describe('changes only affect the touched item', () => {
 
     // Work tasks and Groceries subtasks untouched by Groceries task edits.
     await user.type(screen.getByPlaceholderText(/add a task/i), 'Bread{Enter}')
-    await toggle(user, 'Bread')
     await menuAction(user, screen.getByText('Bread'), 'Rename')
     await user.keyboard('Rye{Enter}')
     await menuAction(user, screen.getByText('Rye'), 'Delete')
@@ -330,34 +333,27 @@ describe('stage', () => {
     await user.selectOptions(within(aside()).getByLabelText('Stage'), value)
   }
 
-  test('sidebar select sets stage, row shows it, open clears it', async () => {
+  test('sidebar select sets stage, row select shows it, open clears it', async () => {
     const { user } = setup()
-    await setStage(user, 'progress')
-    expect(within(screen.getByRole('main')).getByText('⚡ In progress')).toBeInTheDocument()
-    await setStage(user, 'waiting')
-    expect(within(screen.getByRole('main')).getByText('⏳ Waiting')).toBeInTheDocument()
-    await setStage(user, 'done')
-    expect(within(screen.getByRole('main')).getByText('✅ Done')).toBeInTheDocument()
-    await setStage(user, 'cancelled')
-    expect(within(screen.getByRole('main')).getByText('❌ Cancelled')).toBeInTheDocument()
+    const rowSelect = () => within(within(screen.getByRole('main')).getByText('Milk').closest('li')!).getByLabelText('Task stage')
+    for (const v of ['progress', 'waiting', 'done', 'cancelled']) {
+      await setStage(user, v)
+      expect(rowSelect()).toHaveValue(v)
+    }
     await setStage(user, 'Open')
-    expect(within(screen.getByRole('main')).queryByText(/In progress|⏳|✅|❌/)).toBeNull()
+    expect(rowSelect()).toHaveValue('')
   })
 
-  test('context menu sets and clears stage', async () => {
+  test('context menu has no stage options', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
-    await user.click(screen.getByText('Set in progress'))
-    expect(screen.getByText('⚡ In progress')).toBeInTheDocument()
-    await rightClick(user, screen.getByText('Milk'))
-    await user.click(screen.getByText('Set open'))
-    expect(screen.queryByText('⚡ In progress')).toBeNull()
+    expect(screen.queryByText(/^Set (open|in progress|waiting|done|cancelled)$/)).toBeNull()
   })
 
-  test('subtasks show no stage', async () => {
+  test('subtasks have no stage select', async () => {
     const { user } = setup()
     await setStage(user, 'progress')
-    expect(within(screen.getByText('2% lactose free').closest('li')!).queryByText('⚡ In progress')).toBeNull()
+    expect(within(screen.getByText('2% lactose free').closest('li')!).queryByLabelText('Task stage')).toBeNull()
   })
 })
 
@@ -393,22 +389,21 @@ describe('task fields', () => {
     expect(within(main()).queryByText(/^Due /)).toBeNull()
   })
 
-  test('row subtext order is due, stage, priority', async () => {
+  test('row subtext order is due, priority', async () => {
     const { user } = setup()
     await setAll(user)
     const spans = [...within(main()).getByText('Milk').nextElementSibling!.children].map((e) => e.textContent)
-    expect(spans).toEqual(['Due Sat Jan 1', '⚡ In progress', '🔴 High priority'])
+    expect(spans).toEqual(['Due Sat Jan 1', '🔴 High priority'])
   })
 
-  test('fields survive toggle and rename', async () => {
+  test('fields survive rename', async () => {
     const { user } = setup()
     await setAll(user)
-    await toggle(user, 'Milk', within(main()))
     await menuAction(user, within(main()).getByText('Milk'), 'Rename')
     await user.keyboard('Oat{Enter}')
     const row = rowSub('Oat')
     expect(row.getByText(/^Due /)).toBeInTheDocument()
-    expect(row.getByText('⚡ In progress')).toBeInTheDocument()
+    expect(row.getByLabelText('Task stage')).toHaveValue('progress')
     expect(row.getByText('🔴 High priority')).toBeInTheDocument()
   })
 

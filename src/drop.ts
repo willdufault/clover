@@ -1,20 +1,10 @@
 import { arrayMove } from '@dnd-kit/sortable'
 
 export type Subtask = { id: string; text: string; done: boolean }
-export type Task = { id: string; text: string; done: boolean; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled' }
+export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled' }
 export type TaskList = { id: string; name: string; tasks: Task[] }
 
-// Move an item right after the last open (unchecked) item:
-// checked items land at the top of the done section,
-// unchecked items land at the bottom of the open section.
-export const moveAfterLastOpen = (tasks: Task[], id: string): Task[] => {
-  const item = tasks.find((task) => task.id === id)
-  if (!item) return tasks
-  const rest = tasks.filter((task) => task.id !== id)
-  const lastOpen = rest.reduce((latestIndex, task, index) => (!task.done ? index : latestIndex), -1)
-  return [...rest.slice(0, lastOpen + 1), item, ...rest.slice(lastOpen + 1)]
-}
-
+// Move a subtask right after the last open subtask.
 export const moveSubtaskAfterLastOpen = (subtasks: Subtask[], id: string): Subtask[] => {
   const item = subtasks.find((subtask) => subtask.id === id)
   if (!item) return subtasks
@@ -52,8 +42,7 @@ export const applyDrop = (
     return lists.map((list) => {
       if (list.id === selected.id) return { ...list, tasks: list.tasks.filter((t) => t.id !== activeId) }
       if (list.id === overId) {
-        const tasks = [task, ...list.tasks]
-        return { ...list, tasks: task.done ? moveAfterLastOpen(tasks, activeId) : tasks }
+        return { ...list, tasks: [task, ...list.tasks] }
       }
       return list
     })

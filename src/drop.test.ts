@@ -1,10 +1,10 @@
 import { applyDrop, type Subtask, type Task, type TaskList } from './drop'
 
 const s = (id: string, done = false): Subtask => ({ id, text: id, done })
-const t = (id: string, subtasks: Subtask[] = [], done = false): Task => ({ id, text: id, done, subtasks })
+const t = (id: string, subtasks: Subtask[] = []): Task => ({ id, text: id, subtasks })
 const make = (): TaskList[] => [
   { id: 'A', name: 'A', tasks: [t('a1', [s('s1'), s('s2'), s('s3')]), t('a2', [s('x1'), s('x2')]), t('a3')] },
-  { id: 'B', name: 'B', tasks: [t('b1', [s('y1')]), t('b2', [], true)] },
+  { id: 'B', name: 'B', tasks: [t('b1', [s('y1')]), t('b2')] },
   { id: 'C', name: 'C', tasks: [t('c1', [s('z1')])] },
 ]
 const base = { selectedId: 'A', selectedItemId: null as string | null }
@@ -49,13 +49,6 @@ test('task to another list: moves to front with subtasks, third list untouched',
   expect(out[1].tasks).toEqual([expected[0].tasks[1], ...expected[1].tasks])
   expect(out[1].tasks[0].subtasks).toEqual([s('x1'), s('x2')])
   expect(out[2]).toEqual(expected[2])
-})
-
-test('done task lands after the last open task in the target list', () => {
-  const lists = make()
-  lists[0].tasks[2].done = true
-  const out = applyDrop(lists, { ...base, dragKind: 'task', activeId: 'a3', overId: 'B' })
-  expect(ids(out[1].tasks)).toEqual(['b1', 'a3', 'b2'])
 })
 
 test('task dropped on its own list is a no-op', () => {
