@@ -340,7 +340,7 @@ describe('stage', () => {
       await setStage(user, v)
       expect(rowSelect()).toHaveValue(v)
     }
-    await setStage(user, 'Open')
+    await setStage(user, '⬜ Open')
     expect(rowSelect()).toHaveValue('')
   })
 
@@ -414,7 +414,7 @@ describe('task fields', () => {
     expect(within(aside()).getByLabelText('Due date')).toHaveValue('')
     expect(within(aside()).getByLabelText('Stage')).toHaveValue('')
     expect(within(aside()).getByLabelText('Priority')).toHaveValue('')
-    expect(within(aside()).getByRole('option', { name: 'Open', selected: true })).toBeInTheDocument()
+    expect(within(aside()).getByRole('option', { name: '⬜ Open', selected: true })).toBeInTheDocument()
     expect(within(aside()).getByRole('option', { name: 'Medium', selected: true })).toBeInTheDocument()
   })
 

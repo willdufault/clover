@@ -654,11 +654,12 @@ export default function App() {
                 }
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
               >
-                <option value="">Open</option>
-                <option value="progress">In progress</option>
-                <option value="waiting">Waiting</option>
-                <option value="done">Done</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="">⬜ Open</option>
+                {(Object.keys(STAGE) as Stage[]).map((stage) => (
+                  <option key={stage} value={stage}>
+                    {STAGE[stage]}
+                  </option>
+                ))}
               </select>
               <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">
                 Due date
@@ -697,9 +698,9 @@ export default function App() {
                 }
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
               >
-                <option value="low">Low</option>
+                <option value="low">🔵 Low</option>
                 <option value="">Medium</option>
-                <option value="high">High</option>
+                <option value="high">🔴 High</option>
               </select>
             </aside>
           )}
