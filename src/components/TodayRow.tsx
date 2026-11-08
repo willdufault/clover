@@ -23,7 +23,7 @@ export function TodayRow({
       className={navRowClass(selected, dragOver)}
     >
       <span>Today</span>
-      <Count n={count} />
+      <Count count={count} />
     </div>
   )
 }

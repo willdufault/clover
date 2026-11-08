@@ -28,10 +28,10 @@ export default function App() {
   const [tasks, setTasks] = useState(SEED_TASKS)
   const [viewId, setViewId] = useState(SEED_LISTS[0].id)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [drag, setDrag] = useState<{ kind: ItemKind; text: string } | null>(
+  const [activeDrag, setActiveDrag] = useState<{ kind: ItemKind; text: string } | null>(
     null,
   )
-  const [dragOverListId, setDragOverListId] = useState<string | null>(null)
+  const [dragOverViewId, setDragOverViewId] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renaming, setRenaming] = useState<{
     kind: ItemKind
@@ -46,9 +46,9 @@ export default function App() {
       : viewId === TODAY_VIEW_ID
         ? 'Today'
         : lists.find((list) => list.id === viewId)?.name
-  const selectedItem = viewTasks.find((task) => task.id === selectedTaskId)
+  const selectedTask = viewTasks.find((task) => task.id === selectedTaskId)
 
-  const select = (id: string) => {
+  const selectView = (id: string) => {
     setViewId(id)
     setSelectedTaskId(null)
   }
@@ -71,13 +71,13 @@ export default function App() {
         text,
         subtasks: [],
         listId: viewId === ALL_VIEW_ID || viewId === TODAY_VIEW_ID ? undefined : viewId,
-        today: viewId === TODAY_VIEW_ID ? true : undefined,
+        addedToToday: viewId === TODAY_VIEW_ID ? true : undefined,
       },
       ...tasks,
     ])
 
   const addSubtask = (text: string) =>
-    updateSubtasks(selectedItem!.id, (subtasks) => [
+    updateSubtasks(selectedTask!.id, (subtasks) => [
       { id: crypto.randomUUID(), text, done: false },
       ...subtasks,
     ])
@@ -119,7 +119,7 @@ export default function App() {
       setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due })
     }
 
-  const renameBox = (kind: ItemKind, id: string, className: string) =>
+  const renderRenameInput = (kind: ItemKind, id: string, className: string) =>
     renaming?.kind === kind && renaming.id === id && (
       <RenameInput
         draft={renaming.draft}
@@ -153,7 +153,7 @@ export default function App() {
     if (!name) return
     const newList = { id: crypto.randomUUID(), name }
     setLists([...lists, newList])
-    select(newList.id)
+    selectView(newList.id)
   }
 
   const deleteList = (id: string) => {
@@ -166,7 +166,7 @@ export default function App() {
       ),
     )
     if (id === viewId) {
-      select(
+      selectView(
         remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL_VIEW_ID,
       )
     }
@@ -174,15 +174,15 @@ export default function App() {
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    setDrag(active.data.current as { kind: ItemKind; text: string })
+    setActiveDrag(active.data.current as { kind: ItemKind; text: string })
   }
 
   // Highlight the sidebar list row a task is hovering over.
   const onDragOver = ({ over }: DragOverEvent) => {
     const listIds = lists.map((list) => list.id)
-    setDragOverListId(
+    setDragOverViewId(
       over &&
-        drag?.kind === ItemKind.Task &&
+        activeDrag?.kind === ItemKind.Task &&
         [...listIds, TODAY_VIEW_ID].includes(String(over.id))
         ? String(over.id)
         : null,
@@ -190,22 +190,22 @@ export default function App() {
   }
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    setDrag(null)
-    setDragOverListId(null)
+    setActiveDrag(null)
+    setDragOverViewId(null)
     if (!over) return
     const overId = String(over.id)
-    const next = applyDrop({ lists, tasks }, {
+    const nextState = applyDrop({ lists, tasks }, {
       viewId,
       selectedTaskId,
-      dragKind: drag?.kind,
+      dragKind: activeDrag?.kind,
       activeId: String(active.id),
       overId,
     })
-    if (next.lists === lists && next.tasks === tasks) return
-    setLists(next.lists)
-    setTasks(next.tasks)
+    if (nextState.lists === lists && nextState.tasks === tasks) return
+    setLists(nextState.lists)
+    setTasks(nextState.tasks)
     if (
-      drag?.kind === ItemKind.Task &&
+      activeDrag?.kind === ItemKind.Task &&
       (overId === TODAY_VIEW_ID || lists.some((list) => list.id === overId))
     )
       setSelectedTaskId(null)
@@ -218,8 +218,8 @@ export default function App() {
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
-        setDrag(null)
-        setDragOverListId(null)
+        setActiveDrag(null)
+        setDragOverViewId(null)
       }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
@@ -231,24 +231,24 @@ export default function App() {
             lists={lists}
             tasks={tasks}
             viewId={viewId}
-            dragOverListId={dragOverListId}
-            onSelect={select}
+            dragOverViewId={dragOverViewId}
+            onSelectView={selectView}
             onCreateList={createList}
             onContextMenu={openMenu}
-            renameBox={renameBox}
+            renderRenameInput={renderRenameInput}
           />
           <TaskView
-            name={viewName}
+            viewName={viewName}
             tasks={viewTasks}
-            onAdd={addTask}
+            onAddTask={addTask}
             onSelectTask={setSelectedTaskId}
             onSetStage={(id, stage) => patchTask(id, { stage })}
             onContextMenu={openMenu}
-            renameBox={renameBox}
+            renderRenameInput={renderRenameInput}
           />
-          {selectedItem && (
+          {selectedTask && (
             <DetailPanel
-              task={selectedItem}
+              task={selectedTask}
               onClose={() => setSelectedTaskId(null)}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
@@ -256,15 +256,15 @@ export default function App() {
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}
-              renameBox={renameBox}
+              renderRenameInput={renderRenameInput}
             />
           )}
         </div>
       </div>
       <DragOverlay>
-        {drag && (
+        {activeDrag && (
           <div className="cursor-default select-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
-            {drag.text}
+            {activeDrag.text}
           </div>
         )}
       </DragOverlay>

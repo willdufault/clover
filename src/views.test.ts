@@ -6,7 +6,7 @@ const ids = (items: { id: string }[]) => items.map((i) => i.id)
 
 test('Today view shows flagged, due today and overdue tasks only', () => {
   const tasks: Task[] = [
-    { ...t('flag', 'A'), today: true },
+    { ...t('flag', 'A'), addedToToday: true },
     { ...t('due', 'A'), due: '2026-01-02' },
     { ...t('late', 'B'), due: '2026-01-01' },
     { ...t('future', 'B'), due: '2026-01-03' },

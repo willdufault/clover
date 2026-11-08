@@ -2,13 +2,13 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { ItemKind, type Task, type TaskList } from './types'
 import { TODAY_VIEW_ID, visibleTasks } from './views'
 
-const move = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
-  const from = items.findIndex((item) => item.id === activeId)
-  const to = items.findIndex((item) => item.id === overId)
-  return from < 0 || to < 0 ? items : arrayMove(items, from, to)
+const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
+  const fromIndex = items.findIndex((item) => item.id === activeId)
+  const toIndex = items.findIndex((item) => item.id === overId)
+  return fromIndex < 0 || toIndex < 0 ? items : arrayMove(items, fromIndex, toIndex)
 }
 
-export type Drop = {
+export type DropEvent = {
   viewId: string
   selectedTaskId: string | null
   dragKind: ItemKind | undefined
@@ -16,35 +16,35 @@ export type Drop = {
   overId: string
 }
 
-export type State = { lists: TaskList[]; tasks: Task[] }
+export type BoardState = { lists: TaskList[]; tasks: Task[] }
 
 // Reorder only within the container that both the dragged item and its drop target belong to.
 export const applyDrop = (
-  state: State,
-  { viewId, selectedTaskId, dragKind, activeId, overId }: Drop,
-): State => {
+  state: BoardState,
+  { viewId, selectedTaskId, dragKind, activeId, overId }: DropEvent,
+): BoardState => {
   const { lists, tasks } = state
   if (activeId === overId) return state
   const isList = (id: string) => lists.some((list) => list.id === id)
-  const visible = visibleTasks(tasks, viewId)
+  const visibleInView = visibleTasks(tasks, viewId)
 
   if (dragKind === ItemKind.Task && overId === TODAY_VIEW_ID) {
-    const task = visible.find((task) => task.id === activeId)
-    if (!task || task.today) return state
-    return { lists, tasks: tasks.map((t) => (t === task ? { ...t, today: true } : t)) }
+    const task = visibleInView.find((task) => task.id === activeId)
+    if (!task || task.addedToToday) return state
+    return { lists, tasks: tasks.map((t) => (t === task ? { ...t, addedToToday: true } : t)) }
   }
   if (dragKind === ItemKind.Task && isList(overId)) {
-    const task = visible.find((task) => task.id === activeId)
+    const task = visibleInView.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
     return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((t) => t.id !== activeId)] }
   }
-  if (isList(activeId) && isList(overId)) return { lists: move(lists, activeId, overId), tasks }
+  if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
-  const has = (items: { id: string }[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
-  if (has(visible)) return { lists, tasks: move(tasks, activeId, overId) }
-  const parent = visible.find((task) => task.id === selectedTaskId)
-  if (parent && has(parent.subtasks)) {
-    return { lists, tasks: tasks.map((task) => (task === parent ? { ...task, subtasks: move(task.subtasks, activeId, overId) } : task)) }
+  const containsBoth = (items: { id: string }[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
+  if (containsBoth(visibleInView)) return { lists, tasks: moveById(tasks, activeId, overId) }
+  const selectedTask = visibleInView.find((task) => task.id === selectedTaskId)
+  if (selectedTask && containsBoth(selectedTask.subtasks)) {
+    return { lists, tasks: tasks.map((task) => (task === selectedTask ? { ...task, subtasks: moveById(task.subtasks, activeId, overId) } : task)) }
   }
   return state
 }

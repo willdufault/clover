@@ -1,10 +1,10 @@
-import { applyDrop, type State } from './drop'
+import { applyDrop, type BoardState } from './drop'
 import type { Subtask, Task } from './types'
 import { TODAY_VIEW_ID } from './views'
 
 const s = (id: string, done = false): Subtask => ({ id, text: id, done })
 const t = (id: string, listId: string, subtasks: Subtask[] = []): Task => ({ id, text: id, listId, subtasks })
-const make = (): State => ({
+const make = (): BoardState => ({
   lists: [
     { id: 'A', name: 'A' },
     { id: 'B', name: 'B' },
@@ -88,6 +88,6 @@ test('moving a task to another list keeps due, priority and stage', () => {
 test('dropping a task on Today flags it and keeps its list and position', () => {
   const out = applyDrop(make(), { ...base, dragKind: 'task', activeId: 'a2', overId: TODAY_VIEW_ID })
   expect(ids(out.tasks)).toEqual(ids(make().tasks))
-  expect(out.tasks[1]).toEqual({ ...make().tasks[1], today: true })
+  expect(out.tasks[1]).toEqual({ ...make().tasks[1], addedToToday: true })
 })
 

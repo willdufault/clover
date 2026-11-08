@@ -34,18 +34,18 @@ export default function ContextMenu({
   onSetPriority: (priority?: Priority) => void
 }) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  const item = (label: string, fn: () => void, danger?: boolean) => (
+  const menuItem = (label: string, action: () => void, danger?: boolean) => (
     <button
       key={label}
       onClick={() => {
-        fn()
+        action()
         onClose()
       }}
       className={
@@ -75,8 +75,8 @@ export default function ContextMenu({
           top: Math.min(menu.y, window.innerHeight - 256),
         }}
       >
-        {item('Rename', onRename)}
-        {item('Delete', onDelete, true)}
+        {menuItem('Rename', onRename)}
+        {menuItem('Delete', onDelete, true)}
         {menu.kind === ItemKind.Task && (
           <>
             <hr className="my-1 border-gray-200" />
@@ -84,8 +84,8 @@ export default function ContextMenu({
               ['Due today', today()],
               ['Due tomorrow', tomorrow()],
               ['Due next week', nextMonday()],
-            ].map(([label, date]) => item(label, () => onSetDue(date)))}
-            {menu.due && item('Remove due date', () => onSetDue())}
+            ].map(([label, date]) => menuItem(label, () => onSetDue(date)))}
+            {menu.due && menuItem('Remove due date', () => onSetDue())}
             <hr className="my-1 border-gray-200" />
             {(
               [
@@ -93,7 +93,7 @@ export default function ContextMenu({
                 ['Set medium priority', undefined],
                 ['Set high priority', 'high'],
               ] as const
-            ).map(([label, p]) => item(label, () => onSetPriority(p)))}
+            ).map(([label, p]) => menuItem(label, () => onSetPriority(p)))}
           </>
         )}
       </div>

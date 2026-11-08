@@ -9,5 +9,5 @@ export const visibleTasks = (tasks: Task[], viewId: string, now = today()) =>
   viewId === ALL_VIEW_ID
     ? tasks
     : viewId === TODAY_VIEW_ID
-      ? tasks.filter((task) => task.today || (task.due && task.due <= now))
+      ? tasks.filter((task) => task.addedToToday || (task.due && task.due <= now))
       : tasks.filter((task) => task.listId === viewId)

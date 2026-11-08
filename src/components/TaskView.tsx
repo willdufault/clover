@@ -12,21 +12,21 @@ import { SortableRow } from './SortableRow'
 import { StageSelect } from './StageSelect'
 
 export default function TaskView({
-  name,
+  viewName,
   tasks,
-  onAdd,
+  onAddTask,
   onSelectTask,
   onSetStage,
   onContextMenu,
-  renameBox,
+  renderRenameInput,
 }: {
-  name: string | undefined
+  viewName: string | undefined
   tasks: Task[]
-  onAdd: (text: string) => void
+  onAddTask: (text: string) => void
   onSelectTask: (id: string) => void
   onSetStage: (id: string, stage?: Stage) => void
   onContextMenu: OpenMenu
-  renameBox: (kind: ItemKind, id: string, className: string) => React.ReactNode
+  renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const taskRow = (task: Task) => (
     <SortableRow
@@ -44,7 +44,7 @@ export default function TaskView({
         onChange={(stage) => onSetStage(task.id, stage)}
         className="bg-transparent"
       />
-      {renameBox(
+      {renderRenameInput(
         ItemKind.Task,
         task.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
@@ -87,9 +87,9 @@ export default function TaskView({
 
   return (
     <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-      <h1 className="font-semibold text-gray-800">{name}</h1>
+      <h1 className="font-semibold text-gray-800">{viewName}</h1>
 
-      <AddInput placeholder="Add a task and press Enter" onAdd={onAdd} />
+      <AddInput placeholder="Add a task and press Enter" onAdd={onAddTask} />
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
         <ul className="mt-4 w-full">{tasks.map(taskRow)}</ul>

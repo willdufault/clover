@@ -21,7 +21,7 @@ export default function DetailPanel({
   onSetDue,
   onSetPriority,
   onContextMenu,
-  renameBox,
+  renderRenameInput,
 }: {
   task: Task
   onClose: () => void
@@ -31,7 +31,7 @@ export default function DetailPanel({
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
-  renameBox: (kind: ItemKind, id: string, className: string) => React.ReactNode
+  renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const subtaskRow = (subtask: Subtask) => (
     <SortableRow
@@ -50,7 +50,7 @@ export default function DetailPanel({
         onChange={() => onToggleSubtask(subtask.id)}
         className="size-4 accent-blue-500"
       />
-      {renameBox(
+      {renderRenameInput(
         ItemKind.Subtask,
         subtask.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
