@@ -608,6 +608,7 @@ export default function App() {
               ))}
             </SortableContext>
 
+            <hr className="my-1 border-gray-300" />
             {addingList ? (
               <input
                 autoFocus
@@ -625,12 +626,12 @@ export default function App() {
                   setNewListName("");
                 }}
                 placeholder="List name…"
-                className="mt-auto w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
               />
             ) : (
               <button
                 onClick={() => setAddingList(true)}
-                className="mt-auto rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
+                className="rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
               >
                 + New list
               </button>
