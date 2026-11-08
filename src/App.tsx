@@ -38,6 +38,27 @@ const STAGE: Record<Stage, string> = {
   cancelled: "❌\uFE0F Cancelled",
 };
 
+const ItemType = {
+  List: "list",
+  Task: "task",
+  Subtask: "subtask",
+} as const;
+type ItemType = (typeof ItemType)[keyof typeof ItemType];
+
+const FIELD =
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500";
+
+function navRowClass(selected: boolean, dragOver: boolean) {
+  return (
+    "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
+    (dragOver
+      ? "bg-blue-100 outline-2 outline-blue-300 text-gray-800"
+      : selected
+        ? "bg-gray-200 font-medium text-gray-800"
+        : "text-gray-600 hover:bg-gray-200/60")
+  );
+}
+
 const seedLists: TaskList[] = [
   { id: "groceries", name: "Groceries" },
   { id: "work", name: "Work" },
@@ -61,7 +82,7 @@ function Count({ n }: { n: number }) {
   return n > 0 ? <span className="text-xs text-gray-500">{n}</span> : null;
 }
 
-// Row that can be dragged among its SortableContext siblings.
+// Sidebar Today row: drop target only.
 function TodayRow({
   selected,
   dragOver,
@@ -78,14 +99,7 @@ function TodayRow({
     <div
       ref={setNodeRef}
       onClick={onClick}
-      className={
-        "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
-        (dragOver
-          ? "bg-blue-100 outline-2 outline-blue-300 text-gray-800"
-          : selected
-            ? "bg-gray-200 font-medium text-gray-800"
-            : "text-gray-600 hover:bg-gray-200/60")
-      }
+      className={navRowClass(selected, dragOver)}
     >
       <span>Today</span>
       <Count n={count} />
@@ -93,8 +107,11 @@ function TodayRow({
   );
 }
 
+// Row that can be dragged among its SortableContext siblings.
 function SortableRow({
   id,
+  kind,
+  text,
   tag,
   className,
   onClick,
@@ -102,6 +119,8 @@ function SortableRow({
   children,
 }: {
   id: string;
+  kind: ItemType;
+  text: string;
   tag: "li" | "div";
   className?: string;
   onClick?: () => void;
@@ -115,7 +134,7 @@ function SortableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id });
+  } = useSortable({ id, data: { kind, text } });
   const Tag = tag;
   return (
     <Tag
@@ -169,21 +188,20 @@ export default function App() {
   const [tasks, setTasks] = useState(seedTasks);
   const [selectedId, setSelectedId] = useState(seedLists[0].id);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [drag, setDrag] = useState<{
-    kind: "list" | "task" | "subtask";
-    text: string;
-  } | null>(null);
+  const [drag, setDrag] = useState<{ kind: ItemType; text: string } | null>(
+    null,
+  );
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
-    kind: "list" | "task" | "subtask";
+    kind: ItemType;
     id: string;
     text: string;
     due?: string;
   } | null>(null);
   const [renaming, setRenaming] = useState<{
-    kind: "list" | "task" | "subtask";
+    kind: ItemType;
     id: string;
     draft: string;
   } | null>(null);
@@ -210,7 +228,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [menu]);
 
-  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn(tasks));
+  const select = (id: string) => {
+    setSelectedId(id);
+    setSelectedItemId(null);
+  };
+
+  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn);
 
   // Apply f to the subtasks of the task with id.
   const updateSubtasks = (
@@ -250,20 +273,27 @@ export default function App() {
   const deleteTask = (id: string) =>
     updateTasks((tasks) => tasks.filter((task) => task.id !== id));
 
-  const renameTask = (id: string, text: string) =>
+  const renameTask = (id: string, text: string) => patchTask(id, { text });
+
+  const patchTask = (id: string, patch: Partial<Task>) =>
     updateTasks((tasks) =>
-      tasks.map((task) => (task.id === id ? { ...task, text } : task)),
+      tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     );
 
-  const toggleSubtask = (id: string) =>
+  const patchSubtask = (id: string, patch: Partial<Subtask>) =>
     updateSubtasks(selectedItemId!, (subtasks) =>
-      moveSubtaskAfterLastOpen(
-        subtasks.map((subtask) =>
-          subtask.id === id ? { ...subtask, done: !subtask.done } : subtask,
-        ),
-        id,
+      subtasks.map((subtask) =>
+        subtask.id === id ? { ...subtask, ...patch } : subtask,
       ),
     );
+
+  const toggleSubtask = (id: string) => {
+    const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done;
+    patchSubtask(id, { done });
+    updateSubtasks(selectedItemId!, (subtasks) =>
+      moveSubtaskAfterLastOpen(subtasks, id),
+    );
+  };
 
   const deleteSubtask = (id: string) =>
     updateSubtasks(selectedItemId!, (subtasks) =>
@@ -271,47 +301,45 @@ export default function App() {
     );
 
   const renameSubtask = (id: string, text: string) =>
-    updateSubtasks(selectedItemId!, (subtasks) =>
-      subtasks.map((subtask) =>
-        subtask.id === id ? { ...subtask, text } : subtask,
-      ),
-    );
+    patchSubtask(id, { text });
 
   const dueClass = (due: string) =>
     "text-xs " + (isOverdue(due) ? "text-red-600" : "text-gray-500");
 
-  const setDue = (id: string, due?: string) =>
-    updateTasks((tasks) =>
-      tasks.map((task) => (task.id === id ? { ...task, due } : task)),
-    );
+  const setDue = (id: string, due?: string) => patchTask(id, { due });
 
   const setPriority = (id: string, priority?: "low" | "high") =>
-    updateTasks((tasks) =>
-      tasks.map((task) => (task.id === id ? { ...task, priority } : task)),
-    );
+    patchTask(id, { priority });
 
-  const setStage = (id: string, stage?: Stage) =>
-    updateTasks((tasks) =>
-      tasks.map((task) => (task.id === id ? { ...task, stage } : task)),
+  const setStage = (id: string, stage?: Stage) => patchTask(id, { stage });
+
+  const openMenu =
+    (kind: ItemType, id: string, text: string, due?: string) =>
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due });
+    };
+
+  const renameBox = (kind: ItemType, id: string, className: string) =>
+    renaming?.kind === kind && renaming.id === id && (
+      <RenameInput
+        draft={renaming.draft}
+        onChange={(draft) => setRenaming({ ...renaming, draft })}
+        onCommit={commitRename}
+        onCancel={() => setRenaming(null)}
+        className={className}
+      />
     );
 
   const taskRow = (task: Task) => (
     <SortableRow
       key={task.id}
       id={task.id}
+      kind={ItemType.Task}
+      text={task.text}
       tag="li"
       onClick={() => setSelectedItemId(task.id)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenu({
-          x: e.clientX,
-          y: e.clientY,
-          kind: "task",
-          id: task.id,
-          text: task.text,
-          due: task.due,
-        });
-      }}
+      onContextMenu={openMenu(ItemType.Task, task.id, task.text, task.due)}
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
       <select
@@ -331,15 +359,11 @@ export default function App() {
           </option>
         ))}
       </select>
-      {renaming?.kind === "task" && renaming.id === task.id ? (
-        <RenameInput
-          draft={renaming.draft}
-          onChange={(draft) => setRenaming({ ...renaming, draft })}
-          onCommit={commitRename}
-          onCancel={() => setRenaming(null)}
-          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
-        />
-      ) : (
+      {renameBox(
+        ItemType.Task,
+        task.id,
+        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
+      ) || (
         <div className="flex flex-col">
           <span
             className={
@@ -381,17 +405,10 @@ export default function App() {
     <SortableRow
       key={subtask.id}
       id={subtask.id}
+      kind={ItemType.Subtask}
+      text={subtask.text}
       tag="li"
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenu({
-          x: e.clientX,
-          y: e.clientY,
-          kind: "subtask",
-          id: subtask.id,
-          text: subtask.text,
-        });
-      }}
+      onContextMenu={openMenu(ItemType.Subtask, subtask.id, subtask.text)}
       className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
     >
       <input
@@ -402,15 +419,11 @@ export default function App() {
         onChange={() => toggleSubtask(subtask.id)}
         className="size-4 accent-blue-500"
       />
-      {renaming?.kind === "subtask" && renaming.id === subtask.id ? (
-        <RenameInput
-          draft={renaming.draft}
-          onChange={(draft) => setRenaming({ ...renaming, draft })}
-          onCommit={commitRename}
-          onCancel={() => setRenaming(null)}
-          className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
-        />
-      ) : (
+      {renameBox(
+        ItemType.Subtask,
+        subtask.id,
+        "min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none",
+      ) || (
         <span
           className={
             subtask.done ? "text-gray-400 line-through" : "text-gray-800"
@@ -429,11 +442,11 @@ export default function App() {
     const name = draft.trim();
     setRenaming(null);
     if (!name) return;
-    if (kind === "list") {
+    if (kind === ItemType.List) {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
       );
-    } else if (kind === "task") {
+    } else if (kind === ItemType.Task) {
       renameTask(id, name);
     } else {
       renameSubtask(id, name);
@@ -447,8 +460,7 @@ export default function App() {
     if (!name) return;
     const newList = { id: crypto.randomUUID(), name };
     setLists([...lists, newList]);
-    setSelectedId(newList.id);
-    setSelectedItemId(null);
+    select(newList.id);
   };
 
   const deleteList = (id: string) => {
@@ -461,8 +473,7 @@ export default function App() {
       ),
     );
     if (id === selectedId) {
-      setSelectedItemId(null);
-      setSelectedId(
+      select(
         remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL,
       );
     }
@@ -470,14 +481,7 @@ export default function App() {
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    const id = String(active.id);
-    const list = lists.find((list) => list.id === id);
-    if (list) return setDrag({ kind: "list", text: list.name });
-    for (const task of tasks) {
-      if (task.id === id) return setDrag({ kind: "task", text: task.text });
-      const sub = task.subtasks.find((sub) => sub.id === id);
-      if (sub) return setDrag({ kind: "subtask", text: sub.text });
-    }
+    setDrag(active.data.current as { kind: ItemType; text: string });
   };
 
   // Highlight the sidebar list row a task is hovering over.
@@ -485,7 +489,7 @@ export default function App() {
     const listIds = lists.map((list) => list.id);
     setDragOverListId(
       over &&
-        drag?.kind === "task" &&
+        drag?.kind === ItemType.Task &&
         [...listIds, TODAY].includes(String(over.id))
         ? String(over.id)
         : null,
@@ -508,7 +512,7 @@ export default function App() {
     setLists(next.lists);
     setTasks(next.tasks);
     if (
-      drag?.kind === "task" &&
+      drag?.kind === ItemType.Task &&
       (overId === TODAY || lists.some((list) => list.id === overId))
     )
       setSelectedItemId(null);
@@ -528,7 +532,6 @@ export default function App() {
       }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
-        {" "}
         <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
           <span className="font-semibold text-gray-800">todo</span>
         </header>
@@ -538,22 +541,11 @@ export default function App() {
               count={visibleTasks(tasks, TODAY).length}
               selected={selectedId === TODAY}
               dragOver={dragOverListId === TODAY}
-              onClick={() => {
-                setSelectedId(TODAY);
-                setSelectedItemId(null);
-              }}
+              onClick={() => select(TODAY)}
             />
             <div
-              onClick={() => {
-                setSelectedId(ALL);
-                setSelectedItemId(null);
-              }}
-              className={
-                "flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm " +
-                (selectedId === ALL
-                  ? "bg-gray-200 font-medium text-gray-800"
-                  : "text-gray-600 hover:bg-gray-200/60")
-              }
+              onClick={() => select(ALL)}
+              className={navRowClass(selectedId === ALL, false)}
             >
               <span>All</span>
               <Count n={visibleTasks(tasks, ALL).length} />
@@ -567,38 +559,21 @@ export default function App() {
                 <SortableRow
                   key={list.id}
                   id={list.id}
+                  kind={ItemType.List}
+                  text={list.name}
                   tag="div"
-                  onClick={() => {
-                    setSelectedId(list.id);
-                    setSelectedItemId(null);
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setMenu({
-                      x: e.clientX,
-                      y: e.clientY,
-                      kind: "list",
-                      id: list.id,
-                      text: list.name,
-                    });
-                  }}
-                  className={
-                    list.id === dragOverListId
-                      ? "group flex select-none items-center justify-between rounded-md bg-blue-100 outline-2 outline-blue-300 px-3 py-1.5 text-left text-sm text-gray-800"
-                      : list.id === selectedId
-                        ? "group flex select-none items-center justify-between rounded-md bg-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-800"
-                        : "group flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
-                  }
+                  onClick={() => select(list.id)}
+                  onContextMenu={openMenu(ItemType.List, list.id, list.name)}
+                  className={navRowClass(
+                    list.id === selectedId,
+                    list.id === dragOverListId,
+                  )}
                 >
-                  {renaming?.kind === "list" && renaming.id === list.id ? (
-                    <RenameInput
-                      draft={renaming.draft}
-                      onChange={(draft) => setRenaming({ ...renaming, draft })}
-                      onCommit={commitRename}
-                      onCancel={() => setRenaming(null)}
-                      className="w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none"
-                    />
-                  ) : (
+                  {renameBox(
+                    ItemType.List,
+                    list.id,
+                    "w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none",
+                  ) || (
                     <>
                       <span className="truncate">{list.name}</span>
                       <Count n={visibleTasks(tasks, list.id).length} />
@@ -646,7 +621,7 @@ export default function App() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTask()}
               placeholder="Add a task and press Enter"
-              className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+              className={"mt-4 " + FIELD}
             />
 
             <SortableContext
@@ -681,7 +656,7 @@ export default function App() {
                 onChange={(e) => setSubtaskText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addSubtask()}
                 placeholder="Add a subtask and press Enter"
-                className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+                className={"mt-4 " + FIELD}
               />
 
               <SortableContext
@@ -709,7 +684,7 @@ export default function App() {
                     (e.target.value || undefined) as Stage | undefined,
                   )
                 }
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+                className={FIELD}
               >
                 <option value="">⬜ Open</option>
                 {(Object.keys(STAGE) as Stage[]).map((stage) => (
@@ -730,7 +705,7 @@ export default function App() {
                     setDue(selectedItem.id, e.target.value || undefined)
                   }
                   className={
-                    "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500" +
+                    FIELD +
                     (selectedItem.due && isOverdue(selectedItem.due)
                       ? " text-red-600"
                       : "")
@@ -766,7 +741,7 @@ export default function App() {
                     (e.target.value || undefined) as "low" | "high" | undefined,
                   )
                 }
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+                className={FIELD}
               >
                 <option value="low">🔵 Low</option>
                 <option value="">Medium</option>
@@ -813,8 +788,8 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                if (menu.kind === "list") deleteList(menu.id);
-                else if (menu.kind === "task") deleteTask(menu.id);
+                if (menu.kind === ItemType.List) deleteList(menu.id);
+                else if (menu.kind === ItemType.Task) deleteTask(menu.id);
                 else deleteSubtask(menu.id);
                 setMenu(null);
               }}
@@ -822,7 +797,7 @@ export default function App() {
             >
               Delete
             </button>
-            {menu.kind === "task" && (
+            {menu.kind === ItemType.Task && (
               <>
                 <hr className="my-1 border-gray-200" />
                 {[
