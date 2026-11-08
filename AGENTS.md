@@ -4,7 +4,7 @@
 - Be extremely brief.
 
 ## Plan
-- Plan mode is only for brainstorming. Don't write an implementation plan.
+- Plan mode is for brainstorming. Don't prompt me to implement.
 - Ask questions until we are 100% aligned on each requirement.
 
 ## Implement
