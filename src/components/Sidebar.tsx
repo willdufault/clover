@@ -51,7 +51,7 @@ export default function Sidebar({
         onClick={() => onSelectView(ALL_VIEW_ID)}
         className={navRowClass(viewId === ALL_VIEW_ID, false)}
       >
-        <span>All</span>
+        <span>📋 All</span>
         <Count count={visibleTasks(tasks, ALL_VIEW_ID).length} />
       </div>
       <hr className="my-1 border-gray-300" />

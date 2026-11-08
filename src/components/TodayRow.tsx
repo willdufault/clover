@@ -22,7 +22,7 @@ export function TodayRow({
       onClick={onClick}
       className={navRowClass(selected, dragOver)}
     >
-      <span>Today</span>
+      <span>☀️ Today</span>
       <Count count={count} />
     </div>
   )

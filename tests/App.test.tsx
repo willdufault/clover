@@ -153,7 +153,7 @@ test('deleting every list falls back to the All view with all tasks', async () =
 })
 
 const allTexts = async (user: User) => {
-  await user.click(within(nav()).getByText('All'))
+  await user.click(within(nav()).getByText('📋 All'))
   return tasks()
 }
 
@@ -167,7 +167,7 @@ test('an edit made in a list is reflected in All', async () => {
   await menuAction(user, screen.getByText('Milk'), 'Rename')
   await user.keyboard('Oat milk{Enter}')
   await user.selectOptions(stageSelect('Eggs'), '✅')
-  await user.click(within(nav()).getByText('All'))
+  await user.click(within(nav()).getByText('📋 All'))
   expect(screen.getByText('Oat milk')).toBeInTheDocument()
   expect(stageSelect('Eggs')).toHaveDisplayValue('✅')
 })
@@ -180,7 +180,7 @@ test('deleting a list keeps its tasks in All', async () => {
 
 test('adding in All creates a task visible only in All', async () => {
   const { user } = setup()
-  await user.click(within(nav()).getByText('All'))
+  await user.click(within(nav()).getByText('📋 All'))
   await user.type(screen.getByPlaceholderText(/add a task/i), 'Loose{Enter}')
   expect(tasks()[0]).toBe('Loose')
   for (const name of ['Groceries', 'Work', 'Home']) {
@@ -470,7 +470,7 @@ describe('stage', () => {
 
   test('closing a task in All moves it after the last open task across lists', async () => {
     const { user } = setup()
-    await user.click(within(nav()).getByText('All'))
+    await user.click(within(nav()).getByText('📋 All'))
     await user.selectOptions(stageSelect('Milk'), '✅')
     expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
   })
@@ -558,11 +558,11 @@ describe('task fields', () => {
 
 test('adding in Today creates a task visible in Today and All', async () => {
   const { user } = setup()
-  await user.click(within(nav()).getByText('Today'))
+  await user.click(within(nav()).getByText('☀️ Today'))
   expect(tasks()).toEqual([])
   await user.type(screen.getByPlaceholderText(/add a task/i), 'Now{Enter}')
   expect(tasks()).toEqual(['Now'])
-  await user.click(within(nav()).getByText('All'))
+  await user.click(within(nav()).getByText('📋 All'))
   expect(screen.getByText('Now')).toBeInTheDocument()
   await user.click(within(nav()).getByText('Groceries'))
   expect(screen.queryByText('Now')).not.toBeInTheDocument()
@@ -578,7 +578,7 @@ test('Today shows overdue and due-today tasks but not others', async () => {
   await due('Eggs', tomorrow())
   await user.click(within(nav()).getByText('Work'))
   await due('Review PR', today())
-  await user.click(within(nav()).getByText('Today'))
+  await user.click(within(nav()).getByText('☀️ Today'))
   const view = within(main())
   expect(view.getByText('Milk')).toBeInTheDocument()
   expect(view.getByText('Review PR')).toBeInTheDocument()
@@ -589,10 +589,10 @@ test('Today shows overdue and due-today tasks but not others', async () => {
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^TodayAll5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
     await user.type(screen.getByPlaceholderText(/add a task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^TodayAll6Groceries3Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home\+ New list$/)
     await menuAction(user, screen.getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^TodayAll5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
   })
 })
