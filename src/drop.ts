@@ -1,8 +1,8 @@
 import { arrayMove } from '@dnd-kit/sortable'
 
 export type Subtask = { id: string; text: string; done: boolean }
-export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled' }
-export type TaskList = { id: string; name: string; tasks: Task[] }
+export type Task = { id: string; text: string; subtasks: Subtask[]; due?: string; priority?: 'low' | 'high'; stage?: 'progress' | 'waiting' | 'done' | 'cancelled'; listId?: string }
+export type TaskList = { id: string; name: string }
 
 // Move a subtask right after the last open subtask.
 export const moveSubtaskAfterLastOpen = (subtasks: Subtask[], id: string): Subtask[] => {
@@ -27,41 +27,35 @@ export type Drop = {
   overId: string
 }
 
+export const ALL = 'all'
+
+export const visibleTasks = (tasks: Task[], selectedId: string) =>
+  selectedId === ALL ? tasks : tasks.filter((task) => task.listId === selectedId)
+
+export type State = { lists: TaskList[]; tasks: Task[] }
+
 // Reorder only within the container that both the dragged item and its drop target belong to.
 export const applyDrop = (
-  lists: TaskList[],
+  state: State,
   { selectedId, selectedItemId, dragKind, activeId, overId }: Drop,
-): TaskList[] => {
-  if (activeId === overId) return lists
+): State => {
+  const { lists, tasks } = state
+  if (activeId === overId) return state
   const isList = (id: string) => lists.some((list) => list.id === id)
-  const selected = lists.find((list) => list.id === selectedId)
+  const visible = visibleTasks(tasks, selectedId)
 
   if (dragKind === 'task' && isList(overId)) {
-    const task = selected?.tasks.find((task) => task.id === activeId)
-    if (!selected || !task || selected.id === overId) return lists
-    return lists.map((list) => {
-      if (list.id === selected.id) return { ...list, tasks: list.tasks.filter((t) => t.id !== activeId) }
-      if (list.id === overId) {
-        return { ...list, tasks: [task, ...list.tasks] }
-      }
-      return list
-    })
+    const task = visible.find((task) => task.id === activeId)
+    if (!task || task.listId === overId) return state
+    return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((t) => t.id !== activeId)] }
   }
-  if (isList(activeId) && isList(overId)) return move(lists, activeId, overId)
-  if (!selected) return lists
+  if (isList(activeId) && isList(overId)) return { lists: move(lists, activeId, overId), tasks }
 
-  const has = (tasks: Task[]) => tasks.some((t) => t.id === activeId) && tasks.some((t) => t.id === overId)
-  const hasSubtask = (subtasks: Subtask[]) =>
-    subtasks.some((t) => t.id === activeId) && subtasks.some((t) => t.id === overId)
-  if (has(selected.tasks)) {
-    return lists.map((list) => (list === selected ? { ...list, tasks: move(list.tasks, activeId, overId) } : list))
+  const has = (items: { id: string }[]) => items.some((t) => t.id === activeId) && items.some((t) => t.id === overId)
+  if (has(visible)) return { lists, tasks: move(tasks, activeId, overId) }
+  const parent = visible.find((task) => task.id === selectedItemId)
+  if (parent && has(parent.subtasks)) {
+    return { lists, tasks: tasks.map((task) => (task === parent ? { ...task, subtasks: move(task.subtasks, activeId, overId) } : task)) }
   }
-  const parent = selected.tasks.find((task) => task.id === selectedItemId)
-  if (parent && hasSubtask(parent.subtasks)) {
-    const tasks = selected.tasks.map((task) =>
-      task === parent ? { ...task, subtasks: move(task.subtasks, activeId, overId) } : task,
-    )
-    return lists.map((list) => (list === selected ? { ...list, tasks } : list))
-  }
-  return lists
+  return state
 }

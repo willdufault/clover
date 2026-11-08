@@ -128,7 +128,45 @@ test('deleting the last list shows an empty state', async () => {
   for (const name of ['Groceries', 'Work', 'Home']) {
     await menuAction(user, within(nav()).getByText(name), 'Delete')
   }
-  expect(screen.getByText(/No lists yet/)).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'All tasks' })).toBeInTheDocument()
+  expect(texts()).toHaveLength(5)
+})
+
+const allTexts = async (user: User) => {
+  await user.click(within(nav()).getByText('All tasks'))
+  return texts(screen.getByRole('main'))
+}
+
+test('All view shows tasks from every list', async () => {
+  const { user } = setup()
+  expect(await allTexts(user)).toEqual(['Milk', 'Eggs', 'Reply to emails', 'Update docs', 'Review PR'])
+})
+
+test('an edit made in a list is reflected in All', async () => {
+  const { user } = setup()
+  await menuAction(user, screen.getByText('Milk'), 'Rename')
+  await user.keyboard('Oat milk{Enter}')
+  await user.selectOptions(within(screen.getByText('Eggs').closest('li')!).getByLabelText('Task stage'), 'done')
+  await user.click(within(nav()).getByText('All tasks'))
+  expect(screen.getByText('Oat milk')).toBeInTheDocument()
+  expect(within(screen.getByText('Eggs').closest('li')!).getByLabelText('Task stage')).toHaveValue('done')
+})
+
+test('deleting a list keeps its tasks in All', async () => {
+  const { user } = setup()
+  await menuAction(user, within(nav()).getByText('Work'), 'Delete')
+  expect(await allTexts(user)).toEqual(['Milk', 'Eggs', 'Reply to emails', 'Update docs', 'Review PR'])
+})
+
+test('adding in All creates a task visible only in All', async () => {
+  const { user } = setup()
+  await user.click(within(nav()).getByText('All tasks'))
+  await user.type(screen.getByPlaceholderText(/add a task/i), 'Loose{Enter}')
+  expect(texts()[0]).toBe('Loose')
+  for (const name of ['Groceries', 'Work', 'Home']) {
+    await user.click(within(nav()).getByText(name))
+    expect(screen.queryByText('Loose')).not.toBeInTheDocument()
+  }
 })
 
 test('whitespace-only names are ignored', async () => {
@@ -141,7 +179,7 @@ test('whitespace-only names are ignored', async () => {
   expect(texts(aside())).toEqual(['2% lactose free'])
 
   await newList(user, '   ')
-  expect(nav().textContent).toBe('GroceriesWorkHome+ New list')
+  expect(nav().textContent).toBe('All tasksGroceriesWorkHome+ New list')
 })
 
 test('new list, task and subtask land in the right place', async () => {
@@ -149,7 +187,7 @@ test('new list, task and subtask land in the right place', async () => {
 
   await newList(user, 'Fun')
   expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
-  expect(nav().textContent).toBe('GroceriesWorkHomeFun+ New list')
+  expect(nav().textContent).toBe('All tasksGroceriesWorkHomeFun+ New list')
   expect(screen.queryByText('Milk')).not.toBeInTheDocument()
   expect(screen.queryByText('Eggs')).not.toBeInTheDocument()
 
@@ -246,9 +284,9 @@ describe('changes only affect the touched item', () => {
     await newList(user, 'Fun')
     await menuAction(user, within(nav()).getByText('Fun'), 'Rename')
     await user.keyboard('Play{Enter}')
-    expect(nav().textContent).toBe('GroceriesWorkHomePlay+ New list')
+    expect(nav().textContent).toBe('All tasksGroceriesWorkHomePlay+ New list')
     await menuAction(user, within(nav()).getByText('Play'), 'Delete')
-    expect(nav().textContent).toBe('GroceriesWorkHome+ New list')
+    expect(nav().textContent).toBe('All tasksGroceriesWorkHome+ New list')
     await user.click(within(nav()).getByText('Work'))
     expect(texts(screen.getByRole('main'))).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.click(within(nav()).getByText('Groceries'))

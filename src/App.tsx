@@ -17,7 +17,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { formatDue, isOverdue, nextMonday, today, tomorrow } from "./due";
 import {
+  ALL,
   applyDrop,
+  visibleTasks,
   moveSubtaskAfterLastOpen,
   type Subtask,
   type Task,
@@ -35,28 +37,22 @@ const STAGE: Record<Stage, string> = {
 };
 
 const seedLists: TaskList[] = [
+  { id: "groceries", name: "Groceries" },
+  { id: "work", name: "Work" },
+  { id: "home", name: "Home" },
+];
+
+const seedTasks: Task[] = [
   {
-    id: "groceries",
-    name: "Groceries",
-    tasks: [
-      {
-        id: "g1",
-        text: "Milk",
-        subtasks: [{ id: "g1a", text: "2% lactose free", done: false }],
-      },
-      { id: "g2", text: "Eggs", subtasks: [] },
-    ],
+    id: "g1",
+    text: "Milk",
+    listId: "groceries",
+    subtasks: [{ id: "g1a", text: "2% lactose free", done: false }],
   },
-  {
-    id: "work",
-    name: "Work",
-    tasks: [
-      { id: "w1", text: "Reply to emails", subtasks: [] },
-      { id: "w2", text: "Update docs", subtasks: [] },
-      { id: "w3", text: "Review PR", subtasks: [] },
-    ],
-  },
-  { id: "home", name: "Home", tasks: [] },
+  { id: "g2", text: "Eggs", listId: "groceries", subtasks: [] },
+  { id: "w1", text: "Reply to emails", listId: "work", subtasks: [] },
+  { id: "w2", text: "Update docs", listId: "work", subtasks: [] },
+  { id: "w3", text: "Review PR", listId: "work", subtasks: [] },
 ];
 
 // Row that can be dragged among its SortableContext siblings.
@@ -133,6 +129,7 @@ function RenameInput({
 
 export default function App() {
   const [lists, setLists] = useState(seedLists);
+  const [tasks, setTasks] = useState(seedTasks);
   const [selectedId, setSelectedId] = useState(seedLists[0].id);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{
@@ -158,10 +155,12 @@ export default function App() {
   const [addingList, setAddingList] = useState(false);
   const [newListName, setNewListName] = useState("");
 
-  const selectedList = lists.find((list) => list.id === selectedId);
-  const selectedItem = selectedList?.tasks.find(
-    (task) => task.id === selectedItemId,
-  );
+  const viewTasks = visibleTasks(tasks, selectedId);
+  const viewName =
+    selectedId === ALL
+      ? "All tasks"
+      : lists.find((list) => list.id === selectedId)?.name;
+  const selectedItem = viewTasks.find((task) => task.id === selectedItemId);
 
   useEffect(() => {
     if (!menu) return;
@@ -172,20 +171,14 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [menu]);
 
-  const updateTasks = (listId: string, fn: (tasks: Task[]) => Task[]) => {
-    setLists(
-      lists.map((list) =>
-        list.id === listId ? { ...list, tasks: fn(list.tasks) } : list,
-      ),
-    );
-  };
+  const updateTasks = (fn: (tasks: Task[]) => Task[]) => setTasks(fn(tasks));
 
   // Apply f to the subtasks of the task with id.
   const updateSubtasks = (
     taskId: string,
     f: (subtasks: Subtask[]) => Subtask[],
   ) =>
-    updateTasks(selectedId, (tasks) =>
+    updateTasks((tasks) =>
       tasks.map((task) =>
         task.id === taskId ? { ...task, subtasks: f(task.subtasks) } : task,
       ),
@@ -193,8 +186,13 @@ export default function App() {
 
   const addTask = () => {
     if (!text.trim()) return;
-    updateTasks(selectedId, (tasks) => [
-      { id: crypto.randomUUID(), text, subtasks: [] },
+    updateTasks((tasks) => [
+      {
+        id: crypto.randomUUID(),
+        text,
+        subtasks: [],
+        listId: selectedId === ALL ? undefined : selectedId,
+      },
       ...tasks,
     ]);
     setText("");
@@ -210,10 +208,10 @@ export default function App() {
   };
 
   const deleteTask = (id: string) =>
-    updateTasks(selectedId, (tasks) => tasks.filter((task) => task.id !== id));
+    updateTasks((tasks) => tasks.filter((task) => task.id !== id));
 
   const renameTask = (id: string, text: string) =>
-    updateTasks(selectedId, (tasks) =>
+    updateTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, text } : task)),
     );
 
@@ -243,17 +241,17 @@ export default function App() {
     "text-xs " + (isOverdue(due) ? "text-red-600" : "text-gray-500");
 
   const setDue = (id: string, due?: string) =>
-    updateTasks(selectedId, (tasks) =>
+    updateTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, due } : task)),
     );
 
   const setPriority = (id: string, priority?: "low" | "high") =>
-    updateTasks(selectedId, (tasks) =>
+    updateTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, priority } : task)),
     );
 
   const setStage = (id: string, stage?: Stage) =>
-    updateTasks(selectedId, (tasks) =>
+    updateTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, stage } : task)),
     );
 
@@ -407,7 +405,7 @@ export default function App() {
     setAddingList(false);
     setNewListName("");
     if (!name) return;
-    const newList = { id: crypto.randomUUID(), name, tasks: [] };
+    const newList = { id: crypto.randomUUID(), name };
     setLists([...lists, newList]);
     setSelectedId(newList.id);
     setSelectedItemId(null);
@@ -417,32 +415,28 @@ export default function App() {
     const remaining = lists.filter((list) => list.id !== id);
     const index = lists.findIndex((list) => list.id === id);
     setLists(remaining);
+    setTasks(
+      tasks.map((task) =>
+        task.listId === id ? { ...task, listId: undefined } : task,
+      ),
+    );
     if (id === selectedId) {
       setSelectedItemId(null);
-      if (remaining.length > 0) {
-        setSelectedId((remaining[index - 1] ?? remaining[0]).id);
-      }
+      setSelectedId(
+        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL,
+      );
     }
   };
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    for (const list of lists) {
-      if (list.id === String(active.id)) {
-        setDrag({ kind: "list", text: list.name });
-        return;
-      }
-      for (const task of list.tasks) {
-        if (task.id === String(active.id)) {
-          setDrag({ kind: "task", text: task.text });
-          return;
-        }
-        const sub = task.subtasks.find((sub) => sub.id === String(active.id));
-        if (sub) {
-          setDrag({ kind: "subtask", text: sub.text });
-          return;
-        }
-      }
+    const id = String(active.id);
+    const list = lists.find((list) => list.id === id);
+    if (list) return setDrag({ kind: "list", text: list.name });
+    for (const task of tasks) {
+      if (task.id === id) return setDrag({ kind: "task", text: task.text });
+      const sub = task.subtasks.find((sub) => sub.id === id);
+      if (sub) return setDrag({ kind: "subtask", text: sub.text });
     }
   };
 
@@ -461,15 +455,16 @@ export default function App() {
     setDragOverListId(null);
     if (!over) return;
     const overId = String(over.id);
-    const next = applyDrop(lists, {
+    const next = applyDrop({ lists, tasks }, {
       selectedId,
       selectedItemId,
       dragKind: drag?.kind,
       activeId: String(active.id),
       overId,
     });
-    if (next === lists) return;
-    setLists(next);
+    if (next.lists === lists && next.tasks === tasks) return;
+    setLists(next.lists);
+    setTasks(next.tasks);
     if (drag?.kind === "task" && lists.some((list) => list.id === overId))
       setSelectedItemId(null);
   };
@@ -494,6 +489,21 @@ export default function App() {
         </header>
         <div className="flex flex-1 min-h-0">
           <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
+            <div
+              onClick={() => {
+                setSelectedId(ALL);
+                setSelectedItemId(null);
+              }}
+              className={
+                "flex select-none items-center rounded-md px-3 py-1.5 text-left text-sm " +
+                (selectedId === ALL
+                  ? "bg-gray-200 font-medium text-gray-800"
+                  : "text-gray-600 hover:bg-gray-200/60")
+              }
+            >
+              All tasks
+            </div>
+            <hr className="my-1 border-gray-300" />
             <SortableContext
               items={lists}
               strategy={verticalListSortingStrategy}
@@ -570,37 +580,25 @@ export default function App() {
           </nav>
 
           <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-            {!selectedList ? (
-              <p className="text-sm text-gray-400">
-                No lists yet — create one on the left
-              </p>
-            ) : (
-              <>
-                <h1 className="font-semibold text-gray-800">
-                  {selectedList.name}
-                </h1>
+            <h1 className="font-semibold text-gray-800">{viewName}</h1>
 
-                <input
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addTask()}
-                  placeholder="Add a task and press Enter"
-                  className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
-                />
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTask()}
+              placeholder="Add a task and press Enter"
+              className="mt-4 w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500"
+            />
 
-                <SortableContext
-                  items={selectedList.tasks}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <ul className="mt-4 w-full">
-                    {selectedList.tasks.map(taskRow)}
-                  </ul>
-                </SortableContext>
+            <SortableContext
+              items={viewTasks}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="mt-4 w-full">{viewTasks.map(taskRow)}</ul>
+            </SortableContext>
 
-                {selectedList.tasks.length === 0 && (
-                  <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
-                )}
-              </>
+            {viewTasks.length === 0 && (
+              <p className="mt-4 text-sm text-gray-400">No tasks yet</p>
             )}
           </main>
 
