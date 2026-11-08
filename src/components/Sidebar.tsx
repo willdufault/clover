@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import { ALL, TODAY, visibleTasks, type Task, type TaskList } from "../drop";
 import { ItemType, navRowClass } from "../shared";
-import { Count, SortableRow } from "./rows";
+import { Count, RenameInput, SortableRow } from "./rows";
 
 // Sidebar Today row: drop target only.
 function TodayRow({
@@ -111,18 +111,14 @@ export default function Sidebar({
 
       <hr className="my-1 border-gray-300" />
       {addingList ? (
-        <input
-          autoFocus
-          value={newListName}
-          onChange={(e) => setNewListName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              onCreateList(newListName);
-              stopAdding();
-            }
-            if (e.key === "Escape") stopAdding();
+        <RenameInput
+          draft={newListName}
+          onChange={setNewListName}
+          onCommit={() => {
+            onCreateList(newListName);
+            stopAdding();
           }}
-          onBlur={stopAdding}
+          onCancel={stopAdding}
           placeholder="List name…"
           className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
         />

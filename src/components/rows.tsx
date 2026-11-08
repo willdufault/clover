@@ -57,15 +57,18 @@ export function RenameInput({
   onCommit,
   onCancel,
   className,
+  placeholder,
 }: {
   draft: string;
   onChange: (draft: string) => void;
   onCommit: () => void;
   onCancel: () => void;
   className: string;
+  placeholder?: string;
 }) {
   return (
     <input
+      placeholder={placeholder}
       autoFocus
       onFocus={(e) => e.target.select()}
       value={draft}
