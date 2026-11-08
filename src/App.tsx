@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
-import { moveSubtaskAfterLastOpen } from './subtasks'
+import { moveAfterLastOpen } from './order'
 import { ItemKind, type Subtask, type Task } from './types'
 import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
@@ -99,11 +99,12 @@ export default function App() {
 
   const toggleSubtask = (id: string) =>
     updateSubtasks(selectedTaskId!, (subtasks) =>
-      moveSubtaskAfterLastOpen(
+      moveAfterLastOpen(
         subtasks.map((subtask) =>
           subtask.id === id ? { ...subtask, done: !subtask.done } : subtask,
         ),
         id,
+        (subtask) => !subtask.done,
       ),
     )
 
