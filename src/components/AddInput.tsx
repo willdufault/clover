@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FIELD } from '../styles'
+import { FIELD_CLASS } from '../styles'
 
 // Text box that calls onAdd with non-blank text on Enter, then clears.
 export function AddInput({
@@ -23,7 +23,7 @@ export function AddInput({
       onChange={(e) => setText(e.target.value)}
       onKeyDown={(e) => e.key === 'Enter' && add()}
       placeholder={placeholder}
-      className={'mt-4 ' + FIELD}
+      className={'mt-4 ' + FIELD_CLASS}
     />
   )
 }

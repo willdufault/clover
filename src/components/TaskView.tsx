@@ -3,9 +3,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue } from '../due'
-import { PRIORITY } from '../labels'
+import { PRIORITY_LABELS } from '../labels'
 import { dueClass } from '../styles'
-import { ItemType, type Stage, type Task } from '../types'
+import { ItemKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -26,17 +26,17 @@ export default function TaskView({
   onSelectTask: (id: string) => void
   onSetStage: (id: string, stage?: Stage) => void
   onContextMenu: OpenMenu
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
+  renameBox: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const taskRow = (task: Task) => (
     <SortableRow
       key={task.id}
       id={task.id}
-      kind={ItemType.Task}
+      kind={ItemKind.Task}
       text={task.text}
       tag="li"
       onClick={() => onSelectTask(task.id)}
-      onContextMenu={onContextMenu(ItemType.Task, task.id, task.text, task.due)}
+      onContextMenu={onContextMenu(ItemKind.Task, task.id, task.text, task.due)}
       className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
     >
       <StageSelect
@@ -45,7 +45,7 @@ export default function TaskView({
         className="bg-transparent"
       />
       {renameBox(
-        ItemType.Task,
+        ItemKind.Task,
         task.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
@@ -74,8 +74,8 @@ export default function TaskView({
               )}
               {task.priority && (
                 <span className="text-xs text-gray-500">
-                  {PRIORITY[task.priority].emoji}{' '}
-                  {PRIORITY[task.priority].label} priority
+                  {PRIORITY_LABELS[task.priority].emoji}{' '}
+                  {PRIORITY_LABELS[task.priority].label} priority
                 </span>
               )}
             </div>

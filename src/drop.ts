@@ -1,6 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
-import { ItemType, type Task, type TaskList } from './types'
-import { TODAY, visibleTasks } from './views'
+import { ItemKind, type Task, type TaskList } from './types'
+import { TODAY_VIEW_ID, visibleTasks } from './views'
 
 const move = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
   const from = items.findIndex((item) => item.id === activeId)
@@ -11,7 +11,7 @@ const move = <T extends { id: string }>(items: T[], activeId: string, overId: st
 export type Drop = {
   viewId: string
   selectedTaskId: string | null
-  dragKind: ItemType | undefined
+  dragKind: ItemKind | undefined
   activeId: string
   overId: string
 }
@@ -28,12 +28,12 @@ export const applyDrop = (
   const isList = (id: string) => lists.some((list) => list.id === id)
   const visible = visibleTasks(tasks, viewId)
 
-  if (dragKind === ItemType.Task && overId === TODAY) {
+  if (dragKind === ItemKind.Task && overId === TODAY_VIEW_ID) {
     const task = visible.find((task) => task.id === activeId)
     if (!task || task.today) return state
     return { lists, tasks: tasks.map((t) => (t === task ? { ...t, today: true } : t)) }
   }
-  if (dragKind === ItemType.Task && isList(overId)) {
+  if (dragKind === ItemKind.Task && isList(overId)) {
     const task = visible.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
     return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((t) => t.id !== activeId)] }

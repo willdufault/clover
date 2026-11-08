@@ -3,9 +3,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDue, isOverdue, relativeDay } from '../due'
-import { PRIORITY } from '../labels'
-import { FIELD, dueClass } from '../styles'
-import { ItemType, type Priority, type Stage, type Subtask, type Task } from '../types'
+import { PRIORITY_LABELS } from '../labels'
+import { FIELD_CLASS, dueClass } from '../styles'
+import { ItemKind, type Priority, type Stage, type Subtask, type Task } from '../types'
 import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -31,16 +31,16 @@ export default function DetailPanel({
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
+  renameBox: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const subtaskRow = (subtask: Subtask) => (
     <SortableRow
       key={subtask.id}
       id={subtask.id}
-      kind={ItemType.Subtask}
+      kind={ItemKind.Subtask}
       text={subtask.text}
       tag="li"
-      onContextMenu={onContextMenu(ItemType.Subtask, subtask.id, subtask.text)}
+      onContextMenu={onContextMenu(ItemKind.Subtask, subtask.id, subtask.text)}
       className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
     >
       <input
@@ -51,7 +51,7 @@ export default function DetailPanel({
         className="size-4 accent-blue-500"
       />
       {renameBox(
-        ItemType.Subtask,
+        ItemKind.Subtask,
         subtask.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
@@ -101,7 +101,7 @@ export default function DetailPanel({
         value={task.stage}
         onChange={(stage) => onSetStage(task.id, stage)}
         showLabel
-        className={FIELD}
+        className={FIELD_CLASS}
       />
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
       <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function DetailPanel({
           value={task.due ?? ''}
           onChange={(e) => onSetDue(task.id, e.target.value || undefined)}
           className={
-            FIELD + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
+            FIELD_CLASS + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
           }
         />
         {task.due && (
@@ -135,14 +135,14 @@ export default function DetailPanel({
             (e.target.value || undefined) as Priority | undefined,
           )
         }
-        className={FIELD}
+        className={FIELD_CLASS}
       >
         <option value="low">
-          {PRIORITY.low.emoji} {PRIORITY.low.label}
+          {PRIORITY_LABELS.low.emoji} {PRIORITY_LABELS.low.label}
         </option>
         <option value="">Medium</option>
         <option value="high">
-          {PRIORITY.high.emoji} {PRIORITY.high.label}
+          {PRIORITY_LABELS.high.emoji} {PRIORITY_LABELS.high.label}
         </option>
       </select>
     </aside>

@@ -1,18 +1,18 @@
 import { useEffect } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
-import { ItemType, type Priority } from '../types'
+import { ItemKind, type Priority } from '../types'
 
 export type MenuState = {
   x: number
   y: number
-  kind: ItemType
+  kind: ItemKind
   id: string
   text: string
   due?: string
 }
 
 export type OpenMenu = (
-  kind: ItemType,
+  kind: ItemKind,
   id: string,
   text: string,
   due?: string,
@@ -77,7 +77,7 @@ export default function ContextMenu({
       >
         {item('Rename', onRename)}
         {item('Delete', onDelete, true)}
-        {menu.kind === ItemType.Task && (
+        {menu.kind === ItemKind.Task && (
           <>
             <hr className="my-1 border-gray-200" />
             {[

@@ -1,4 +1,4 @@
-import { STAGE } from '../labels'
+import { STAGE_LABELS } from '../labels'
 import type { Stage } from '../types'
 import { stopDrag } from './stopDrag'
 
@@ -24,10 +24,10 @@ export function StageSelect({
       className={className}
     >
       <option value="">{showLabel ? '⬜ Open' : '⬜'}</option>
-      {(Object.keys(STAGE) as Stage[]).map((stage) => (
+      {(Object.keys(STAGE_LABELS) as Stage[]).map((stage) => (
         <option key={stage} value={stage}>
-          {STAGE[stage].emoji}
-          {showLabel && ' ' + STAGE[stage].label}
+          {STAGE_LABELS[stage].emoji}
+          {showLabel && ' ' + STAGE_LABELS[stage].label}
         </option>
       ))}
     </select>

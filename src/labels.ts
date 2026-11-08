@@ -1,6 +1,6 @@
 import type { Priority, Stage } from './types'
 
-export const STAGE: Record<Stage, { emoji: string; label: string }> = {
+export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
   progress: { emoji: '⚡', label: 'In progress' },
   waiting: { emoji: '⏳', label: 'Waiting' },
   done: { emoji: '✅', label: 'Done' },
@@ -8,7 +8,7 @@ export const STAGE: Record<Stage, { emoji: string; label: string }> = {
   cancelled: { emoji: '❌️', label: 'Cancelled' },
 }
 
-export const PRIORITY: Record<Priority, { emoji: string; label: string }> = {
+export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }> = {
   low: { emoji: '🔵', label: 'Low' },
   high: { emoji: '🔴', label: 'High' },
 }

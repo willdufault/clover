@@ -1,5 +1,5 @@
 import type { Task } from './types'
-import { TODAY, visibleTasks } from './views'
+import { TODAY_VIEW_ID, visibleTasks } from './views'
 
 const t = (id: string, listId: string): Task => ({ id, text: id, listId, subtasks: [] })
 const ids = (items: { id: string }[]) => items.map((i) => i.id)
@@ -12,5 +12,5 @@ test('Today view shows flagged, due today and overdue tasks only', () => {
     { ...t('future', 'B'), due: '2026-01-03' },
     t('plain', 'B'),
   ]
-  expect(ids(visibleTasks(tasks, TODAY, '2026-01-02'))).toEqual(['flag', 'due', 'late'])
+  expect(ids(visibleTasks(tasks, TODAY_VIEW_ID, '2026-01-02'))).toEqual(['flag', 'due', 'late'])
 })

@@ -1,13 +1,13 @@
 import { today } from './due'
 import type { Task } from './types'
 
-export const ALL = 'all'
+export const ALL_VIEW_ID = 'all'
 
-export const TODAY = 'today'
+export const TODAY_VIEW_ID = 'today'
 
 export const visibleTasks = (tasks: Task[], viewId: string, now = today()) =>
-  viewId === ALL
+  viewId === ALL_VIEW_ID
     ? tasks
-    : viewId === TODAY
+    : viewId === TODAY_VIEW_ID
       ? tasks.filter((task) => task.today || (task.due && task.due <= now))
       : tasks.filter((task) => task.listId === viewId)

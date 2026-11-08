@@ -1,12 +1,12 @@
 import type { Task, TaskList } from './types'
 
-export const seedLists: TaskList[] = [
+export const SEED_LISTS: TaskList[] = [
   { id: 'groceries', name: 'Groceries' },
   { id: 'work', name: 'Work' },
   { id: 'home', name: 'Home' },
 ]
 
-export const seedTasks: Task[] = [
+export const SEED_TASKS: Task[] = [
   {
     id: 'g1',
     text: 'Milk',

@@ -10,10 +10,10 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { applyDrop } from './drop'
-import { seedLists, seedTasks } from './seed'
+import { SEED_LISTS, SEED_TASKS } from './seed'
 import { moveSubtaskAfterLastOpen } from './subtasks'
-import { ItemType, type Subtask, type Task } from './types'
-import { ALL, TODAY, visibleTasks } from './views'
+import { ItemKind, type Subtask, type Task } from './types'
+import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
 import DetailPanel from './components/DetailPanel'
 import Sidebar from './components/Sidebar'
@@ -24,26 +24,26 @@ export default function App() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
-  const [lists, setLists] = useState(seedLists)
-  const [tasks, setTasks] = useState(seedTasks)
-  const [viewId, setViewId] = useState(seedLists[0].id)
+  const [lists, setLists] = useState(SEED_LISTS)
+  const [tasks, setTasks] = useState(SEED_TASKS)
+  const [viewId, setViewId] = useState(SEED_LISTS[0].id)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [drag, setDrag] = useState<{ kind: ItemType; text: string } | null>(
+  const [drag, setDrag] = useState<{ kind: ItemKind; text: string } | null>(
     null,
   )
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renaming, setRenaming] = useState<{
-    kind: ItemType
+    kind: ItemKind
     id: string
     draft: string
   } | null>(null)
 
   const viewTasks = visibleTasks(tasks, viewId)
   const viewName =
-    viewId === ALL
+    viewId === ALL_VIEW_ID
       ? 'All'
-      : viewId === TODAY
+      : viewId === TODAY_VIEW_ID
         ? 'Today'
         : lists.find((list) => list.id === viewId)?.name
   const selectedItem = viewTasks.find((task) => task.id === selectedTaskId)
@@ -70,8 +70,8 @@ export default function App() {
         id: crypto.randomUUID(),
         text,
         subtasks: [],
-        listId: viewId === ALL || viewId === TODAY ? undefined : viewId,
-        today: viewId === TODAY ? true : undefined,
+        listId: viewId === ALL_VIEW_ID || viewId === TODAY_VIEW_ID ? undefined : viewId,
+        today: viewId === TODAY_VIEW_ID ? true : undefined,
       },
       ...tasks,
     ])
@@ -113,13 +113,13 @@ export default function App() {
     )
 
   const openMenu =
-    (kind: ItemType, id: string, text: string, due?: string) =>
+    (kind: ItemKind, id: string, text: string, due?: string) =>
     (e: React.MouseEvent) => {
       e.preventDefault()
       setMenu({ x: e.clientX, y: e.clientY, kind, id, text, due })
     }
 
-  const renameBox = (kind: ItemType, id: string, className: string) =>
+  const renameBox = (kind: ItemKind, id: string, className: string) =>
     renaming?.kind === kind && renaming.id === id && (
       <RenameInput
         draft={renaming.draft}
@@ -137,11 +137,11 @@ export default function App() {
     const name = draft.trim()
     setRenaming(null)
     if (!name) return
-    if (kind === ItemType.List) {
+    if (kind === ItemKind.List) {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
       )
-    } else if (kind === ItemType.Task) {
+    } else if (kind === ItemKind.Task) {
       patchTask(id, { text: name })
     } else {
       patchSubtask(id, { text: name })
@@ -167,14 +167,14 @@ export default function App() {
     )
     if (id === viewId) {
       select(
-        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL,
+        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL_VIEW_ID,
       )
     }
   }
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
   const onDragStart = ({ active }: DragStartEvent) => {
-    setDrag(active.data.current as { kind: ItemType; text: string })
+    setDrag(active.data.current as { kind: ItemKind; text: string })
   }
 
   // Highlight the sidebar list row a task is hovering over.
@@ -182,8 +182,8 @@ export default function App() {
     const listIds = lists.map((list) => list.id)
     setDragOverListId(
       over &&
-        drag?.kind === ItemType.Task &&
-        [...listIds, TODAY].includes(String(over.id))
+        drag?.kind === ItemKind.Task &&
+        [...listIds, TODAY_VIEW_ID].includes(String(over.id))
         ? String(over.id)
         : null,
     )
@@ -205,8 +205,8 @@ export default function App() {
     setLists(next.lists)
     setTasks(next.tasks)
     if (
-      drag?.kind === ItemType.Task &&
-      (overId === TODAY || lists.some((list) => list.id === overId))
+      drag?.kind === ItemKind.Task &&
+      (overId === TODAY_VIEW_ID || lists.some((list) => list.id === overId))
     )
       setSelectedTaskId(null)
   }
@@ -277,8 +277,8 @@ export default function App() {
             setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
           }
           onDelete={() => {
-            if (menu.kind === ItemType.List) deleteList(menu.id)
-            else if (menu.kind === ItemType.Task) deleteTask(menu.id)
+            if (menu.kind === ItemKind.List) deleteList(menu.id)
+            else if (menu.kind === ItemKind.Task) deleteTask(menu.id)
             else deleteSubtask(menu.id)
           }}
           onSetDue={(due) => patchTask(menu.id, { due })}

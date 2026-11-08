@@ -4,8 +4,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { navRowClass } from '../styles'
-import { ItemType, type Task, type TaskList } from '../types'
-import { ALL, TODAY, visibleTasks } from '../views'
+import { ItemKind, type Task, type TaskList } from '../types'
+import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from '../views'
 import { Count } from './Count'
 import { RenameInput } from './RenameInput'
 import { SortableRow } from './SortableRow'
@@ -29,7 +29,7 @@ export default function Sidebar({
   onSelect: (id: string) => void
   onCreateList: (name: string) => void
   onContextMenu: OpenMenu
-  renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
+  renameBox: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
@@ -42,17 +42,17 @@ export default function Sidebar({
   return (
     <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
       <TodayRow
-        count={visibleTasks(tasks, TODAY).length}
-        selected={viewId === TODAY}
-        dragOver={dragOverListId === TODAY}
-        onClick={() => onSelect(TODAY)}
+        count={visibleTasks(tasks, TODAY_VIEW_ID).length}
+        selected={viewId === TODAY_VIEW_ID}
+        dragOver={dragOverListId === TODAY_VIEW_ID}
+        onClick={() => onSelect(TODAY_VIEW_ID)}
       />
       <div
-        onClick={() => onSelect(ALL)}
-        className={navRowClass(viewId === ALL, false)}
+        onClick={() => onSelect(ALL_VIEW_ID)}
+        className={navRowClass(viewId === ALL_VIEW_ID, false)}
       >
         <span>All</span>
-        <Count n={visibleTasks(tasks, ALL).length} />
+        <Count n={visibleTasks(tasks, ALL_VIEW_ID).length} />
       </div>
       <hr className="my-1 border-gray-300" />
       <SortableContext items={lists} strategy={verticalListSortingStrategy}>
@@ -60,18 +60,18 @@ export default function Sidebar({
           <SortableRow
             key={list.id}
             id={list.id}
-            kind={ItemType.List}
+            kind={ItemKind.List}
             text={list.name}
             tag="div"
             onClick={() => onSelect(list.id)}
-            onContextMenu={onContextMenu(ItemType.List, list.id, list.name)}
+            onContextMenu={onContextMenu(ItemKind.List, list.id, list.name)}
             className={navRowClass(
               list.id === viewId,
               list.id === dragOverListId,
             )}
           >
             {renameBox(
-              ItemType.List,
+              ItemKind.List,
               list.id,
               'w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none',
             ) || (
