@@ -4,7 +4,7 @@ import App from './App'
 
 const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const texts = (root: HTMLElement = document.body) =>
-  [...root.querySelectorAll('li')].map((li) => li.textContent!.replace(/^(?:[⬜⚡⏳✅❌]|\uFE0F)+/, ''))
+  [...root.querySelectorAll('li')].map((li) => li.textContent!.replace(/^(?:[⬜⚡⏳✅❌]|\uFE0F)+/, '').replace(/\d+\/\d+$/, ''))
 const nav = () => screen.getByRole('navigation')
 const aside = () => screen.getByRole('complementary')
 
@@ -52,6 +52,16 @@ test('open side panel, add and toggle a subtask', async () => {
   const sub = within(aside()).getByText('Oat').closest('li')!
   await user.click(within(sub).getByRole('checkbox'))
   expect(within(sub).getByRole('checkbox')).toBeChecked()
+})
+
+test('subtask count shows and updates on toggle, hidden with no subtasks', async () => {
+  const { user } = setup()
+  const main = screen.getByRole('main')
+  expect(within(main).getByText('0/1')).toBeInTheDocument()
+  expect(within(screen.getByText('Eggs').closest('li')!).queryByText(/^\d+\/\d+$/)).toBeNull()
+  await user.click(screen.getByText('Milk'))
+  await toggle(user, '2% lactose free', within(aside()))
+  expect(within(main).getByText('1/1')).toBeInTheDocument()
 })
 
 test('toggling a subtask moves it below open ones', async () => {
@@ -389,11 +399,11 @@ describe('task fields', () => {
     expect(within(main()).queryByText(/^Due /)).toBeNull()
   })
 
-  test('row subtext order is due, priority', async () => {
+  test('row subtext order is count, due, priority', async () => {
     const { user } = setup()
     await setAll(user)
     const spans = [...within(main()).getByText('Milk').nextElementSibling!.children].map((e) => e.textContent)
-    expect(spans).toEqual(['Due Sat Jan 1', '🔴 High priority'])
+    expect(spans).toEqual(['0/1', 'Due Sat Jan 1', '🔴 High priority'])
   })
 
   test('fields survive rename', async () => {

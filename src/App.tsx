@@ -312,8 +312,14 @@ export default function App() {
           >
             {task.text}
           </span>
-          {(task.due || task.priority) && (
+          {(task.subtasks.length > 0 || task.due || task.priority) && (
             <div className="flex gap-3">
+              {task.subtasks.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  {task.subtasks.filter((s) => s.done).length}/
+                  {task.subtasks.length}
+                </span>
+              )}
               {task.due && (
                 <span className={dueClass(task.due)}>
                   Due {formatDue(task.due)}
