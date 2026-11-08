@@ -54,7 +54,7 @@ test('add a task and set its stage from the row', async () => {
   const stage = stageSelect('Bread')
   await user.selectOptions(stage, '✅')
   expect(stage).toHaveDisplayValue('✅')
-  expect(tasks()).toEqual(['Bread', 'Milk', 'Eggs'])
+  expect(tasks()).toEqual(['Milk', 'Eggs', 'Bread'])
 
   await user.selectOptions(stage, '⚡')
   expect(stage).toHaveDisplayValue('⚡')
@@ -423,6 +423,33 @@ describe('stage', () => {
     }
     await pick(user, prev, '⬜ Open')
     expect(rowSelect()).toHaveDisplayValue('⬜')
+  })
+
+  test('closing a task moves it right after the last open task', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Review PR'), '✅')
+    await user.selectOptions(stageSelect('Reply to emails'), '❌️')
+    expect(tasks()).toEqual(['Update docs', 'Reply to emails', 'Review PR'])
+  })
+
+  test('reopening a task moves it to the bottom of the open section', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), '✅')
+    await user.selectOptions(stageSelect('Update docs'), '✅')
+    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+    await user.selectOptions(stageSelect('Reply to emails'), '⚡')
+    expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
+  })
+
+  test('switching from done to cancelled keeps position', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), '✅')
+    await user.selectOptions(stageSelect('Update docs'), '✅')
+    await user.selectOptions(stageSelect('Update docs'), '❌️')
+    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
   })
 
   test('context menu has no stage options', async () => {

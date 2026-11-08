@@ -12,7 +12,7 @@ import {
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
 import { moveAfterLastOpen } from './order'
-import { ItemKind, type Subtask, type Task } from './types'
+import { ItemKind, type Stage, type Subtask, type Task } from './types'
 import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
 import DetailPanel from './components/DetailPanel'
@@ -89,6 +89,19 @@ export default function App() {
     setTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
+
+  const isOpenTask = (task: Task) => task.stage !== 'done' && task.stage !== 'cancelled'
+
+  // Set a task's stage, moving it after the last open task when it closes or reopens.
+  const setStage = (id: string, stage?: Stage) =>
+    setTasks((tasks) => {
+      const before = tasks.find((task) => task.id === id)!
+      const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
+      const after = patched.find((task) => task.id === id)!
+      return isOpenTask(before) === isOpenTask(after)
+        ? patched
+        : moveAfterLastOpen(patched, id, isOpenTask)
+    })
 
   const patchSubtask = (id: string, patch: Partial<Subtask>) =>
     updateSubtasks(selectedTaskId!, (subtasks) =>
@@ -243,7 +256,7 @@ export default function App() {
             tasks={viewTasks}
             onAddTask={addTask}
             onSelectTask={setSelectedTaskId}
-            onSetStage={(id, stage) => patchTask(id, { stage })}
+            onSetStage={setStage}
             onContextMenu={openMenu}
             renderRenameInput={renderRenameInput}
           />
@@ -253,7 +266,7 @@ export default function App() {
               onClose={() => setSelectedTaskId(null)}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
-              onSetStage={(id, stage) => patchTask(id, { stage })}
+              onSetStage={setStage}
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}
