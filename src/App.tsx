@@ -15,8 +15,6 @@ import {
   applyDrop,
   visibleTasks,
   moveSubtaskAfterLastOpen,
-  type Priority,
-  type Stage,
   type Subtask,
   type Task,
   type TaskList,
@@ -124,8 +122,6 @@ export default function App() {
       ),
     )
 
-  const renameTask = (id: string, text: string) => patchTask(id, { text })
-
   const toggleSubtask = (id: string) => {
     const done = !selectedItem!.subtasks.find((s) => s.id === id)!.done
     patchSubtask(id, { done })
@@ -138,16 +134,6 @@ export default function App() {
     updateSubtasks(selectedTaskId!, (subtasks) =>
       subtasks.filter((subtask) => subtask.id !== id),
     )
-
-  const renameSubtask = (id: string, text: string) =>
-    patchSubtask(id, { text })
-
-  const setDue = (id: string, due?: string) => patchTask(id, { due })
-
-  const setPriority = (id: string, priority?: Priority) =>
-    patchTask(id, { priority })
-
-  const setStage = (id: string, stage?: Stage) => patchTask(id, { stage })
 
   const openMenu =
     (kind: ItemType, id: string, text: string, due?: string) =>
@@ -179,9 +165,9 @@ export default function App() {
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
       )
     } else if (kind === ItemType.Task) {
-      renameTask(id, name)
+      patchTask(id, { text: name })
     } else {
-      renameSubtask(id, name)
+      patchSubtask(id, { text: name })
     }
   }
 
@@ -279,7 +265,7 @@ export default function App() {
             tasks={viewTasks}
             onAdd={addTask}
             onSelectTask={setSelectedTaskId}
-            onSetStage={setStage}
+            onSetStage={(id, stage) => patchTask(id, { stage })}
             onContextMenu={openMenu}
             renameBox={renameBox}
           />
@@ -289,9 +275,9 @@ export default function App() {
               onClose={() => setSelectedTaskId(null)}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
-              onSetStage={setStage}
-              onSetDue={setDue}
-              onSetPriority={setPriority}
+              onSetStage={(id, stage) => patchTask(id, { stage })}
+              onSetDue={(id, due) => patchTask(id, { due })}
+              onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}
               renameBox={renameBox}
             />
@@ -318,8 +304,8 @@ export default function App() {
             else if (menu.kind === ItemType.Task) deleteTask(menu.id)
             else deleteSubtask(menu.id)
           }}
-          onSetDue={(due) => setDue(menu.id, due)}
-          onSetPriority={(p) => setPriority(menu.id, p)}
+          onSetDue={(due) => patchTask(menu.id, { due })}
+          onSetPriority={(priority) => patchTask(menu.id, { priority })}
         />
       )}
     </DndContext>
