@@ -12,6 +12,13 @@ export type MenuState = {
   due?: string
 }
 
+export type OpenMenu = (
+  kind: ItemType,
+  id: string,
+  text: string,
+  due?: string,
+) => (e: React.MouseEvent) => void
+
 export default function ContextMenu({
   menu,
   onClose,

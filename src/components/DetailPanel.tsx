@@ -6,6 +6,7 @@ import {
 import { formatDue, isOverdue, isRelative } from '../due'
 import type { Priority, Subtask, Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
+import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './rows'
 
 export default function DetailPanel({
@@ -26,11 +27,7 @@ export default function DetailPanel({
   onSetStage: (id: string, stage?: Stage) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
-  onContextMenu: (
-    kind: ItemType,
-    id: string,
-    text: string,
-  ) => (e: React.MouseEvent) => void
+  onContextMenu: OpenMenu
   renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
   const [subtaskText, setSubtaskText] = useState('')

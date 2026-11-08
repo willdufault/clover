@@ -7,6 +7,7 @@ import {
 import { ALL, TODAY, visibleTasks, type Task, type TaskList } from '../drop'
 import { ItemType, navRowClass } from '../shared'
 import { Count, RenameInput, SortableRow } from './rows'
+import type { OpenMenu } from './ContextMenu'
 
 // Sidebar Today row: drop target only.
 function TodayRow({
@@ -49,11 +50,7 @@ export default function Sidebar({
   dragOverListId: string | null
   onSelect: (id: string) => void
   onCreateList: (name: string) => void
-  onContextMenu: (
-    kind: ItemType,
-    id: string,
-    text: string,
-  ) => (e: React.MouseEvent) => void
+  onContextMenu: OpenMenu
   renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
   const [addingList, setAddingList] = useState(false)

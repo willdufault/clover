@@ -6,6 +6,7 @@ import {
 import { formatDue } from '../due'
 import type { Task } from '../drop'
 import { FIELD, ItemType, PRIORITY, STAGE, dueClass, type Stage } from '../shared'
+import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './rows'
 
 export default function TaskView({
@@ -22,12 +23,7 @@ export default function TaskView({
   onAdd: (text: string) => void
   onSelectTask: (id: string) => void
   onSetStage: (id: string, stage?: Stage) => void
-  onContextMenu: (
-    kind: ItemType,
-    id: string,
-    text: string,
-    due?: string,
-  ) => (e: React.MouseEvent) => void
+  onContextMenu: OpenMenu
   renameBox: (kind: ItemType, id: string, className: string) => React.ReactNode
 }) {
   const [text, setText] = useState('')
