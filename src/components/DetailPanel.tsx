@@ -114,7 +114,7 @@ export default function DetailPanel({
         {task.due && (
           <button
             onClick={() => onSetDue(task.id)}
-            className="text-gray-500 hover:text-gray-800"
+            className="text-red-600 hover:text-red-800"
           >
             ×
           </button>

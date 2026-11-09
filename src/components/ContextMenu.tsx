@@ -108,7 +108,7 @@ export default function ContextMenu({
         { label: 'Today', action: () => onSetDue(today()) },
         { label: 'Tomorrow', action: () => onSetDue(tomorrow()) },
         { label: 'Next week', action: () => onSetDue(nextMonday()) },
-        ...(menu.due ? [{ label: 'Remove', action: () => onSetDue() }] : []),
+        ...(menu.due ? [{ label: 'Remove', action: () => onSetDue(), danger: true }] : []),
       ],
     },
     {
