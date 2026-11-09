@@ -27,7 +27,7 @@ export default function DetailPanel({
   onClose: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
-  onSetStage: (id: string, stage?: Stage) => void
+  onSetStage: (id: string, stage: Stage) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu

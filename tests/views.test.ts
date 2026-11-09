@@ -1,7 +1,7 @@
 import type { Task } from '../src/types'
 import { TODAY_VIEW_ID, visibleTasks } from '../src/views'
 
-const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, subtasks: [] })
+const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, subtasks: [], stage: 'open' })
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
 
 test('Today view shows flagged, due today and overdue tasks only', () => {

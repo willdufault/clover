@@ -24,7 +24,7 @@ export default function TaskView({
   tasks: Task[]
   onAddTask: (text: string) => void
   onSelectTask: (id: string) => void
-  onSetStage: (id: string, stage?: Stage) => void
+  onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenMenu
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {

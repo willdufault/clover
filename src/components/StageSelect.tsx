@@ -9,21 +9,18 @@ export function StageSelect({
   showLabel,
   className,
 }: {
-  value?: Stage
-  onChange: (stage?: Stage) => void
+  value: Stage
+  onChange: (stage: Stage) => void
   showLabel?: boolean
   className: string
 }) {
   return (
     <select
-      value={value ?? ''}
+      value={value}
       {...stopDrag}
-      onChange={(event) =>
-        onChange((event.target.value || undefined) as Stage | undefined)
-      }
+      onChange={(event) => onChange(event.target.value as Stage)}
       className={className}
     >
-      <option value="">{showLabel ? '⬜ Open' : '⬜'}</option>
       {(Object.keys(STAGE_LABELS) as Stage[]).map((stage) => (
         <option key={stage} value={stage}>
           {STAGE_LABELS[stage].emoji}

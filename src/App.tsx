@@ -71,6 +71,7 @@ export default function App() {
         id: crypto.randomUUID(),
         text,
         subtasks: [],
+        stage: 'open',
         listId: viewId === ALL_VIEW_ID || viewId === TODAY_VIEW_ID ? undefined : viewId,
         addedToToday: viewId === TODAY_VIEW_ID ? true : undefined,
       },
@@ -94,7 +95,7 @@ export default function App() {
   const isOpenTask = (task: Task) => task.stage !== 'done' && task.stage !== 'cancelled'
 
   // Set a task's stage, moving it after the last open task when it closes or reopens.
-  const setStage = (id: string, stage?: Stage) =>
+  const setStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
       const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
