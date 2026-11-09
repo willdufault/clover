@@ -3,6 +3,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -70,6 +71,7 @@ export default function App() {
         id: crypto.randomUUID(),
         text,
         subtasks: [],
+        stage: 'open',
         listId: viewId === ALL_VIEW_ID || viewId === TODAY_VIEW_ID ? undefined : viewId,
         addedToToday: viewId === TODAY_VIEW_ID ? true : undefined,
       },
@@ -93,7 +95,7 @@ export default function App() {
   const isOpenTask = (task: Task) => task.stage !== 'done' && task.stage !== 'cancelled'
 
   // Set a task's stage, moving it after the last open task when it closes or reopens.
-  const setStage = (id: string, stage?: Stage) =>
+  const setStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
       const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
@@ -227,6 +229,8 @@ export default function App() {
 
   return (
     <DndContext
+      // hit-test by cursor: the wide dragged row would otherwise overlap main-area task rows instead of sidebar lists
+      collisionDetection={pointerWithin}
       sensors={sensors}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -266,7 +270,6 @@ export default function App() {
               onClose={() => setSelectedTaskId(null)}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
-              onSetStage={setStage}
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}

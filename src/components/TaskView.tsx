@@ -24,7 +24,7 @@ export default function TaskView({
   tasks: Task[]
   onAddTask: (text: string) => void
   onSelectTask: (id: string) => void
-  onSetStage: (id: string, stage?: Stage) => void
+  onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenMenu
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
@@ -42,7 +42,7 @@ export default function TaskView({
       <StageSelect
         value={task.stage}
         onChange={(stage) => onSetStage(task.id, stage)}
-        className="bg-transparent"
+        className="w-5 appearance-none overflow-hidden bg-transparent"
       />
       {renderRenameInput(
         ItemKind.Task,

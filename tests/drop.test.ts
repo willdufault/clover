@@ -3,7 +3,7 @@ import type { Subtask, Task } from '../src/types'
 import { TODAY_VIEW_ID } from '../src/views'
 
 const makeSubtask = (id: string, done = false): Subtask => ({ id, text: id, done })
-const makeTask = (id: string, listId: string, subtasks: Subtask[] = []): Task => ({ id, text: id, listId, subtasks })
+const makeTask = (id: string, listId: string, subtasks: Subtask[] = []): Task => ({ id, text: id, listId, subtasks, stage: 'open' })
 const makeState = (): BoardState => ({
   lists: [
     { id: 'A', name: 'A' },

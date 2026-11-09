@@ -2,13 +2,14 @@
 
 ## General
 - Be extremely brief.
+- Delegate bulk file reads and web searches to subagents.
 
 ## Plan
-- Plan mode is for brainstorming. Don't prompt me to implement.
-- Ask questions until we are 100% aligned on each requirement.
+- Brainstorm only. Never prompt to execute an implementation plan.
+- Ask questions until we are fully aligned on each requirement.
 
-## Implement
-- Create a subagent for each implementation task.
+## Build
+- Delegate implementation tasks to subagents.
 
 ## Code
 - Write dead simple code. Full YAGNI.

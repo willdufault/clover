@@ -1,6 +1,7 @@
 import type { Priority, Stage } from './types'
 
 export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
+  open: { emoji: '⬜', label: 'Open' },
   inProgress: { emoji: '⚡', label: 'In progress' },
   waiting: { emoji: '⏳', label: 'Waiting' },
   done: { emoji: '✅', label: 'Done' },
