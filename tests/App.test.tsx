@@ -152,7 +152,7 @@ test('deleting every list falls back to the All view with all tasks', async () =
   for (const name of ['Groceries', 'Work', 'Home']) {
     await menuAction(user, within(nav()).getByText(name), 'Delete')
   }
-  expect(screen.getByRole('heading', { name: 'All' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: '📋 All' })).toBeInTheDocument()
   expect(tasks()).toHaveLength(5)
 })
 

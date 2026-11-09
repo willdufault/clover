@@ -5,7 +5,7 @@ import {
 } from '@dnd-kit/sortable'
 import { navRowClass } from '../styles'
 import { ItemKind, type Task, type TaskList } from '../types'
-import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from '../views'
+import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, visibleTasks } from '../views'
 import { Count } from './Count'
 import { RenameInput } from './RenameInput'
 import { SortableRow } from './SortableRow'
@@ -51,7 +51,7 @@ export default function Sidebar({
         onClick={() => onSelectView(ALL_VIEW_ID)}
         className={navRowClass(viewId === ALL_VIEW_ID, false)}
       >
-        <span>📋 All</span>
+        <span>{ALL_VIEW_NAME}</span>
         <Count count={visibleTasks(tasks, ALL_VIEW_ID).length} />
       </div>
       <hr className="my-1 border-gray-300" />

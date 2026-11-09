@@ -14,7 +14,7 @@ import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
 import { moveAfterLastOpen } from './order'
 import { ItemKind, type Stage, type Subtask, type Task } from './types'
-import { ALL_VIEW_ID, TODAY_VIEW_ID, visibleTasks } from './views'
+import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, TODAY_VIEW_NAME, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
 import DetailPanel from './components/DetailPanel'
 import Sidebar from './components/Sidebar'
@@ -43,9 +43,9 @@ export default function App() {
   const viewTasks = visibleTasks(tasks, viewId)
   const viewName =
     viewId === ALL_VIEW_ID
-      ? 'All'
+      ? ALL_VIEW_NAME
       : viewId === TODAY_VIEW_ID
-        ? 'Today'
+        ? TODAY_VIEW_NAME
         : lists.find((list) => list.id === viewId)?.name
   const selectedTask = viewTasks.find((task) => task.id === selectedTaskId)
 
