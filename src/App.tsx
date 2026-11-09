@@ -3,6 +3,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -227,6 +228,8 @@ export default function App() {
 
   return (
     <DndContext
+      // hit-test by cursor: the wide dragged row would otherwise overlap main-area task rows instead of sidebar lists
+      collisionDetection={pointerWithin}
       sensors={sensors}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
