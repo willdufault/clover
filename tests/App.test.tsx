@@ -11,7 +11,7 @@ const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((button) => !/^[✕×]$/.test(button.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const subtasks = () => namesIn(aside())
@@ -24,7 +24,7 @@ const row = (name: string, root: HTMLElement = main()) =>
   rowsIn(root).find((rowElement) => rowName(rowElement) === name)!
 const stageSelect = (name: string) => within(row(name)).getByRole('combobox')
 const dueInput = () => within(aside()).getAllByDisplayValue(/^(\d{4}-\d{2}-\d{2})?$/).at(-1)!
-const closeButton = () => within(aside()).getByText('✕')
+const closeButton = () => within(aside()).getByLabelText('Close panel')
 const removeDue = () => within(aside()).getByText('×')
 
 type User = ReturnType<typeof userEvent.setup>

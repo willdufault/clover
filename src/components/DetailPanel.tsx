@@ -73,15 +73,14 @@ export default function DetailPanel({
 
   return (
     <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
-      <div className="flex items-center">
-        <h2 className="font-semibold text-gray-800">{task.text}</h2>
-        <button
-          onClick={onClose}
-          className="ml-auto rounded text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
-      </div>
+      <button
+        onClick={onClose}
+        aria-label="Close panel"
+        className="rounded pr-2 text-2xl leading-none text-gray-400 hover:text-gray-600"
+      >
+        ›
+      </button>
+      <h2 className="mt-1 font-semibold text-gray-800">{task.text}</h2>
 
       <AddInput
         placeholder="Add a subtask and press Enter"
