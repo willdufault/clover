@@ -7,7 +7,7 @@ const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGES = '⬜⚡⏳✅❌️'
+const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|Due |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
@@ -56,14 +56,14 @@ test('add a task and set its stage from the row', async () => {
   expect(tasks()).toEqual(['Bread', 'Milk', 'Eggs'])
 
   const stage = stageSelect('Bread')
-  await user.selectOptions(stage, '✅')
-  expect(stage).toHaveDisplayValue('✅')
+  await user.selectOptions(stage, 'done')
+  expect(stage).toHaveDisplayValue('✅ Done')
   expect(tasks()).toEqual(['Milk', 'Eggs', 'Bread'])
 
-  await user.selectOptions(stage, '⚡')
-  expect(stage).toHaveDisplayValue('⚡')
-  await user.selectOptions(stage, '⬜')
-  expect(stage).toHaveDisplayValue('⬜')
+  await user.selectOptions(stage, 'inProgress')
+  expect(stage).toHaveDisplayValue('⚡ In progress')
+  await user.selectOptions(stage, 'open')
+  expect(stage).toHaveDisplayValue('⬜ Open')
 })
 
 test('open side panel, add and toggle a subtask', async () => {
@@ -170,10 +170,10 @@ test('an edit made in a list is reflected in All', async () => {
   const { user } = setup()
   await menuAction(user, screen.getByText('Milk'), 'Rename')
   await user.keyboard('Oat milk{Enter}')
-  await user.selectOptions(stageSelect('Eggs'), '✅')
+  await user.selectOptions(stageSelect('Eggs'), 'done')
   await user.click(within(nav()).getByText('📋 All'))
   expect(screen.getByText('Oat milk')).toBeInTheDocument()
-  expect(stageSelect('Eggs')).toHaveDisplayValue('✅')
+  expect(stageSelect('Eggs')).toHaveDisplayValue('✅ Done')
 })
 
 test('deleting a list keeps its tasks in All', async () => {
@@ -421,71 +421,46 @@ describe('priority', () => {
 })
 
 describe('stage', () => {
-  test('sidebar select sets stage, row select shows it, open clears it', async () => {
-    const { user } = setup()
-    const rowSelect = () => stageSelect('Milk')
-    let prev = '⬜ Open'
-    for (const [option, emoji] of [
-      ['⚡ In progress', '⚡'],
-      ['⏳ Waiting', '⏳'],
-      ['✅ Done', '✅'],
-      ['❌️ Cancelled', '❌️'],
-    ]) {
-      await pick(user, prev, option)
-      expect(rowSelect()).toHaveDisplayValue(emoji)
-      prev = option
-    }
-    await pick(user, prev, '⬜ Open')
-    expect(rowSelect()).toHaveDisplayValue('⬜')
-  })
-
   test('closing a task moves it right after the last open task', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Review PR'), '✅')
-    await user.selectOptions(stageSelect('Reply to emails'), '❌️')
+    await user.selectOptions(stageSelect('Review PR'), 'done')
+    await user.selectOptions(stageSelect('Reply to emails'), 'cancelled')
     expect(tasks()).toEqual(['Update docs', 'Reply to emails', 'Review PR'])
   })
 
   test('reopening a task moves it to the bottom of the open section', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), '✅')
-    await user.selectOptions(stageSelect('Update docs'), '✅')
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await user.selectOptions(stageSelect('Update docs'), 'done')
     expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
-    await user.selectOptions(stageSelect('Reply to emails'), '⚡')
+    await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
     expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
   })
 
   test('switching from done to cancelled keeps position', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), '✅')
-    await user.selectOptions(stageSelect('Update docs'), '✅')
-    await user.selectOptions(stageSelect('Update docs'), '❌️')
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await user.selectOptions(stageSelect('Update docs'), 'done')
+    await user.selectOptions(stageSelect('Update docs'), 'cancelled')
     expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
   })
 
   test('switching between open stages keeps position', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), '⚡')
-    await user.selectOptions(stageSelect('Reply to emails'), '⏳')
+    await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
+    await user.selectOptions(stageSelect('Reply to emails'), 'waiting')
     expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
   })
 
-  test('closing from the detail panel moves the task', async () => {
-    const { user } = setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.click(within(main()).getByText('Reply to emails'))
-    await user.selectOptions(within(aside()).getByDisplayValue('⬜ Open'), '✅ Done')
-    expect(tasks()).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
-  })
 
   test('closing a task in All moves it after the last open task across lists', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('📋 All'))
-    await user.selectOptions(stageSelect('Milk'), '✅')
+    await user.selectOptions(stageSelect('Milk'), 'done')
     expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
   })
 
@@ -497,7 +472,7 @@ describe('stage', () => {
 
   test('subtasks have no stage select', async () => {
     const { user } = setup()
-    await pick(user, '⬜ Open', '⚡ In progress')
+    await user.click(within(main()).getByText('Milk'))
     expect(within(row('2% lactose free', aside())).queryByRole('combobox')).toBeNull()
   })
 })
@@ -506,7 +481,7 @@ describe('task fields', () => {
   const setAll = async (user: User) => {
     await user.click(within(main()).getByText('Milk'))
     setDue('2000-01-01')
-    await user.selectOptions(within(aside()).getByDisplayValue('⬜ Open'), '⚡ In progress')
+    await user.selectOptions(stageSelect('Milk'), 'inProgress')
     await user.selectOptions(within(aside()).getByDisplayValue('Medium'), '🔴 High')
   }
 
@@ -533,7 +508,7 @@ describe('task fields', () => {
     await user.keyboard('Oat{Enter}')
     const oat = within(row('Oat'))
     expect(oat.getByText(/^Due /)).toBeInTheDocument()
-    expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡')
+    expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
     expect(oat.getByText('🔴 High priority')).toBeInTheDocument()
   })
 
@@ -542,7 +517,6 @@ describe('task fields', () => {
     await setAll(user)
     await user.click(within(main()).getByText('Eggs'))
     expect(dueInput()).toHaveValue('')
-    expect(aside()).toHaveTextContent('⬜ Open')
     expect(within(aside()).getByDisplayValue('Medium')).toBeInTheDocument()
   })
 

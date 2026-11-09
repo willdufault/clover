@@ -42,7 +42,7 @@ export default function TaskView({
       <StageSelect
         value={task.stage}
         onChange={(stage) => onSetStage(task.id, stage)}
-        className="bg-transparent"
+        className="w-5 appearance-none overflow-hidden bg-transparent"
       />
       {renderRenameInput(
         ItemKind.Task,

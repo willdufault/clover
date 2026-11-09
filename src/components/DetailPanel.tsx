@@ -5,11 +5,10 @@ import {
 import { formatDue, isOverdue, relativeDay } from '../due'
 import { PRIORITY_LABELS } from '../labels'
 import { FIELD_CLASS, dueClass } from '../styles'
-import { ItemKind, type Priority, type Stage, type Subtask, type Task } from '../types'
+import { ItemKind, type Priority, type Subtask, type Task } from '../types'
 import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
-import { StageSelect } from './StageSelect'
 import { stopDrag } from './stopDrag'
 
 export default function DetailPanel({
@@ -17,7 +16,6 @@ export default function DetailPanel({
   onClose,
   onAddSubtask,
   onToggleSubtask,
-  onSetStage,
   onSetDue,
   onSetPriority,
   onContextMenu,
@@ -27,7 +25,6 @@ export default function DetailPanel({
   onClose: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
-  onSetStage: (id: string, stage: Stage) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
@@ -96,13 +93,6 @@ export default function DetailPanel({
         <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
       )}
 
-      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Stage</h3>
-      <StageSelect
-        value={task.stage}
-        onChange={(stage) => onSetStage(task.id, stage)}
-        showLabel
-        className={FIELD_CLASS}
-      />
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
       <div className="flex items-center gap-2">
         <input
