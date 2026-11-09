@@ -113,7 +113,7 @@ export default function DetailPanel({
         {task.due && (
           <button
             onClick={() => onSetDue(task.id)}
-            className="text-gray-400 hover:text-red-600"
+            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
           >
             ×
           </button>
