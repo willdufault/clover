@@ -40,7 +40,7 @@ export default function TaskView({
     if (task.due)
       items.push(
         <span key="due" className={dueClass(task.due)}>
-          Due {formatDue(task.due)}
+          📅 {formatDue(task.due)}
         </span>,
       )
     if (task.priority)

@@ -9,7 +9,7 @@ const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|Due |🔴|🔵).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^[✕×]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
@@ -327,11 +327,11 @@ describe('due dates', () => {
     await openMilk(user)
     setDue('2000-01-01')
     expect(dueLabel()).toHaveValue('2000-01-01')
-    expect(within(main()).getByText(/^Due /)).toBeInTheDocument()
+    expect(within(main()).getByText(/^📅 /)).toBeInTheDocument()
 
     await user.click(removeDue())
     expect(dueLabel()).toHaveValue('')
-    expect(within(main()).queryByText(/^Due /)).toBeNull()
+    expect(within(main()).queryByText(/^📅 /)).toBeNull()
   })
 
   test('sidebar shows a relative label only for yesterday, today and tomorrow', async () => {
@@ -354,14 +354,14 @@ describe('due dates', () => {
     const { user } = setup()
     await openMilk(user)
     setDue('2000-01-01')
-    expect(within(row('2% lactose free', aside())).queryByText(/^Due /)).toBeNull()
+    expect(within(row('2% lactose free', aside())).queryByText(/^📅 /)).toBeNull()
   })
 
   test('context menu Due today sets today', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
     await submenuClick(user, 'Set due date', 'Today')
-    expect(screen.getByText('Due Today')).toBeInTheDocument()
+    expect(screen.getByText('📅 Today')).toBeInTheDocument()
   })
 
   test('submenu is hidden until hovered', async () => {
@@ -378,13 +378,13 @@ describe('due dates', () => {
     await user.hover(screen.getByText('Set due date'))
     expect(screen.queryByText('Remove')).toBeNull()
     await submenuClick(user, 'Set due date', 'Tomorrow')
-    expect(screen.getByText('Due Tomorrow')).toBeInTheDocument()
+    expect(screen.getByText('📅 Tomorrow')).toBeInTheDocument()
 
     await rightClick(user, screen.getByText('Milk'))
     await user.hover(screen.getByText('Set due date'))
     expect(screen.getByText('Next week')).toBeInTheDocument()
     await submenuClick(user, 'Set due date', 'Remove')
-    expect(within(main()).queryByText(/^Due /)).toBeNull()
+    expect(within(main()).queryByText(/^📅 /)).toBeNull()
 
     await user.click(screen.getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
@@ -492,13 +492,13 @@ describe('task fields', () => {
     setDue('2000-01-01')
     await user.click(removeDue())
     expect(dueInput()).toHaveValue('')
-    expect(within(main()).queryByText(/^Due /)).toBeNull()
+    expect(within(main()).queryByText(/^📅 /)).toBeNull()
   })
 
   test('row subtext order is count, due, priority', async () => {
     const { user } = setup()
     await setAll(user)
-    expect(row('Milk')).toHaveTextContent(/0\/1.*Due Sat Jan 1.*🔴 High priority/)
+    expect(row('Milk')).toHaveTextContent(/0\/1.*📅 Sat Jan 1.*🔴 High priority/)
   })
 
   test('fields survive rename', async () => {
@@ -507,7 +507,7 @@ describe('task fields', () => {
     await menuAction(user, within(main()).getByText('Milk'), 'Rename')
     await user.keyboard('Oat{Enter}')
     const oat = within(row('Oat'))
-    expect(oat.getByText(/^Due /)).toBeInTheDocument()
+    expect(oat.getByText(/^📅 /)).toBeInTheDocument()
     expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
     expect(oat.getByText('🔴 High priority')).toBeInTheDocument()
   })
