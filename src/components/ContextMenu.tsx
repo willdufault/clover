@@ -56,7 +56,7 @@ export type MenuState = {
   x: number
   y: number
   kind: ItemKind
-  id: string
+  ids: string[]
   text: string
   due?: string
 }
@@ -98,7 +98,7 @@ export default function ContextMenu({
   }, [onClose])
 
   const items: MenuItem[] = [
-    { label: 'Rename', action: onRename },
+    ...(menu.ids.length > 1 ? [] : [{ label: 'Rename', action: onRename }]),
     { label: 'Delete', action: onDelete, danger: true },
   ]
   const taskItems: MenuItem[] = [
@@ -146,6 +146,7 @@ export default function ContextMenu({
     <>
       {/* Invisible backdrop to catch clicks outside the menu. */}
       <div
+        data-keep
         className="fixed inset-0"
         onClick={onClose}
         onContextMenu={(event) => {
@@ -155,6 +156,7 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
+        data-keep
         className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),

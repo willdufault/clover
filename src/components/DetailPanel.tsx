@@ -13,6 +13,8 @@ import { stopDrag } from './stopDrag'
 
 export default function DetailPanel({
   task,
+  selectedIds,
+  onSelectSubtask,
   onClose,
   onAddSubtask,
   onToggleSubtask,
@@ -22,6 +24,8 @@ export default function DetailPanel({
   renderRenameInput,
 }: {
   task: Task
+  selectedIds: string[]
+  onSelectSubtask: (id: string, event: React.MouseEvent) => void
   onClose: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
@@ -37,8 +41,12 @@ export default function DetailPanel({
       kind={ItemKind.Subtask}
       text={subtask.text}
       tag="li"
+      onClick={(event) => onSelectSubtask(subtask.id, event)}
       onContextMenu={onContextMenu(ItemKind.Subtask, subtask.id, subtask.text)}
-      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
+      className={
+        'group flex select-none items-center gap-3 border-b border-gray-200 py-2' +
+        (selectedIds.includes(subtask.id) ? ' bg-gray-200' : '')
+      }
     >
       <input
         type="checkbox"

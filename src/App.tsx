@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +13,7 @@ import {
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
 import { moveAfterLastOpen } from './order'
+import { nextSelection } from './selection'
 import { ItemKind, type Stage, type Subtask, type Task } from './types'
 import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, TODAY_VIEW_NAME, visibleTasks } from './views'
 import ContextMenu, { type MenuState } from './components/ContextMenu'
@@ -28,7 +29,8 @@ export default function App() {
   const [lists, setLists] = useState(SEED_LISTS)
   const [tasks, setTasks] = useState(SEED_TASKS)
   const [viewId, setViewId] = useState(SEED_LISTS[0].id)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
+  const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<string[]>([])
   const [activeDrag, setActiveDrag] = useState<{ kind: ItemKind; text: string } | null>(
     null,
   )
@@ -47,12 +49,66 @@ export default function App() {
       : viewId === TODAY_VIEW_ID
         ? TODAY_VIEW_NAME
         : lists.find((list) => list.id === viewId)?.name
-  const selectedTask = viewTasks.find((task) => task.id === selectedTaskId)
+  const selectedTask =
+    selectedTaskIds.length === 1
+      ? viewTasks.find((task) => task.id === selectedTaskIds[0])
+      : undefined
+  const selectedTaskId = selectedTask?.id ?? null
+
+  // Replace the task selection; subtask selection belongs to the open task, so it resets.
+  const selectTasks = (ids: string[]) => {
+    setSelectedTaskIds(ids)
+    setSelectedSubtaskIds([])
+  }
 
   const selectView = (id: string) => {
     setViewId(id)
-    setSelectedTaskId(null)
+    selectTasks([])
   }
+
+  const modifiers = (event: React.MouseEvent) => ({
+    ctrl: event.ctrlKey || event.metaKey,
+    shift: event.shiftKey,
+  })
+
+  const selectTask = (id: string, event: React.MouseEvent) =>
+    selectTasks(
+      nextSelection(selectedTaskIds, viewTasks.map((task) => task.id), id, modifiers(event)),
+    )
+
+  const selectSubtask = (id: string, event: React.MouseEvent) =>
+    setSelectedSubtaskIds(
+      nextSelection(
+        selectedSubtaskIds,
+        selectedTask!.subtasks.map((subtask) => subtask.id),
+        id,
+        modifiers(event),
+      ),
+    )
+
+  // Escape clears all selection; plain clicks outside rows clear it (capture phase, before rerenders detach targets).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') selectTasks([])
+    }
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (target.closest('[data-keep]')) return
+      if (
+        !target.closest('[data-kind="task"], aside') &&
+        !(event.ctrlKey || event.metaKey || event.shiftKey)
+      )
+        selectTasks([])
+      if (!target.closest('[data-kind="subtask"], input, button, select'))
+        setSelectedSubtaskIds([])
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('click', onClick, true)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('click', onClick, true)
+    }
+  }, [])
 
   // Apply update to the subtasks of the task with id.
   const updateSubtasks = (
@@ -84,8 +140,10 @@ export default function App() {
       ...subtasks,
     ])
 
-  const deleteTask = (id: string) =>
-    setTasks((tasks) => tasks.filter((task) => task.id !== id))
+  const deleteTasks = (ids: string[]) => {
+    setTasks((tasks) => tasks.filter((task) => !ids.includes(task.id)))
+    selectTasks([])
+  }
 
   const patchTask = (id: string, patch: Partial<Task>) =>
     setTasks((tasks) =>
@@ -123,16 +181,31 @@ export default function App() {
       ),
     )
 
-  const deleteSubtask = (id: string) =>
+  const deleteSubtasks = (ids: string[]) => {
     updateSubtasks(selectedTaskId!, (subtasks) =>
-      subtasks.filter((subtask) => subtask.id !== id),
+      subtasks.filter((subtask) => !ids.includes(subtask.id)),
     )
+    setSelectedSubtaskIds([])
+  }
 
   const openMenu =
     (kind: ItemKind, id: string, text: string, due?: string) =>
     (event: React.MouseEvent) => {
       event.preventDefault()
-      setMenu({ x: event.clientX, y: event.clientY, kind, id, text, due })
+      const selected = kind === ItemKind.Task ? selectedTaskIds : selectedSubtaskIds
+      let ids = [id]
+      if (kind !== ItemKind.List && selected.includes(id)) ids = selected
+      else if (kind === ItemKind.Task) selectTasks(ids)
+      else if (kind === ItemKind.Subtask) setSelectedSubtaskIds(ids)
+      const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        kind,
+        ids,
+        text,
+        due: kind === ItemKind.Task ? dueTask?.due : due,
+      })
     }
 
   const renderRenameInput = (kind: ItemKind, id: string, className: string) =>
@@ -224,7 +297,7 @@ export default function App() {
       activeDrag?.kind === ItemKind.Task &&
       (overId === TODAY_VIEW_ID || lists.some((list) => list.id === overId))
     )
-      setSelectedTaskId(null)
+      selectTasks([])
   }
 
   return (
@@ -259,7 +332,8 @@ export default function App() {
             viewName={viewName}
             tasks={viewTasks}
             onAddTask={addTask}
-            onSelectTask={setSelectedTaskId}
+            selectedIds={selectedTaskIds}
+            onSelectTask={selectTask}
             onSetStage={setStage}
             onContextMenu={openMenu}
             renderRenameInput={renderRenameInput}
@@ -267,7 +341,9 @@ export default function App() {
           {selectedTask && (
             <DetailPanel
               task={selectedTask}
-              onClose={() => setSelectedTaskId(null)}
+              selectedIds={selectedSubtaskIds}
+              onSelectSubtask={selectSubtask}
+              onClose={() => selectTasks([])}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onSetDue={(id, due) => patchTask(id, { due })}
@@ -291,15 +367,17 @@ export default function App() {
           menu={menu}
           onClose={() => setMenu(null)}
           onRename={() =>
-            setRenaming({ kind: menu.kind, id: menu.id, draft: menu.text })
+            setRenaming({ kind: menu.kind, id: menu.ids[0], draft: menu.text })
           }
           onDelete={() => {
-            if (menu.kind === ItemKind.List) deleteList(menu.id)
-            else if (menu.kind === ItemKind.Task) deleteTask(menu.id)
-            else deleteSubtask(menu.id)
+            if (menu.kind === ItemKind.List) deleteList(menu.ids[0])
+            else if (menu.kind === ItemKind.Task) deleteTasks(menu.ids)
+            else deleteSubtasks(menu.ids)
           }}
-          onSetDue={(due) => patchTask(menu.id, { due })}
-          onSetPriority={(priority) => patchTask(menu.id, { priority })}
+          onSetDue={(due) => menu.ids.forEach((id) => patchTask(id, { due }))}
+          onSetPriority={(priority) =>
+            menu.ids.forEach((id) => patchTask(id, { priority }))
+          }
         />
       )}
     </DndContext>
