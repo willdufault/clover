@@ -1,6 +1,56 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
 import { ItemKind, type Priority } from '../types'
+
+const MENU_WIDTH = 176
+
+type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
+
+function SubmenuRow({
+  item,
+  MenuList,
+}: {
+  item: MenuItem
+  MenuList: (props: { items: MenuItem[] }) => React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const [flip, setFlip] = useState(false)
+  const [shift, setShift] = useState(0)
+  const ref = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!open || !panelRef.current) return setShift(0)
+    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom + shift))
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={() => {
+        setFlip(ref.current!.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
+        setOpen(true)
+      }}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button className="flex w-full cursor-default justify-between px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100">
+        <span>{item.label}</span>
+        <span>›</span>
+      </button>
+      {open && (
+        <div
+          ref={panelRef}
+          style={{ top: shift }}
+          className={
+            'absolute w-44 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
+            (flip ? 'right-full' : 'left-full')
+          }
+        >
+          <MenuList items={item.submenu!} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 export type MenuState = {
   x: number
@@ -33,6 +83,12 @@ export default function ContextMenu({
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
 }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [top, setTop] = useState(menu.y)
+  useLayoutEffect(() => {
+    setTop(Math.min(menu.y, window.innerHeight - ref.current!.offsetHeight))
+  }, [menu.y])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -41,21 +97,50 @@ export default function ContextMenu({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  const menuItem = (label: string, action: () => void, danger?: boolean) => (
-    <button
-      key={label}
-      onClick={() => {
-        action()
-        onClose()
-      }}
-      className={
-        'block w-full cursor-default px-3 py-1.5 text-left hover:bg-gray-100 ' +
-        (danger ? 'text-red-600' : 'text-gray-700')
-      }
-    >
-      {label}
-    </button>
-  )
+  const items: MenuItem[] = [
+    { label: 'Rename', action: onRename },
+    { label: 'Delete', action: onDelete, danger: true },
+  ]
+  const taskItems: MenuItem[] = [
+    {
+      label: 'Set due date',
+      submenu: [
+        { label: 'Today', action: () => onSetDue(today()) },
+        { label: 'Tomorrow', action: () => onSetDue(tomorrow()) },
+        { label: 'Next week', action: () => onSetDue(nextMonday()) },
+        ...(menu.due ? [{ label: 'Remove', action: () => onSetDue() }] : []),
+      ],
+    },
+    {
+      label: 'Set priority',
+      submenu: [
+        { label: 'Low', action: () => onSetPriority('low') },
+        { label: 'Medium', action: () => onSetPriority(undefined) },
+        { label: 'High', action: () => onSetPriority('high') },
+      ],
+    },
+  ]
+
+  const MenuList = ({ items }: { items: MenuItem[] }) =>
+    items.map((item) =>
+      item.submenu ? (
+        <SubmenuRow key={item.label} item={item} MenuList={MenuList} />
+      ) : (
+        <button
+          key={item.label}
+          onClick={() => {
+            item.action?.()
+            onClose()
+          }}
+          className={
+            'block w-full cursor-default px-3 py-1.5 text-left hover:bg-gray-100 ' +
+            (item.danger ? 'text-red-600' : 'text-gray-700')
+          }
+        >
+          {item.label}
+        </button>
+      ),
+    )
 
   return (
     <>
@@ -69,31 +154,18 @@ export default function ContextMenu({
         }}
       />
       <div
-        className="fixed z-50 max-h-64 w-44 overflow-y-auto rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+        ref={ref}
+        className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
-          left: Math.min(menu.x, window.innerWidth - 176),
-          top: Math.min(menu.y, window.innerHeight - 256),
+          left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
+          top,
         }}
       >
-        {menuItem('Rename', onRename)}
-        {menuItem('Delete', onDelete, true)}
+        <MenuList items={items} />
         {menu.kind === ItemKind.Task && (
           <>
             <hr className="my-1 border-gray-200" />
-            {[
-              ['Due today', today()],
-              ['Due tomorrow', tomorrow()],
-              ['Due next week', nextMonday()],
-            ].map(([label, date]) => menuItem(label, () => onSetDue(date)))}
-            {menu.due && menuItem('Remove due date', () => onSetDue())}
-            <hr className="my-1 border-gray-200" />
-            {(
-              [
-                ['Set low priority', 'low'],
-                ['Set medium priority', undefined],
-                ['Set high priority', 'high'],
-              ] as const
-            ).map(([label, priority]) => menuItem(label, () => onSetPriority(priority)))}
+            <MenuList items={taskItems} />
           </>
         )}
       </div>

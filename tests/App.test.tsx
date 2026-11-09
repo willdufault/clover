@@ -28,6 +28,10 @@ const closeButton = () => within(aside()).getByText('✕')
 const removeDue = () => within(aside()).getByText('×')
 
 type User = ReturnType<typeof userEvent.setup>
+const submenuClick = async (user: User, parent: string, leaf: string) => {
+  await user.hover(screen.getByText(parent))
+  fireEvent.click(screen.getByText(leaf))
+}
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
 const menuAction = async (user: User, element: HTMLElement, action: 'Rename' | 'Delete') => {
   await rightClick(user, element)
@@ -356,25 +360,35 @@ describe('due dates', () => {
   test('context menu Due today sets today', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
-    await user.click(screen.getByText('Due today'))
+    await submenuClick(user, 'Set due date', 'Today')
     expect(screen.getByText('Due Today')).toBeInTheDocument()
+  })
+
+  test('submenu is hidden until hovered', async () => {
+    const { user } = setup()
+    await rightClick(user, screen.getByText('Milk'))
+    expect(screen.queryByText('Tomorrow')).toBeNull()
+    await user.hover(screen.getByText('Set due date'))
+    expect(screen.getByText('Tomorrow')).toBeInTheDocument()
   })
 
   test('task context menu has due options only for tasks', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
-    expect(screen.queryByText('Remove due date')).toBeNull()
-    await user.click(screen.getByText('Due tomorrow'))
+    await user.hover(screen.getByText('Set due date'))
+    expect(screen.queryByText('Remove')).toBeNull()
+    await submenuClick(user, 'Set due date', 'Tomorrow')
     expect(screen.getByText('Due Tomorrow')).toBeInTheDocument()
 
     await rightClick(user, screen.getByText('Milk'))
-    expect(screen.getByText('Due next week')).toBeInTheDocument()
-    await user.click(screen.getByText('Remove due date'))
+    await user.hover(screen.getByText('Set due date'))
+    expect(screen.getByText('Next week')).toBeInTheDocument()
+    await submenuClick(user, 'Set due date', 'Remove')
     expect(within(main()).queryByText(/^Due /)).toBeNull()
 
     await user.click(screen.getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
-    expect(screen.queryByText('Due tomorrow')).toBeNull()
+    expect(screen.queryByText('Set due date')).toBeNull()
   })
 })
 
@@ -392,10 +406,10 @@ describe('priority', () => {
   test('context menu sets and clears priority', async () => {
     const { user } = setup()
     await rightClick(user, screen.getByText('Milk'))
-    await user.click(screen.getByText('Set high priority'))
+    await submenuClick(user, 'Set priority', 'High')
     expect(screen.getByText('🔴 High priority')).toBeInTheDocument()
     await rightClick(user, screen.getByText('Milk'))
-    await user.click(screen.getByText('Set medium priority'))
+    await submenuClick(user, 'Set priority', 'Medium')
     expect(screen.queryByText(/priority$/)).toBeNull()
   })
 
@@ -538,8 +552,8 @@ describe('task fields', () => {
     await rightClick(user, screen.getByText('2% lactose free'))
     expect(screen.getByText('Rename')).toBeInTheDocument()
     expect(screen.getByText('Delete')).toBeInTheDocument()
-    expect(screen.queryByText('Due today')).toBeNull()
-    expect(screen.queryByText('Set high priority')).toBeNull()
+    expect(screen.queryByText('Set due date')).toBeNull()
+    expect(screen.queryByText('Set priority')).toBeNull()
   })
 
   test('subtask toggle and delete leave a same-named task unchanged', async () => {
