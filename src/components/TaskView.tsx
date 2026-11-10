@@ -14,6 +14,7 @@ import { StageSelect } from './StageSelect'
 export default function TaskView({
   viewName,
   tasks,
+  selectedIds,
   onAddTask,
   onSelectTask,
   onSetStage,
@@ -22,12 +23,38 @@ export default function TaskView({
 }: {
   viewName: string | undefined
   tasks: Task[]
+  selectedIds: string[]
   onAddTask: (text: string) => void
-  onSelectTask: (id: string) => void
+  onSelectTask: (id: string, event: React.MouseEvent) => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenMenu
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
+  const metaItems = (task: Task) => {
+    const items = []
+    if (task.subtasks.length > 0)
+      items.push(
+        <span key="subtasks" className="text-xs text-gray-500">
+          {task.subtasks.filter((subtask) => subtask.done).length}/
+          {task.subtasks.length}
+        </span>,
+      )
+    if (task.due)
+      items.push(
+        <span key="due" className={dueClass(task.due)}>
+          📅 {formatDue(task.due)}
+        </span>,
+      )
+    if (task.priority)
+      items.push(
+        <span key="priority" className="text-xs text-gray-500">
+          {PRIORITY_LABELS[task.priority].emoji}{' '}
+          {PRIORITY_LABELS[task.priority].label} priority
+        </span>,
+      )
+    return items
+  }
+
   const taskRow = (task: Task) => (
     <SortableRow
       key={task.id}
@@ -35,9 +62,12 @@ export default function TaskView({
       kind={ItemKind.Task}
       text={task.text}
       tag="li"
-      onClick={() => onSelectTask(task.id)}
+      onClick={(event) => onSelectTask(task.id, event)}
       onContextMenu={onContextMenu(ItemKind.Task, task.id, task.text, task.due)}
-      className="group flex select-none items-center gap-3 border-b border-gray-100 py-2"
+      className={
+        'group flex select-none items-center gap-3 border-b border-gray-100 py-2' +
+        (selectedIds.includes(task.id) ? ' bg-gray-100' : '')
+      }
     >
       <StageSelect
         value={task.stage}
@@ -59,25 +89,16 @@ export default function TaskView({
           >
             {task.text}
           </span>
-          {(task.subtasks.length > 0 || task.due || task.priority) && (
-            <div className="flex gap-3">
-              {task.subtasks.length > 0 && (
-                <span className="text-xs text-gray-500">
-                  {task.subtasks.filter((subtask) => subtask.done).length}/
-                  {task.subtasks.length}
-                </span>
-              )}
-              {task.due && (
-                <span className={dueClass(task.due)}>
-                  Due {formatDue(task.due)}
-                </span>
-              )}
-              {task.priority && (
-                <span className="text-xs text-gray-500">
-                  {PRIORITY_LABELS[task.priority].emoji}{' '}
-                  {PRIORITY_LABELS[task.priority].label} priority
-                </span>
-              )}
+          {metaItems(task).length > 0 && (
+            <div className="flex gap-2">
+              {metaItems(task).flatMap((item, i) => [
+                i > 0 && (
+                  <span key={`dot${i}`} className="text-xs text-gray-400">
+                    •
+                  </span>
+                ),
+                item,
+              ])}
             </div>
           )}
         </div>

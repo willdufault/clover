@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { navRowClass } from '../styles'
-import { TODAY_VIEW_ID } from '../views'
+import { TODAY_VIEW_ID, TODAY_VIEW_NAME } from '../views'
 import { Count } from './Count'
 
 // Sidebar Today row: drop target only.
@@ -22,7 +22,7 @@ export function TodayRow({
       onClick={onClick}
       className={navRowClass(selected, dragOver)}
     >
-      <span>☀️ Today</span>
+      <span>{TODAY_VIEW_NAME}</span>
       <Count count={count} />
     </div>
   )

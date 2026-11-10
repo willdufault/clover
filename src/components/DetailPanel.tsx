@@ -13,6 +13,8 @@ import { stopDrag } from './stopDrag'
 
 export default function DetailPanel({
   task,
+  selectedIds,
+  onSelectSubtask,
   onClose,
   onAddSubtask,
   onToggleSubtask,
@@ -22,6 +24,8 @@ export default function DetailPanel({
   renderRenameInput,
 }: {
   task: Task
+  selectedIds: string[]
+  onSelectSubtask: (id: string, event: React.MouseEvent) => void
   onClose: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
@@ -37,8 +41,12 @@ export default function DetailPanel({
       kind={ItemKind.Subtask}
       text={subtask.text}
       tag="li"
+      onClick={(event) => onSelectSubtask(subtask.id, event)}
       onContextMenu={onContextMenu(ItemKind.Subtask, subtask.id, subtask.text)}
-      className="group flex select-none items-center gap-3 border-b border-gray-200 py-2"
+      className={
+        'group flex select-none items-center gap-3 border-b border-gray-200 py-2' +
+        (selectedIds.includes(subtask.id) ? ' bg-gray-200' : '')
+      }
     >
       <input
         type="checkbox"
@@ -65,15 +73,14 @@ export default function DetailPanel({
 
   return (
     <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
-      <div className="flex items-center">
-        <h2 className="font-semibold text-gray-800">{task.text}</h2>
-        <button
-          onClick={onClose}
-          className="ml-auto rounded text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
-      </div>
+      <button
+        onClick={onClose}
+        aria-label="Close panel"
+        className="rounded pr-2 text-2xl leading-none text-gray-400 hover:text-gray-600"
+      >
+        ›
+      </button>
+      <h2 className="mt-1 font-semibold text-gray-800">{task.text}</h2>
 
       <AddInput
         placeholder="Add a subtask and press Enter"
@@ -106,7 +113,7 @@ export default function DetailPanel({
         {task.due && (
           <button
             onClick={() => onSetDue(task.id)}
-            className="text-gray-500 hover:text-gray-800"
+            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
           >
             ×
           </button>
