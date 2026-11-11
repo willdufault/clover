@@ -4,13 +4,10 @@ For project details, see @README.md.
 
 ## Validation
 
-- Run `npm test` and `npm run lint` after changes.
-- Run `npm run build` (type-check) before finishing.
-- Add a test in `tests/` for new logic.
+- Before finishing, run `npm test`, `npm run lint`, and `npm run build` (type-check).
+- Add or update tests when behavior changes (new logic, state, interactions, bug fixes). Skip for copy, styling, and layout-only changes.
 
-## Browser validation
+## UI changes
 
-- For UI changes, add or update an e2e test and run the e2e tests.
-- Exercise the changed behavior (click, drag, set due date/stage), not just page load.
-- Fail on console errors.
-- Take a screenshot of the changed UI at 640x360 and check it.
+- Run `npm run e2e`. Exercise the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors.
+- Screenshot the changed UI and check it.
