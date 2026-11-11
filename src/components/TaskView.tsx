@@ -72,19 +72,19 @@ export default function TaskView({
       <StageSelect
         value={task.stage}
         onChange={(stage) => onSetStage(task.id, stage)}
-        className="w-5 appearance-none overflow-hidden bg-transparent"
+        className="w-5 shrink-0 appearance-none overflow-hidden bg-transparent"
       />
       {renderRenameInput(
         ItemKind.Task,
         task.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <span
             className={
               task.stage === 'done' || task.stage === 'cancelled'
-                ? 'text-gray-400 line-through'
-                : 'text-gray-800'
+                ? 'break-words text-gray-400 line-through'
+                : 'break-words text-gray-800'
             }
           >
             {task.text}
@@ -107,8 +107,8 @@ export default function TaskView({
   )
 
   return (
-    <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-      <h1 className="font-semibold text-gray-800">{viewName}</h1>
+    <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
+      <h1 className="break-words font-semibold text-gray-800">{viewName}</h1>
 
       <AddInput placeholder="+ New task" onAdd={onAddTask} />
 

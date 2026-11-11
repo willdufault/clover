@@ -62,7 +62,8 @@ export default function DetailPanel({
       ) || (
         <span
           className={
-            subtask.done ? 'text-gray-400 line-through' : 'text-gray-800'
+            'min-w-0 break-words ' +
+            (subtask.done ? 'text-gray-400 line-through' : 'text-gray-800')
           }
         >
           {subtask.text}
@@ -80,7 +81,7 @@ export default function DetailPanel({
       >
         ›
       </button>
-      <h2 className="mt-1 font-semibold text-gray-800">{task.text}</h2>
+      <h2 className="mt-1 break-words font-semibold text-gray-800">{task.text}</h2>
 
       <AddInput
         placeholder="+ New subtask"

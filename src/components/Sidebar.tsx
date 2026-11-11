@@ -76,7 +76,7 @@ export default function Sidebar({
               'w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none',
             ) || (
               <>
-                <span className="truncate">{list.name}</span>
+                <span className="min-w-0 break-words">{list.name}</span>
                 <Count count={visibleTasks(tasks, list.id).length} />
               </>
             )}
