@@ -83,7 +83,7 @@ export default function DetailPanel({
       <h2 className="mt-1 font-semibold text-gray-800">{task.text}</h2>
 
       <AddInput
-        placeholder="Add a subtask and press Enter"
+        placeholder="+ New subtask"
         onAdd={onAddSubtask}
       />
 

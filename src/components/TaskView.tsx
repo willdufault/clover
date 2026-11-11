@@ -110,7 +110,7 @@ export default function TaskView({
     <main className="flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
       <h1 className="font-semibold text-gray-800">{viewName}</h1>
 
-      <AddInput placeholder="Add a task and press Enter" onAdd={onAddTask} />
+      <AddInput placeholder="+ New task" onAdd={onAddTask} />
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
         <ul className="mt-4 w-full">{tasks.map(taskRow)}</ul>
