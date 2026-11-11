@@ -43,12 +43,10 @@ export default function App() {
   } | null>(null)
 
   const viewTasks = visibleTasks(tasks, viewId)
-  const viewName =
-    viewId === ALL_VIEW_ID
-      ? ALL_VIEW_NAME
-      : viewId === TODAY_VIEW_ID
-        ? TODAY_VIEW_NAME
-        : lists.find((list) => list.id === viewId)?.name
+  let viewName: string | undefined
+  if (viewId === ALL_VIEW_ID) viewName = ALL_VIEW_NAME
+  else if (viewId === TODAY_VIEW_ID) viewName = TODAY_VIEW_NAME
+  else viewName = lists.find((list) => list.id === viewId)?.name
   const selectedTask =
     selectedTaskIds.length === 1
       ? viewTasks.find((task) => task.id === selectedTaskIds[0])
