@@ -1,4 +1,4 @@
-import { moveAfterLastOpen } from '../src/order'
+import { moveAfterLastOpen } from '../../src/order'
 
 type Item = { id: string; open: boolean }
 const isOpen = (item: Item) => item.open

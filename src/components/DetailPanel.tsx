@@ -62,7 +62,8 @@ export default function DetailPanel({
       ) || (
         <span
           className={
-            subtask.done ? 'text-gray-400 line-through' : 'text-gray-800'
+            'min-w-0 break-words ' +
+            (subtask.done ? 'text-gray-400 line-through' : 'text-gray-800')
           }
         >
           {subtask.text}
@@ -80,10 +81,10 @@ export default function DetailPanel({
       >
         ›
       </button>
-      <h2 className="mt-1 font-semibold text-gray-800">{task.text}</h2>
+      <h2 className="mt-1 break-words font-semibold text-gray-800">{task.text}</h2>
 
       <AddInput
-        placeholder="Add a subtask and press Enter"
+        placeholder="+ New subtask"
         onAdd={onAddSubtask}
       />
 
@@ -91,7 +92,7 @@ export default function DetailPanel({
         items={task.subtasks}
         strategy={verticalListSortingStrategy}
       >
-        <ul className="mt-4 max-h-64 w-full overflow-y-auto">
+        <ul className="mt-4 max-h-48 w-full overflow-y-auto">
           {task.subtasks.map(subtaskRow)}
         </ul>
       </SortableContext>

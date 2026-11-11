@@ -97,10 +97,7 @@ export default function ContextMenu({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  const items: MenuItem[] = [
-    ...(menu.ids.length > 1 ? [] : [{ label: 'Rename', action: onRename }]),
-    { label: 'Delete', action: onDelete, danger: true },
-  ]
+  const items: MenuItem[] = menu.ids.length > 1 ? [] : [{ label: 'Rename', action: onRename }]
   const taskItems: MenuItem[] = [
     {
       label: 'Set due date',
@@ -164,12 +161,9 @@ export default function ContextMenu({
         }}
       >
         <MenuList items={items} />
-        {menu.kind === ItemKind.Task && (
-          <>
-            <hr className="my-1 border-gray-200" />
-            <MenuList items={taskItems} />
-          </>
-        )}
+        {menu.kind === ItemKind.Task && <MenuList items={taskItems} />}
+        <hr className="my-1 border-gray-200" />
+        <MenuList items={[{ label: 'Delete', action: onDelete, danger: true }]} />
       </div>
     </>
   )

@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "no-console": "error",
+    "no-debugger": "error",
+    "no-alert": "error",
+    "no-eval": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "react/no-array-index-key": "error",
+    "no-nested-ternary": "error",
+    "jest/no-focused-tests": "error",
+    "jest/no-disabled-tests": "error"
+  }
+}

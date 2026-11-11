@@ -1,6 +1,7 @@
+import { useLayoutEffect, useRef } from 'react'
 import { stopDrag } from './stopDrag'
 
-// In-place rename box: Enter commits, Escape or blur cancels.
+// In-place rename box: Enter commits, Escape or blur cancels. Grows with its text.
 export function RenameInput({
   draft,
   onChange,
@@ -16,20 +17,32 @@ export function RenameInput({
   className: string
   placeholder?: string
 }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [draft])
   return (
-    <input
+    <textarea
+      ref={ref}
+      rows={1}
       placeholder={placeholder}
       autoFocus
       onFocus={(event) => event.target.select()}
       value={draft}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') onCommit()
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          onCommit()
+        }
         if (event.key === 'Escape') onCancel()
       }}
       onBlur={onCancel}
       {...stopDrag}
-      className={className}
+      className={`${className} resize-none overflow-hidden break-words`}
     />
   )
 }

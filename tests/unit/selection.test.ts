@@ -1,4 +1,4 @@
-import { nextSelection } from '../src/selection'
+import { nextSelection } from '../../src/selection'
 
 const order = ['a', 'b', 'c', 'd']
 const plain = { ctrl: false, shift: false }

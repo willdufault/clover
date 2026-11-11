@@ -1,15 +1,13 @@
 # AGENTS.md
 
-## General
-- Be extremely brief.
-- Delegate bulk file reads and web searches to subagents.
+For project details, see @README.md.
 
-## Plan
-- Brainstorm only. Never prompt to execute an implementation plan.
-- Ask questions until we are fully aligned on each requirement.
+## Validation
 
-## Build
-- Delegate implementation tasks to subagents.
+- Before finishing, run `npm test`, `npm run lint`, and `npm run build` (type-check).
+- Add or update tests when behavior changes (new logic, state, interactions, bug fixes). Skip for copy, styling, and layout-only changes.
 
-## Code
-- Write dead simple code. Full YAGNI.
+## UI changes
+
+- Run `npm run e2e`. Exercise the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors.
+- Screenshot the changed UI and check it.
