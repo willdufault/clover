@@ -92,7 +92,7 @@ export default function DetailPanel({
         items={task.subtasks}
         strategy={verticalListSortingStrategy}
       >
-        <ul className="mt-4 max-h-48 w-full overflow-y-auto">
+        <ul className="mt-4 w-full">
           {task.subtasks.map(subtaskRow)}
         </ul>
       </SortableContext>
