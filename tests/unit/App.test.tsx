@@ -266,6 +266,13 @@ test('new list, task and step land in the right place', async () => {
   expect(screen.queryByText('2% lactose free')).not.toBeInTheDocument()
 })
 
+test('clicking empty main area keeps the panel open', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(main())
+  expect(aside()).toBeInTheDocument()
+})
+
 describe('side panel closes', () => {
   test('via the close button', async () => {
     const { user } = setup()

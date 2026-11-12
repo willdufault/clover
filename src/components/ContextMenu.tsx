@@ -154,7 +154,6 @@ export default function ContextMenu({
     <>
       {/* Invisible backdrop to catch clicks outside the menu. */}
       <div
-        data-keep
         className="fixed inset-0"
         onClick={onClose}
         onContextMenu={(event) => {
@@ -164,7 +163,6 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        data-keep
         className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),

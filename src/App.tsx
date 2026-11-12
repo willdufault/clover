@@ -84,27 +84,14 @@ export default function App() {
       ),
     )
 
-  // Escape clears all selection; plain clicks outside rows clear it (capture phase, before rerenders detach targets).
+  // Escape clears all selection.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') selectTasks([])
     }
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as Element
-      if (target.closest('[data-keep]')) return
-      if (
-        !target.closest('[data-kind="task"], aside') &&
-        !(event.ctrlKey || event.metaKey || event.shiftKey)
-      )
-        selectTasks([])
-      if (!target.closest('[data-kind="step"], input, button, select'))
-        setSelectedStepIds([])
-    }
     window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('click', onClick, true)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('click', onClick, true)
     }
   }, [])
 
