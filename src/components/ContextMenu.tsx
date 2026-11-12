@@ -76,7 +76,7 @@ export default function ContextMenu({
   onSetDue,
   onSetPriority,
   onSetStage,
-  onSetSubtaskDone,
+  onSetStepDone,
 }: {
   menu: MenuState
   onClose: () => void
@@ -84,7 +84,7 @@ export default function ContextMenu({
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
   onSetStage: (stage: Stage) => void
-  onSetSubtaskDone: (done: boolean) => void
+  onSetStepDone: (done: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
@@ -177,10 +177,10 @@ export default function ContextMenu({
             <hr className="my-1 border-gray-200" />
           </>
         )}
-        {menu.kind === ItemKind.Subtask && (
+        {menu.kind === ItemKind.Step && (
           <>
             <MenuList
-              items={[stageItem(['open', 'done'], (stage) => onSetSubtaskDone(stage === 'done'))]}
+              items={[stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done'))]}
             />
             <hr className="my-1 border-gray-200" />
           </>

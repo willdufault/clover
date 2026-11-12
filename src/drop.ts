@@ -43,8 +43,8 @@ export const applyDrop = (
   const containsBoth = (items: { id: string }[]) => items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(visibleInView)) return { lists, tasks: moveById(tasks, activeId, overId) }
   const selectedTask = visibleInView.find((task) => task.id === selectedTaskId)
-  if (selectedTask && containsBoth(selectedTask.subtasks)) {
-    return { lists, tasks: tasks.map((task) => (task === selectedTask ? { ...task, subtasks: moveById(task.subtasks, activeId, overId) } : task)) }
+  if (selectedTask && containsBoth(selectedTask.steps)) {
+    return { lists, tasks: tasks.map((task) => (task === selectedTask ? { ...task, steps: moveById(task.steps, activeId, overId) } : task)) }
   }
   return state
 }

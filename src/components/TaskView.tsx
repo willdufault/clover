@@ -38,11 +38,11 @@ export default function TaskView({
 }) {
   const metaItems = (task: Task) => {
     const items = []
-    if (task.subtasks.length > 0)
+    if (task.steps.length > 0)
       items.push(
-        <span key="subtasks" className="text-xs text-gray-500">
-          {task.subtasks.filter((subtask) => subtask.done).length}/
-          {task.subtasks.length}
+        <span key="steps" className="text-xs text-gray-500">
+          {task.steps.filter((step) => step.done).length}/
+          {task.steps.length}
         </span>,
       )
     if (task.due)

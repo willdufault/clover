@@ -5,7 +5,7 @@ import {
 import { formatDue, isOverdue, relativeDay } from '../due'
 import { PRIORITY_LABELS } from '../labels'
 import { FIELD_CLASS, dueClass } from '../styles'
-import { ItemKind, type Priority, type Subtask, type Task } from '../types'
+import { ItemKind, type Priority, type Step, type Task } from '../types'
 import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -14,12 +14,12 @@ import { stopDrag } from './stopDrag'
 export default function DetailPanel({
   task,
   selectedIds,
-  onSelectSubtask,
+  onSelectStep,
   onClose,
   onDeleteTask,
-  onAddSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
+  onAddStep,
+  onToggleStep,
+  onDeleteStep,
   onSetDue,
   onSetPriority,
   onContextMenu,
@@ -28,62 +28,62 @@ export default function DetailPanel({
 }: {
   task: Task
   selectedIds: string[]
-  onSelectSubtask: (id: string, event: React.MouseEvent) => void
+  onSelectStep: (id: string, event: React.MouseEvent) => void
   onClose: () => void
   onDeleteTask: () => void
-  onAddSubtask: (text: string) => void
-  onToggleSubtask: (id: string) => void
-  onDeleteSubtask: (id: string) => void
+  onAddStep: (text: string) => void
+  onToggleStep: (id: string) => void
+  onDeleteStep: (id: string) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
   onRename: (kind: ItemKind, id: string, text: string) => void
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
-  const subtaskRow = (subtask: Subtask) => (
+  const stepRow = (step: Step) => (
     <SortableRow
-      key={subtask.id}
-      id={subtask.id}
-      kind={ItemKind.Subtask}
-      text={subtask.text}
+      key={step.id}
+      id={step.id}
+      kind={ItemKind.Step}
+      text={step.text}
       tag="li"
-      onClick={(event) => onSelectSubtask(subtask.id, event)}
-      onContextMenu={onContextMenu(ItemKind.Subtask, subtask.id, subtask.text)}
+      onClick={(event) => onSelectStep(step.id, event)}
+      onContextMenu={onContextMenu(ItemKind.Step, step.id, step.text)}
       className={
         'group flex select-none items-center gap-3 border-b border-gray-200 py-2' +
-        (selectedIds.includes(subtask.id) ? ' bg-gray-200' : '')
+        (selectedIds.includes(step.id) ? ' bg-gray-200' : '')
       }
     >
       <input
         type="checkbox"
-        checked={subtask.done}
+        checked={step.done}
         {...stopDrag}
-        onChange={() => onToggleSubtask(subtask.id)}
+        onChange={() => onToggleStep(step.id)}
         className="size-4 accent-blue-500"
       />
       {renderRenameInput(
-        ItemKind.Subtask,
-        subtask.id,
+        ItemKind.Step,
+        step.id,
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
         <span
           onClick={(event) => {
             if (event.ctrlKey || event.metaKey || event.shiftKey) return
             event.stopPropagation()
-            onRename(ItemKind.Subtask, subtask.id, subtask.text)
+            onRename(ItemKind.Step, step.id, step.text)
           }}
           className={
             'min-w-0 flex-1 cursor-text break-words ' +
-            (subtask.done ? 'text-gray-400 line-through' : 'text-gray-800')
+            (step.done ? 'text-gray-400 line-through' : 'text-gray-800')
           }
         >
-          {subtask.text}
+          {step.text}
         </span>
       )}
       <button
         {...stopDrag}
-        onClick={() => onDeleteSubtask(subtask.id)}
-        aria-label="Delete subtask"
+        onClick={() => onDeleteStep(step.id)}
+        aria-label="Delete step"
         className="shrink-0 rounded px-1 leading-none text-gray-400 hover:text-gray-600"
       >
         ✕
@@ -108,21 +108,21 @@ export default function DetailPanel({
       )}
 
       <AddInput
-        placeholder="+ New subtask"
-        onAdd={onAddSubtask}
+        placeholder="+ New step"
+        onAdd={onAddStep}
       />
 
       <SortableContext
-        items={task.subtasks}
+        items={task.steps}
         strategy={verticalListSortingStrategy}
       >
         <ul className="mt-4 w-full">
-          {task.subtasks.map(subtaskRow)}
+          {task.steps.map(stepRow)}
         </ul>
       </SortableContext>
 
-      {task.subtasks.length === 0 && (
-        <p className="mt-4 text-sm text-gray-400">No subtasks yet</p>
+      {task.steps.length === 0 && (
+        <p className="mt-4 text-sm text-gray-400">No steps yet</p>
       )}
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>

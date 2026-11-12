@@ -1,6 +1,6 @@
 # clover
 
-A small todo app: lists, tasks, subtasks, due dates, priority, stage, and drag and drop.
+A small todo app: lists, tasks, steps, due dates, priority, stage, and drag and drop.
 
 ## Tech stack
 
