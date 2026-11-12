@@ -9,10 +9,10 @@ type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?
 
 function SubmenuRow({
   item,
-  MenuList,
+  renderItems,
 }: {
   item: MenuItem
-  MenuList: (props: { items: MenuItem[] }) => React.ReactNode
+  renderItems: (items: MenuItem[]) => React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [flip, setFlip] = useState(false)
@@ -46,7 +46,7 @@ function SubmenuRow({
             (flip ? 'right-full' : 'left-full')
           }
         >
-          <MenuList items={item.submenu!} />
+          {renderItems(item.submenu!)}
         </div>
       )}
     </div>
@@ -58,16 +58,10 @@ export type MenuState = {
   y: number
   kind: ItemKind
   ids: string[]
-  text: string
   due?: string
 }
 
-export type OpenMenu = (
-  kind: ItemKind,
-  id: string,
-  text: string,
-  due?: string,
-) => (event: React.MouseEvent) => void
+export type OpenMenu = (kind: ItemKind, id: string) => (event: React.MouseEvent) => void
 
 export default function ContextMenu({
   menu,
@@ -94,10 +88,14 @@ export default function ContextMenu({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        event.preventDefault() // tells App's Escape handler this one is taken
+        onClose()
+      }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    // Capture so this runs before App's bubbling listener.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
   const stageItem = (stages: Stage[], action: (stage: Stage) => void): MenuItem => ({
@@ -129,10 +127,10 @@ export default function ContextMenu({
     },
   ]
 
-  const MenuList = ({ items }: { items: MenuItem[] }) =>
+  const renderItems = (items: MenuItem[]): React.ReactNode =>
     items.map((item) =>
       item.submenu ? (
-        <SubmenuRow key={item.label} item={item} MenuList={MenuList} />
+        <SubmenuRow key={item.label} item={item} renderItems={renderItems} />
       ) : (
         <button
           key={item.label}
@@ -171,19 +169,19 @@ export default function ContextMenu({
       >
         {menu.kind === ItemKind.Task && (
           <>
-            <MenuList items={taskItems} />
+            {renderItems(taskItems)}
             <hr className="my-1 border-gray-200" />
           </>
         )}
         {menu.kind === ItemKind.Step && (
           <>
-            <MenuList
-              items={[stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done'))]}
-            />
+            {renderItems([
+              stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done')),
+            ])}
             <hr className="my-1 border-gray-200" />
           </>
         )}
-        <MenuList items={[{ label: 'Delete', action: onDelete, danger: true }]} />
+        {renderItems([{ label: 'Delete', action: onDelete, danger: true }])}
       </div>
     </>
   )

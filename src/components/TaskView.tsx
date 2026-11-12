@@ -69,7 +69,7 @@ export default function TaskView({
       text={task.text}
       tag="li"
       onClick={(event) => onSelectTask(task.id, event)}
-      onContextMenu={onContextMenu(ItemKind.Task, task.id, task.text, task.due)}
+      onContextMenu={onContextMenu(ItemKind.Task, task.id)}
       className={
         'group flex select-none items-center gap-3 border-b border-gray-100 py-2' +
         (selectedIds.includes(task.id) ? ' bg-gray-100' : '')

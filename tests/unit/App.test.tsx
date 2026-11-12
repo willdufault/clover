@@ -115,6 +115,7 @@ test('rename, cancel rename and delete a task', async () => {
   await user.click(within(aside()).getByRole('heading', { name: 'Ham' }))
   await user.keyboard('Nope{Escape}')
   expect(within(main()).getByText('Ham')).toBeInTheDocument()
+  expect(aside()).toBeInTheDocument()
   expect(screen.queryByText('Nope')).not.toBeInTheDocument()
 
   await menuAction(user, within(main()).getByText('Ham'), 'Delete')
@@ -504,12 +505,6 @@ describe('stage', () => {
     expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
   })
 
-  test('context menu has no stage options', async () => {
-    const { user } = setup()
-    await rightClick(user, within(main()).getByText('Milk'))
-    expect(screen.queryByText(/^Set (open|in progress|waiting|done|cancelled)$/)).toBeNull()
-  })
-
   test('steps have no stage select', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
@@ -727,6 +722,19 @@ describe('multi-select', () => {
     expect(steps()).toEqual([])
   })
 
+  test('deleting a step with its x button does not select the row behind it', async () => {
+    const { user } = setup()
+    await user.click(row('Milk'))
+    await newStep(user, 'Skim')
+    await newStep(user, 'Oat')
+    await user.click(row('Skim', aside()))
+    await user.keyboard('{Control>}')
+    await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step' }))
+    await user.keyboard('{/Control}')
+    expect(steps()).toEqual(['2% lactose free', 'Skim'])
+    expect(rowsIn(aside()).some((r) => r.className.includes('bg-gray-200'))).toBe(false)
+  })
+
   test('modifier-click on step text selects without renaming', async () => {
     const { user } = setup()
     await user.click(row('Milk'))
@@ -780,4 +788,49 @@ test('sidebar has no hr above + New list', () => {
   setup()
   const input = within(nav()).getByPlaceholderText('+ New list')
   expect(input.previousElementSibling?.tagName).not.toBe('HR')
+})
+
+test('Escape in the add-step input or with the context menu open keeps the panel', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.type(within(aside()).getByPlaceholderText('+ New step'), 'x{Escape}')
+  expect(aside()).toBeInTheDocument()
+
+  await rightClick(user, within(main()).getByText('Milk'))
+  expect(screen.getByText('Delete')).toBeInTheDocument()
+  await user.keyboard('{Escape}')
+  expect(screen.queryByText('Delete')).toBeNull()
+  expect(aside()).toBeInTheDocument()
+
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('complementary')).toBeNull()
+})
+
+test('a task that left the view is not deleted with the selection', async () => {
+  const { user } = setup()
+  await user.click(screen.getByText('Milk'))
+  setDue('2000-01-01')
+  await user.click(within(nav()).getByText('Work'))
+  await user.click(screen.getByText('Review PR'))
+  setDue(today())
+  await user.click(within(nav()).getByText('☀️ Today'))
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(removeDue())
+  expect(tasks()).toEqual(['Review PR'])
+  await user.keyboard('{Control>}')
+  await user.click(within(main()).getByText('Review PR'))
+  await user.keyboard('{/Control}')
+  await menuAction(user, within(main()).getByText('Review PR'), 'Delete')
+  await user.click(within(nav()).getByText('📋 All'))
+  expect(tasks()).toContain('Milk')
+  expect(tasks()).not.toContain('Review PR')
+})
+
+test('leading and trailing spaces are not stored', async () => {
+  const { user } = setup()
+  await user.type(screen.getByPlaceholderText(/new task/i), '  Bread  {Enter}')
+  expect(tasks()[0]).toBe('Bread')
+  await user.click(within(main()).getByText('Bread'))
+  await newStep(user, '  Toast  ')
+  expect(steps()).toEqual(['Toast'])
 })

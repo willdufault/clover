@@ -53,7 +53,7 @@ export default function Sidebar({
             text={list.name}
             tag="div"
             onClick={() => onSelectView(list.id)}
-            onContextMenu={onContextMenu(ItemKind.List, list.id, list.name)}
+            onContextMenu={onContextMenu(ItemKind.List, list.id)}
             className={
               'border-b border-gray-200 ' +
               navRowClass(list.id === viewId, list.id === dragOverViewId)

@@ -55,6 +55,14 @@ test('task dropped on a list sets its listId and moves to front', () => {
   expect(result.tasks[0].steps).toEqual([makeStep('x1'), makeStep('x2')])
 })
 
+test('closed task dropped on a list goes after the last open task', () => {
+  const state = makeState()
+  state.tasks[1] = { ...state.tasks[1], stage: 'done' }
+  const result = applyDrop(state, { ...baseDrop, dragKind: 'task', activeId: 'a2', overId: 'B' })
+  expect(ids(result.tasks)).toEqual(['a1', 'a3', 'b1', 'b2', 'c1', 'a2'])
+  expect(result.tasks.at(-1)?.listId).toBe('B')
+})
+
 test('task dropped on a list from All sets its listId', () => {
   const result = applyDrop(makeState(), { ...baseDrop, viewId: 'all', dragKind: 'task', activeId: 'c1', overId: 'A' })
   expect(result.tasks[0]).toEqual({ ...makeState().tasks[5], listId: 'A' })

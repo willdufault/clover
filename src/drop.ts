@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import { ItemKind, type Task, type TaskList } from './types'
+import { moveAfterLastOpen } from './order'
 import { TODAY_VIEW_ID, visibleTasks } from './views'
 
 const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
@@ -36,7 +37,10 @@ export const applyDrop = (
   if (dragKind === ItemKind.Task && isList(overId)) {
     const task = visibleInView.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
-    return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((other) => other.id !== activeId)] }
+    const moved = { ...task, listId: overId }
+    const isOpen = (other: Task) => other.stage !== 'done' && other.stage !== 'cancelled'
+    const rest = tasks.filter((other) => other.id !== activeId)
+    return { lists, tasks: isOpen(moved) ? [moved, ...rest] : moveAfterLastOpen([...rest, moved], moved.id, isOpen) }
   }
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 

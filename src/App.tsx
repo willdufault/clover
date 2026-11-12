@@ -29,7 +29,7 @@ export default function App() {
   const [lists, setLists] = useState(SEED_LISTS)
   const [tasks, setTasks] = useState(SEED_TASKS)
   const [viewId, setViewId] = useState(SEED_LISTS[0].id)
-  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
+  const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
   const [activeDrag, setActiveDrag] = useState<{ kind: ItemKind; text: string } | null>(
     null,
@@ -47,6 +47,8 @@ export default function App() {
   if (viewId === ALL_VIEW_ID) viewName = ALL_VIEW_NAME
   else if (viewId === TODAY_VIEW_ID) viewName = TODAY_VIEW_NAME
   else viewName = lists.find((list) => list.id === viewId)?.name
+  // Ignore selected ids that left the current view.
+  const selectedTaskIds = rawSelectedTaskIds.filter((id) => viewTasks.some((task) => task.id === id))
   const selectedTask =
     selectedTaskIds.length === 1
       ? viewTasks.find((task) => task.id === selectedTaskIds[0])
@@ -84,10 +86,12 @@ export default function App() {
       ),
     )
 
-  // Escape clears all selection.
+  // Escape clears all selection, unless a menu handled it or it came from a text field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') selectTasks([])
+      const target = event.target as HTMLElement
+      if (event.key === 'Escape' && !event.defaultPrevented && !target.closest('input, textarea, select'))
+        selectTasks([])
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -175,7 +179,7 @@ export default function App() {
   }
 
   const openMenu =
-    (kind: ItemKind, id: string, text: string, due?: string) =>
+    (kind: ItemKind, id: string) =>
     (event: React.MouseEvent) => {
       event.preventDefault()
       setRenaming(null)
@@ -190,8 +194,7 @@ export default function App() {
         y: event.clientY,
         kind,
         ids,
-        text,
-        due: kind === ItemKind.Task ? dueTask?.due : due,
+        due: dueTask?.due,
       })
     }
 
@@ -227,9 +230,7 @@ export default function App() {
     }
   }
 
-  const createList = (draft: string) => {
-    const name = draft.trim()
-    if (!name) return
+  const createList = (name: string) => {
     const newList = { id: crypto.randomUUID(), name }
     setLists([...lists, newList])
     selectView(newList.id)

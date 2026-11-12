@@ -13,7 +13,7 @@ export function AddInput({
 
   const add = () => {
     if (!text.trim()) return
-    onAdd(text)
+    onAdd(text.trim())
     setText('')
   }
 

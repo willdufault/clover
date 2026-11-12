@@ -51,7 +51,7 @@ export default function DetailPanel({
       text={step.text}
       tag="li"
       onClick={(event) => onSelectStep(step.id, event)}
-      onContextMenu={onContextMenu(ItemKind.Step, step.id, step.text)}
+      onContextMenu={onContextMenu(ItemKind.Step, step.id)}
       className={
         'group flex select-none items-center gap-3 border-b border-gray-200 py-2' +
         (selectedIds.includes(step.id) ? ' bg-gray-200' : '')
@@ -84,8 +84,11 @@ export default function DetailPanel({
         </span>
       )}
       <button
-        {...stopDrag}
-        onClick={() => onDeleteStep(step.id)}
+        onPointerDown={stopDrag.onPointerDown}
+        onClick={(event) => {
+          event.stopPropagation()
+          onDeleteStep(step.id)
+        }}
         aria-label="Delete step"
         className="shrink-0 rounded px-1 leading-none text-gray-400 hover:text-gray-600"
       >
