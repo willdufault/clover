@@ -8,19 +8,16 @@ export function RenameInput({
   onCommit,
   onCancel,
   className,
-  placeholder,
 }: {
   draft: string
   onChange: (draft: string) => void
   onCommit: () => void
   onCancel: () => void
   className: string
-  placeholder?: string
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
   useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
+    const el = ref.current!
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
   }, [draft])
@@ -28,7 +25,6 @@ export function RenameInput({
     <textarea
       ref={ref}
       rows={1}
-      placeholder={placeholder}
       autoFocus
       onFocus={(event) => event.target.select()}
       value={draft}

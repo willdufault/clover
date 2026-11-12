@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import { ItemKind, type Task, type TaskList } from './types'
+import { isOpen, moveAfterLastOpen } from './order'
 import { TODAY_VIEW_ID, visibleTasks } from './views'
 
 const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
@@ -36,15 +37,17 @@ export const applyDrop = (
   if (dragKind === ItemKind.Task && isList(overId)) {
     const task = visibleInView.find((task) => task.id === activeId)
     if (!task || task.listId === overId) return state
-    return { lists, tasks: [{ ...task, listId: overId }, ...tasks.filter((other) => other.id !== activeId)] }
+    const moved = { ...task, listId: overId }
+    const rest = tasks.filter((other) => other.id !== activeId)
+    return { lists, tasks: isOpen(moved.stage) ? [moved, ...rest] : moveAfterLastOpen([...rest, moved], moved.id, (other) => isOpen(other.stage)) }
   }
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
   const containsBoth = (items: { id: string }[]) => items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(visibleInView)) return { lists, tasks: moveById(tasks, activeId, overId) }
   const selectedTask = visibleInView.find((task) => task.id === selectedTaskId)
-  if (selectedTask && containsBoth(selectedTask.subtasks)) {
-    return { lists, tasks: tasks.map((task) => (task === selectedTask ? { ...task, subtasks: moveById(task.subtasks, activeId, overId) } : task)) }
+  if (selectedTask && containsBoth(selectedTask.steps)) {
+    return { lists, tasks: tasks.map((task) => (task === selectedTask ? { ...task, steps: moveById(task.steps, activeId, overId) } : task)) }
   }
   return state
 }

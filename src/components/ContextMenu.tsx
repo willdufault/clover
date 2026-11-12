@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
-import { ItemKind, type Priority } from '../types'
+import { STAGE_LABELS } from '../labels'
+import { ItemKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
 
@@ -8,10 +9,10 @@ type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?
 
 function SubmenuRow({
   item,
-  MenuList,
+  renderItems,
 }: {
   item: MenuItem
-  MenuList: (props: { items: MenuItem[] }) => React.ReactNode
+  renderItems: (items: MenuItem[]) => React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [flip, setFlip] = useState(false)
@@ -20,8 +21,8 @@ function SubmenuRow({
   const panelRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (!open || !panelRef.current) return setShift(0)
-    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom + shift))
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
+  }, [open])
   return (
     <div
       ref={ref}
@@ -45,7 +46,7 @@ function SubmenuRow({
             (flip ? 'right-full' : 'left-full')
           }
         >
-          <MenuList items={item.submenu!} />
+          {renderItems(item.submenu!)}
         </div>
       )}
     </div>
@@ -57,31 +58,27 @@ export type MenuState = {
   y: number
   kind: ItemKind
   ids: string[]
-  text: string
   due?: string
 }
 
-export type OpenMenu = (
-  kind: ItemKind,
-  id: string,
-  text: string,
-  due?: string,
-) => (event: React.MouseEvent) => void
+export type OpenMenu = (kind: ItemKind, id: string) => (event: React.MouseEvent) => void
 
 export default function ContextMenu({
   menu,
   onClose,
-  onRename,
   onDelete,
   onSetDue,
   onSetPriority,
+  onSetStage,
+  onSetStepDone,
 }: {
   menu: MenuState
   onClose: () => void
-  onRename: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
+  onSetStage: (stage: Stage) => void
+  onSetStepDone: (done: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
@@ -91,14 +88,26 @@ export default function ContextMenu({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        event.preventDefault() // tells App's Escape handler this one is taken
+        onClose()
+      }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    // Capture so this runs before App's bubbling listener.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
-  const items: MenuItem[] = menu.ids.length > 1 ? [] : [{ label: 'Rename', action: onRename }]
+  const stageItem = (stages: Stage[], action: (stage: Stage) => void): MenuItem => ({
+    label: 'Set stage',
+    submenu: stages.map((stage) => ({
+      label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
+      action: () => action(stage),
+    })),
+  })
+
   const taskItems: MenuItem[] = [
+    stageItem(Object.keys(STAGE_LABELS) as Stage[], onSetStage),
     {
       label: 'Set due date',
       submenu: [
@@ -118,10 +127,10 @@ export default function ContextMenu({
     },
   ]
 
-  const MenuList = ({ items }: { items: MenuItem[] }) =>
+  const renderItems = (items: MenuItem[]): React.ReactNode =>
     items.map((item) =>
       item.submenu ? (
-        <SubmenuRow key={item.label} item={item} MenuList={MenuList} />
+        <SubmenuRow key={item.label} item={item} renderItems={renderItems} />
       ) : (
         <button
           key={item.label}
@@ -143,7 +152,6 @@ export default function ContextMenu({
     <>
       {/* Invisible backdrop to catch clicks outside the menu. */}
       <div
-        data-keep
         className="fixed inset-0"
         onClick={onClose}
         onContextMenu={(event) => {
@@ -153,17 +161,27 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        data-keep
         className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
         }}
       >
-        <MenuList items={items} />
-        {menu.kind === ItemKind.Task && <MenuList items={taskItems} />}
-        <hr className="my-1 border-gray-200" />
-        <MenuList items={[{ label: 'Delete', action: onDelete, danger: true }]} />
+        {menu.kind === ItemKind.Task && (
+          <>
+            {renderItems(taskItems)}
+            <hr className="my-1 border-gray-200" />
+          </>
+        )}
+        {menu.kind === ItemKind.Step && (
+          <>
+            {renderItems([
+              stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done')),
+            ])}
+            <hr className="my-1 border-gray-200" />
+          </>
+        )}
+        {renderItems([{ label: 'Delete', action: onDelete, danger: true }])}
       </div>
     </>
   )

@@ -3,6 +3,9 @@ import { isOverdue } from './due'
 export const FIELD_CLASS =
   'w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-blue-500'
 
+export const TITLE_RENAME_CLASS =
+  'field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none'
+
 export const navRowClass = (selected: boolean, dragOver: boolean) => {
   const base =
     'flex select-none items-center justify-between rounded-md px-3 py-1.5 text-left text-sm '

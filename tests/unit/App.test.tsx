@@ -9,12 +9,12 @@ const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
-const subtasks = () => namesIn(aside())
+const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
 const lists = () =>
   within(nav())
     .getAllByRole('button')
@@ -33,13 +33,19 @@ const submenuClick = async (user: User, parent: string, leaf: string) => {
   fireEvent.click(screen.getByText(leaf))
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
-const menuAction = async (user: User, element: HTMLElement, action: 'Rename' | 'Delete') => {
+const menuAction = async (user: User, element: HTMLElement, action: 'Delete') => {
   await rightClick(user, element)
   await user.click(screen.getByText(action))
 }
+const rename = async (user: User, element: HTMLElement, name: string) => {
+  await user.click(element)
+  await user.keyboard(`${name}{Enter}`)
+}
 const newList = async (user: User, name: string) => {
-  await user.click(screen.getByText('+ New list'))
-  await user.type(screen.getByPlaceholderText('List name…'), `${name}{Enter}`)
+  await user.type(screen.getByPlaceholderText('+ New list'), `${name}{Enter}`)
+}
+const newStep = async (user: User, name: string) => {
+  await user.type(within(aside()).getByPlaceholderText('+ New step'), `${name}{Enter}`)
 }
 const toggle = (user: User, name: string, root: HTMLElement = main()) =>
   user.click(within(row(name, root)).getByRole('checkbox'))
@@ -66,12 +72,12 @@ test('add a task and set its stage from the row', async () => {
   expect(stage).toHaveDisplayValue('⬜ Open')
 })
 
-test('open side panel, add and toggle a subtask', async () => {
+test('open side panel, add and toggle a step', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
   expect(within(aside()).getByText('2% lactose free')).toBeInTheDocument()
 
-  await user.type(screen.getByPlaceholderText(/new subtask/i), 'Oat{Enter}')
+  await newStep(user, 'Oat')
   expect(within(aside()).getByText('Oat')).toBeInTheDocument()
   expect(within(screen.getByRole('main')).queryByText('Oat')).not.toBeInTheDocument()
 
@@ -79,7 +85,7 @@ test('open side panel, add and toggle a subtask', async () => {
   expect(within(row('Oat', aside())).getByRole('checkbox')).toBeChecked()
 })
 
-test('subtask count shows and updates on toggle, hidden with no subtasks', async () => {
+test('step count shows and updates on toggle, hidden with no steps', async () => {
   const { user } = setup()
   const main = screen.getByRole('main')
   expect(within(main).getByText('0/1')).toBeInTheDocument()
@@ -89,43 +95,71 @@ test('subtask count shows and updates on toggle, hidden with no subtasks', async
   expect(within(main).getByText('1/1')).toBeInTheDocument()
 })
 
-test('toggling a subtask moves it below open ones', async () => {
+test('toggling a step moves it below open ones', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new subtask/i), 'Oat{Enter}')
-  expect(subtasks()).toEqual(['Oat', '2% lactose free'])
+  await newStep(user, 'Oat')
+  expect(steps()).toEqual(['2% lactose free', 'Oat'])
 
   await toggle(user, 'Oat', aside())
-  expect(subtasks()).toEqual(['2% lactose free', 'Oat'])
+  expect(steps()).toEqual(['2% lactose free', 'Oat'])
 })
 
 test('rename, cancel rename and delete a task', async () => {
   const { user } = setup()
-  await menuAction(user, within(main()).getByText('Eggs'), 'Rename')
-  await user.keyboard('Ham{Enter}')
+  await user.click(within(main()).getByText('Eggs'))
+  await rename(user, within(aside()).getByRole('heading', { name: 'Eggs' }), 'Ham')
   expect(within(main()).getByText('Ham')).toBeInTheDocument()
   expect(within(main()).queryByText('Eggs')).not.toBeInTheDocument()
 
-  await menuAction(user, within(main()).getByText('Ham'), 'Rename')
+  await user.click(within(aside()).getByRole('heading', { name: 'Ham' }))
   await user.keyboard('Nope{Escape}')
   expect(within(main()).getByText('Ham')).toBeInTheDocument()
+  expect(aside()).toBeInTheDocument()
   expect(screen.queryByText('Nope')).not.toBeInTheDocument()
 
   await menuAction(user, within(main()).getByText('Ham'), 'Delete')
   expect(within(main()).queryByText('Ham')).not.toBeInTheDocument()
 })
 
-test('rename and delete a subtask', async () => {
+test('opening the context menu cancels an in-progress rename', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  for (const target of [() => within(aside()).getByText('2% lactose free'), () => within(main()).getByText('Milk')]) {
+    await user.click(within(aside()).getByText('2% lactose free'))
+    expect(within(aside()).getByDisplayValue('2% lactose free')).toBeInTheDocument()
+    await rightClick(user, target())
+    expect(within(aside()).queryByDisplayValue('2% lactose free')).not.toBeInTheDocument()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+  }
+  expect(within(aside()).getByText('2% lactose free')).toBeInTheDocument()
+})
+
+test('rename and delete a step', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
 
-  await menuAction(user, within(aside()).getByText('2% lactose free'), 'Rename')
-  await user.keyboard('Skim{Enter}')
-  expect(subtasks()).toEqual(['Skim'])
+  await rename(user, within(aside()).getByText('2% lactose free'), 'Skim')
+  expect(steps()).toEqual(['Skim'])
 
   await menuAction(user, within(aside()).getByText('Skim'), 'Delete')
-  expect(subtasks()).toEqual([])
-  expect(screen.getByText('No subtasks yet')).toBeInTheDocument()
+  expect(steps()).toEqual([])
+  expect(screen.getByText('No steps yet')).toBeInTheDocument()
+})
+
+test('delete a step with its x button', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(within(aside()).getByRole('button', { name: 'Delete step' }))
+  expect(steps()).toEqual([])
+})
+
+test('delete a task from the panel footer', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(within(aside()).getByRole('button', { name: 'Delete task' }))
+  expect(within(main()).queryByText('Milk')).not.toBeInTheDocument()
+  expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
 })
 
 test('create, switch, rename and delete lists', async () => {
@@ -136,11 +170,12 @@ test('create, switch, rename and delete lists', async () => {
   await user.click(within(nav()).getByText('Work'))
   expect(screen.getByRole('heading', { name: 'Work' })).toBeInTheDocument()
 
-  await menuAction(user, within(nav()).getByText('Fun'), 'Rename')
-  await user.keyboard('Play{Enter}')
+  await user.click(within(nav()).getByText('Fun'))
+  await rename(user, screen.getByRole('heading', { name: 'Fun' }), 'Play')
   expect(within(nav()).getByText('Play')).toBeInTheDocument()
   expect(within(nav()).queryByText('Fun')).not.toBeInTheDocument()
 
+  await user.click(within(nav()).getByText('Work'))
   await menuAction(user, within(nav()).getByText('Work'), 'Delete')
   expect(within(nav()).queryByText('Work')).not.toBeInTheDocument()
   expect(screen.queryByText('Reply to emails')).not.toBeInTheDocument()
@@ -168,8 +203,8 @@ test('All view shows tasks from every list', async () => {
 
 test('an edit made in a list is reflected in All', async () => {
   const { user } = setup()
-  await menuAction(user, within(main()).getByText('Milk'), 'Rename')
-  await user.keyboard('Oat milk{Enter}')
+  await user.click(within(main()).getByText('Milk'))
+  await rename(user, within(aside()).getByRole('heading', { name: 'Milk' }), 'Oat milk')
   await user.selectOptions(stageSelect('Eggs'), 'done')
   await user.click(within(nav()).getByText('📋 All'))
   expect(screen.getByText('Oat milk')).toBeInTheDocument()
@@ -199,14 +234,14 @@ test('whitespace-only names are ignored', async () => {
   expect(tasks()).toEqual(['Milk', 'Eggs'])
 
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new subtask/i), '   {Enter}')
-  expect(subtasks()).toEqual(['2% lactose free'])
+  await newStep(user, '   ')
+  expect(steps()).toEqual(['2% lactose free'])
 
   await newList(user, '   ')
   expect(lists()).toEqual(['Groceries', 'Work', 'Home'])
 })
 
-test('new list, task and subtask land in the right place', async () => {
+test('new list, task and step land in the right place', async () => {
   const { user } = setup()
 
   await newList(user, 'Fun')
@@ -223,13 +258,20 @@ test('new list, task and subtask land in the right place', async () => {
   expect(tasks()).toEqual(['Milk', 'Eggs'])
 
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new subtask/i), 'Oat{Enter}')
+  await newStep(user, 'Oat')
   expect(tasks()).toEqual(['Milk', 'Eggs'])
-  expect(subtasks()).toEqual(['Oat', '2% lactose free'])
+  expect(steps()).toEqual(['2% lactose free', 'Oat'])
 
   await user.click(within(main()).getByText('Eggs'))
   expect(screen.queryByText('Oat')).not.toBeInTheDocument()
   expect(screen.queryByText('2% lactose free')).not.toBeInTheDocument()
+})
+
+test('clicking empty main area keeps the panel open', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(main())
+  expect(aside()).toBeInTheDocument()
 })
 
 describe('side panel closes', () => {
@@ -264,38 +306,37 @@ describe('changes only affect the touched item', () => {
     }
     await user.click(within(nav()).getByText('Groceries'))
     await user.click(within(main()).getByText('Milk'))
-    result.milkSubs = subtasks()
+    result.milkSubs = steps()
     await user.click(within(main()).getByText('Eggs'))
     return result
   }
 
-  test('task and subtask add, toggle, rename, delete leave the rest unchanged', async () => {
+  test('task and step add, toggle, rename, delete leave the rest unchanged', async () => {
     const { user } = setup()
     const before = await snapshot(user)
     const order = lists()
 
-    // Work tasks and Groceries subtasks untouched by Groceries task edits.
+    // Work tasks and Groceries steps untouched by Groceries task edits.
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    await menuAction(user, within(main()).getByText('Bread'), 'Rename')
-    await user.keyboard('Rye{Enter}')
+    await user.click(within(main()).getByText('Bread'))
+    await rename(user, within(aside()).getByRole('heading', { name: 'Bread' }), 'Rye')
     await menuAction(user, within(main()).getByText('Rye'), 'Delete')
     await user.click(within(main()).getByText('Milk'))
-    expect(subtasks()).toEqual(before.milkSubs)
+    expect(steps()).toEqual(before.milkSubs)
     await user.click(within(nav()).getByText('Work'))
     expect(tasks()).toEqual(before.Work)
 
-    // Subtask edits leave sibling tasks and other tasks' subtasks untouched.
+    // Step edits leave sibling tasks and other tasks' steps untouched.
     await user.click(within(nav()).getByText('Groceries'))
     await user.click(within(main()).getByText('Milk'))
-    await user.type(screen.getByPlaceholderText(/new subtask/i), 'Oat{Enter}')
+    await newStep(user, 'Oat')
     await toggle(user, 'Oat', aside())
-    await menuAction(user, within(aside()).getByText('Oat'), 'Rename')
-    await user.keyboard('Soy{Enter}')
+    await rename(user, within(aside()).getByText('Oat'), 'Soy')
     await menuAction(user, within(aside()).getByText('Soy'), 'Delete')
-    expect(subtasks()).toEqual(before.milkSubs)
+    expect(steps()).toEqual(before.milkSubs)
     expect(tasks()).toEqual(before.Groceries)
     await user.click(within(main()).getByText('Eggs'))
-    expect(subtasks()).toEqual([])
+    expect(steps()).toEqual([])
     expect(lists()).toEqual(order)
     for (const name of ['Work', 'Home']) {
       await user.click(within(nav()).getByText(name))
@@ -306,8 +347,7 @@ describe('changes only affect the touched item', () => {
   test('list add, rename, delete keep other lists and their tasks', async () => {
     const { user } = setup()
     await newList(user, 'Fun')
-    await menuAction(user, within(nav()).getByText('Fun'), 'Rename')
-    await user.keyboard('Play{Enter}')
+    await rename(user, screen.getByRole('heading', { name: 'Fun' }), 'Play')
     expect(lists()).toEqual(['Groceries', 'Work', 'Home', 'Play'])
     await menuAction(user, within(nav()).getByText('Play'), 'Delete')
     expect(lists()).toEqual(['Groceries', 'Work', 'Home'])
@@ -350,7 +390,7 @@ describe('due dates', () => {
     expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/)).toBeNull()
   })
 
-  test('subtasks show no due subtext', async () => {
+  test('steps show no due subtext', async () => {
     const { user } = setup()
     await openMilk(user)
     setDue('2000-01-01')
@@ -414,7 +454,7 @@ describe('priority', () => {
     expect(screen.queryByText(/priority$/)).toBeNull()
   })
 
-  test('subtasks show no priority', async () => {
+  test('steps show no priority', async () => {
     const { user } = setup()
     await pick(user, 'Medium', '🔴 High')
     expect(within(row('2% lactose free', aside())).queryByText(/priority$/)).toBeNull()
@@ -465,13 +505,7 @@ describe('stage', () => {
     expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
   })
 
-  test('context menu has no stage options', async () => {
-    const { user } = setup()
-    await rightClick(user, within(main()).getByText('Milk'))
-    expect(screen.queryByText(/^Set (open|in progress|waiting|done|cancelled)$/)).toBeNull()
-  })
-
-  test('subtasks have no stage select', async () => {
+  test('steps have no stage select', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
     expect(within(row('2% lactose free', aside())).queryByRole('combobox')).toBeNull()
@@ -505,8 +539,8 @@ describe('task fields', () => {
   test('fields survive rename', async () => {
     const { user } = setup()
     await setAll(user)
-    await menuAction(user, within(main()).getByText('Milk'), 'Rename')
-    await user.keyboard('Oat{Enter}')
+    await user.click(within(main()).getByText('Milk'))
+    await rename(user, within(aside()).getByRole('heading', { name: 'Milk' }), 'Oat')
     const oat = within(row('Oat'))
     expect(oat.getByText(/^📅 /)).toBeInTheDocument()
     expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
@@ -521,21 +555,65 @@ describe('task fields', () => {
     expect(within(aside()).getByDisplayValue('Medium')).toBeInTheDocument()
   })
 
-  test('subtask context menu has only Rename and Delete', async () => {
+  // Stage select options share the menu's labels, so take the last match (the menu renders last).
+  const pickStage = async (user: User, label: string) => {
+    await user.hover(screen.getByText('Set stage'))
+    fireEvent.click(screen.getAllByText(label).at(-1)!)
+  }
+
+  test('step context menu has Set stage and Delete', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
-    expect(screen.getByText('Rename')).toBeInTheDocument()
+    expect(screen.queryByText('Rename')).toBeNull()
+    expect(screen.getByText('Set stage')).toBeInTheDocument()
     expect(screen.getByText('Delete')).toBeInTheDocument()
     expect(screen.queryByText('Set due date')).toBeNull()
     expect(screen.queryByText('Set priority')).toBeNull()
+    await user.hover(screen.getByText('Set stage'))
+    expect(screen.queryByText('⚡ In progress', { selector: 'button' })).toBeNull()
+    expect(screen.getByText('⬜ Open', { selector: 'button' })).toBeInTheDocument()
+    expect(screen.getByText('✅ Done', { selector: 'button' })).toBeInTheDocument()
   })
 
-  test('subtask toggle and delete leave a same-named task unchanged', async () => {
+  test('task context menu sets stage on all selected tasks', async () => {
+    const { user } = setup()
+    await rightClick(user, within(main()).getByText('Milk'))
+    await pickStage(user, '⚡ In progress')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+    await user.click(within(main()).getByText('Milk'))
+    await user.keyboard('{Shift>}')
+    await user.click(within(main()).getByText('Eggs'))
+    await user.keyboard('{/Shift}')
+    await rightClick(user, within(main()).getByText('Eggs'))
+    await pickStage(user, '⏳ Waiting')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⏳ Waiting')
+    expect(stageSelect('Eggs')).toHaveDisplayValue('⏳ Waiting')
+  })
+
+  test('step context menu sets done, and is a no-op when unchanged', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    const checkbox = () => within(row('2% lactose free', aside())).getByRole('checkbox')
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '⬜ Open')
+    expect(checkbox()).not.toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '✅ Done')
+    expect(checkbox()).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '✅ Done')
+    expect(checkbox()).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '⬜ Open')
+    expect(checkbox()).not.toBeChecked()
+  })
+
+  test('step toggle and delete leave a same-named task unchanged', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Eggs'))
     await user.click(within(main()).getByText('Milk'))
-    await user.type(screen.getByPlaceholderText(/new subtask/i), 'Eggs{Enter}')
+    await newStep(user, 'Eggs')
     const before = tasks()
     await toggle(user, 'Eggs', aside())
     expect(tasks()).toEqual(before)
@@ -578,11 +656,11 @@ test('Today shows overdue and due-today tasks but not others', async () => {
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home$/)
     await menuAction(user, within(main()).getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
   })
 })
 
@@ -632,15 +710,127 @@ describe('multi-select', () => {
     expect(tasks()).toEqual([])
   })
 
-  test('bulk delete subtasks', async () => {
+  test('bulk delete steps', async () => {
     const { user } = setup()
     await user.click(row('Milk'))
-    await user.type(within(aside()).getByPlaceholderText(/new subtask/i), 'Skim{Enter}')
+    await newStep(user, 'Skim')
     await user.click(row('Skim', aside()))
     await ctrlClick(user, '2% lactose free', aside())
     await rightClick(user, row('Skim', aside()))
     expect(screen.queryByText('Rename')).toBeNull()
     await user.click(screen.getByText('Delete'))
-    expect(subtasks()).toEqual([])
+    expect(steps()).toEqual([])
   })
+
+  test('deleting a step with its x button does not select the row behind it', async () => {
+    const { user } = setup()
+    await user.click(row('Milk'))
+    await newStep(user, 'Skim')
+    await newStep(user, 'Oat')
+    await user.click(row('Skim', aside()))
+    await user.keyboard('{Control>}')
+    await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step' }))
+    await user.keyboard('{/Control}')
+    expect(steps()).toEqual(['2% lactose free', 'Skim'])
+    expect(rowsIn(aside()).some((r) => r.className.includes('bg-gray-200'))).toBe(false)
+  })
+
+  test('modifier-click on step text selects without renaming', async () => {
+    const { user } = setup()
+    await user.click(row('Milk'))
+    await newStep(user, 'Skim')
+    await user.click(row('Skim', aside()))
+    const boxes = within(aside()).queryAllByRole('textbox').length
+    for (const key of ['Control', 'Shift']) {
+      await user.keyboard(`{${key}>}`)
+      await user.click(within(aside()).getByText('2% lactose free'))
+      await user.keyboard(`{/${key}}`)
+      expect(within(aside()).queryAllByRole('textbox')).toHaveLength(boxes)
+      expect(row('Skim', aside())).toHaveClass('bg-gray-200')
+      expect(row('2% lactose free', aside())).toHaveClass('bg-gray-200')
+      await user.click(row('Skim', aside()))
+    }
+  })
+})
+
+test('panel title stage select changes the task stage', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  const select = within(aside()).getAllByRole('combobox')[0]
+  await user.selectOptions(select, '⚡ In progress')
+  expect(select).toHaveDisplayValue('⚡ In progress')
+  expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+})
+
+test('+ New step adds below existing steps and keeps focus for the next', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await newStep(user, 'Oat')
+  const input = within(aside()).getByPlaceholderText('+ New step')
+  expect(input).toHaveFocus()
+  await user.keyboard('Soy{Enter}Rice{Enter}{Enter}')
+  expect(steps()).toEqual(['2% lactose free', 'Oat', 'Soy', 'Rice'])
+  expect(input).toHaveFocus()
+})
+
+test('+ New list keeps focus for the next list; lists have dividers', async () => {
+  const { user } = setup()
+  await newList(user, 'A')
+  const input = screen.getByPlaceholderText('+ New list')
+  expect(input).toHaveFocus()
+  await user.keyboard('B{Enter}C{Enter}{Enter}')
+  expect(lists()).toEqual(['Groceries', 'Work', 'Home', 'A', 'B', 'C'])
+  expect(input).toHaveFocus()
+  expect(screen.getByText('Work').closest('div')).toHaveClass('border-b')
+})
+
+test('sidebar has no hr above + New list', () => {
+  setup()
+  const input = within(nav()).getByPlaceholderText('+ New list')
+  expect(input.previousElementSibling?.tagName).not.toBe('HR')
+})
+
+test('Escape in the add-step input or with the context menu open keeps the panel', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.type(within(aside()).getByPlaceholderText('+ New step'), 'x{Escape}')
+  expect(aside()).toBeInTheDocument()
+
+  await rightClick(user, within(main()).getByText('Milk'))
+  expect(screen.getByText('Delete')).toBeInTheDocument()
+  await user.keyboard('{Escape}')
+  expect(screen.queryByText('Delete')).toBeNull()
+  expect(aside()).toBeInTheDocument()
+
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('complementary')).toBeNull()
+})
+
+test('a task that left the view is not deleted with the selection', async () => {
+  const { user } = setup()
+  await user.click(screen.getByText('Milk'))
+  setDue('2000-01-01')
+  await user.click(within(nav()).getByText('Work'))
+  await user.click(screen.getByText('Review PR'))
+  setDue(today())
+  await user.click(within(nav()).getByText('☀️ Today'))
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(removeDue())
+  expect(tasks()).toEqual(['Review PR'])
+  await user.keyboard('{Control>}')
+  await user.click(within(main()).getByText('Review PR'))
+  await user.keyboard('{/Control}')
+  await menuAction(user, within(main()).getByText('Review PR'), 'Delete')
+  await user.click(within(nav()).getByText('📋 All'))
+  expect(tasks()).toContain('Milk')
+  expect(tasks()).not.toContain('Review PR')
+})
+
+test('leading and trailing spaces are not stored', async () => {
+  const { user } = setup()
+  await user.type(screen.getByPlaceholderText(/new task/i), '  Bread  {Enter}')
+  expect(tasks()[0]).toBe('Bread')
+  await user.click(within(main()).getByText('Bread'))
+  await newStep(user, '  Toast  ')
+  expect(steps()).toEqual(['Toast'])
 })
