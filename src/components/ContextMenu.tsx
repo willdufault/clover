@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
-import { STAGE_LABELS } from '../labels'
+import { STAGES, STAGE_LABELS } from '../labels'
 import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
@@ -88,10 +88,9 @@ export default function ContextMenu({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault() // tells App's Escape handler this one is taken
-        onClose()
-      }
+      if (event.key !== 'Escape') return
+      event.preventDefault() // tells App's Escape handler this one is taken
+      onClose()
     }
     // Capture so this runs before App's bubbling listener.
     window.addEventListener('keydown', onKeyDown, true)
@@ -107,7 +106,7 @@ export default function ContextMenu({
   })
 
   const taskItems: MenuItem[] = [
-    stageItem(Object.keys(STAGE_LABELS) as Stage[], onSetStage),
+    stageItem(STAGES, onSetStage),
     {
       label: 'Set due date',
       submenu: [

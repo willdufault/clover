@@ -15,12 +15,13 @@ import { SEED_LISTS, SEED_TASKS } from './seed'
 import { isCompleted, moveAfterIncomplete } from './stages'
 import { nextSelection } from './selection'
 import { RowKind, type Stage, type Step, type Task } from './types'
-import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, TODAY_LIST_NAME, tasksInList } from './smartLists'
+import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
-import { RenameInput } from './components/RenameInput'
+
+type DragInfo = { kind: RowKind; text: string }
 
 export default function App() {
   const sensors = useSensors(
@@ -31,22 +32,13 @@ export default function App() {
   const [selectedListId, setSelectedListId] = useState(SEED_LISTS[0].id)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
-  const [activeDrag, setActiveDrag] = useState<{ kind: RowKind; text: string } | null>(
-    null,
-  )
+  const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
-  const [renaming, setRenaming] = useState<{
-    kind: RowKind
-    id: string
-    draft: string
-  } | null>(null)
 
   const listTasks = tasksInList(tasks, selectedListId)
   const currentList = lists.find((list) => list.id === selectedListId)
-  let listName = currentList?.name
-  if (selectedListId === ALL_LIST_ID) listName = ALL_LIST_NAME
-  if (selectedListId === TODAY_LIST_ID) listName = TODAY_LIST_NAME
+  const listName = SMART_LIST_NAMES[selectedListId] ?? currentList?.name
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
   const detailTask =
     selectedTaskIds.length === 1
@@ -88,9 +80,9 @@ export default function App() {
   // Escape clears all selection, unless a menu handled it or it came from a text field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement
-      if (event.key === 'Escape' && !event.defaultPrevented && !target.closest('input, textarea, select'))
-        replaceTaskSelection([])
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      if ((event.target as HTMLElement).closest('input, textarea, select')) return
+      replaceTaskSelection([])
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -174,7 +166,6 @@ export default function App() {
     (kind: RowKind, id: string) =>
     (event: React.MouseEvent) => {
       event.preventDefault()
-      setRenaming(null)
       const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
       let ids = [id]
       if (kind !== RowKind.List && selected.includes(id)) ids = selected
@@ -190,27 +181,7 @@ export default function App() {
       })
     }
 
-  const startRename = (kind: RowKind, id: string, draft: string) =>
-    setRenaming({ kind, id, draft })
-
-  const renderRenameInput = (kind: RowKind, id: string, className: string) =>
-    renaming?.kind === kind && renaming.id === id && (
-      <RenameInput
-        draft={renaming.draft}
-        onChange={(draft) => setRenaming({ ...renaming, draft })}
-        onCommit={commitRename}
-        onCancel={() => setRenaming(null)}
-        className={className}
-      />
-    )
-
-  // An empty draft cancels.
-  const commitRename = () => {
-    if (!renaming) return
-    const { kind, id, draft } = renaming
-    const name = draft.trim()
-    setRenaming(null)
-    if (!name) return
+  const renameItem = (kind: RowKind, id: string, name: string) => {
     if (kind === RowKind.List) {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
@@ -237,15 +208,13 @@ export default function App() {
         task.listId === id ? { ...task, listId: undefined } : task,
       ),
     )
-    if (id === selectedListId) {
-      selectList(
-        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL_LIST_ID,
-      )
-    }
+    if (id !== selectedListId) return
+    const neighbor = remaining[index - 1] ?? remaining[0]
+    selectList(neighbor?.id ?? ALL_LIST_ID)
   }
 
   const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveDrag(active.data.current as { kind: RowKind; text: string })
+    setActiveDrag(active.data.current as DragInfo)
   }
 
   const handleDragOver = ({ over }: DragOverEvent) => {
@@ -274,11 +243,8 @@ export default function App() {
     if (nextState.lists === lists && nextState.tasks === tasks) return
     setLists(nextState.lists)
     setTasks(nextState.tasks)
-    if (
-      activeDrag?.kind === RowKind.Task &&
-      (overId === TODAY_LIST_ID || lists.some((list) => list.id === overId))
-    )
-      replaceTaskSelection([])
+    const droppedOnList = overId === TODAY_LIST_ID || lists.some((list) => list.id === overId)
+    if (activeDrag?.kind === RowKind.Task && droppedOnList) replaceTaskSelection([])
   }
 
   return (
@@ -312,14 +278,13 @@ export default function App() {
             selectedListId={selectedListId}
             listName={listName}
             renamable={!!currentList}
-            onRename={startRename}
+            onRename={renameItem}
             tasks={listTasks}
             onAddTask={addTask}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
             onSetStage={setTaskStage}
             onContextMenu={openContextMenu}
-            renderRenameInput={renderRenameInput}
           />
           {detailTask && (
             <TaskDetailPane
@@ -335,8 +300,7 @@ export default function App() {
               onSetPriority={(id, priority) => updateTask(id, { priority })}
               onSetStage={setTaskStage}
               onContextMenu={openContextMenu}
-              onRename={startRename}
-              renderRenameInput={renderRenameInput}
+              onRename={renameItem}
             />
           )}
         </div>

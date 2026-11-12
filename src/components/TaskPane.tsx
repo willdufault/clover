@@ -8,6 +8,7 @@ import { isCompleted } from '../stages'
 import { TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
+import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
 import { StageSelect } from './StageSelect'
@@ -23,7 +24,6 @@ export default function TaskPane({
   onSetStage,
   onContextMenu,
   onRename,
-  renderRenameInput,
 }: {
   selectedListId: string
   listName: string | undefined
@@ -35,7 +35,6 @@ export default function TaskPane({
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
-  renderRenameInput: (kind: RowKind, id: string, className: string) => React.ReactNode
 }) {
   const metaItems = (task: Task) => {
     const items = []
@@ -111,21 +110,15 @@ export default function TaskPane({
 
   return (
     <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-      {renderRenameInput(
-        RowKind.List,
-        selectedListId,
-        TITLE_RENAME_CLASS,
-      ) || (
-        <h1
-          onClick={() => renamable && onRename(RowKind.List, selectedListId, listName ?? '')}
-          className={
-            'w-fit max-w-full break-words font-semibold text-gray-800' +
-            (renamable ? ' cursor-text' : '')
-          }
-        >
-          {listName}
-        </h1>
-      )}
+      <EditableText
+        key={selectedListId}
+        tag="h1"
+        text={listName ?? ''}
+        editable={renamable}
+        onCommit={(name) => onRename(RowKind.List, selectedListId, name)}
+        className="w-fit max-w-full break-words font-semibold text-gray-800"
+        inputClassName={TITLE_RENAME_CLASS}
+      />
 
       <AddInput placeholder="+ New task" onAdd={onAddTask} />
 

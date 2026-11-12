@@ -8,6 +8,7 @@ import { FIELD_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
+import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { StageSelect } from './StageSelect'
 import { ignoreRowEvents } from './ignoreRowEvents'
@@ -26,7 +27,6 @@ export default function TaskDetailPane({
   onSetStage,
   onContextMenu,
   onRename,
-  renderRenameInput,
 }: {
   task: Task
   selectedIds: string[]
@@ -41,7 +41,6 @@ export default function TaskDetailPane({
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
-  renderRenameInput: (kind: RowKind, id: string, className: string) => React.ReactNode
 }) {
   const stepRow = (step: Step) => (
     <SortableRow
@@ -64,25 +63,17 @@ export default function TaskDetailPane({
         onChange={() => onToggleStep(step.id)}
         className="size-4 accent-blue-500"
       />
-      {renderRenameInput(
-        RowKind.Step,
-        step.id,
-        'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
-      ) || (
-        <span
-          onClick={(event) => {
-            if (event.ctrlKey || event.metaKey || event.shiftKey) return
-            event.stopPropagation()
-            onRename(RowKind.Step, step.id, step.text)
-          }}
-          className={
-            'min-w-0 flex-1 cursor-text break-words ' +
-            (step.completed ? 'text-gray-400 line-through' : 'text-gray-800')
-          }
-        >
-          {step.text}
-        </span>
-      )}
+      <EditableText
+        tag="span"
+        text={step.text}
+        selectOnModifierClick
+        onCommit={(name) => onRename(RowKind.Step, step.id, name)}
+        className={
+          'min-w-0 flex-1 break-words ' +
+          (step.completed ? 'text-gray-400 line-through' : 'text-gray-800')
+        }
+        inputClassName="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+      />
       <button
         onPointerDown={ignoreRowEvents.onPointerDown}
         onClick={(event) => {
@@ -105,18 +96,14 @@ export default function TaskDetailPane({
           value={task.stage}
           onChange={(stage) => onSetStage(task.id, stage)}
         />
-        {renderRenameInput(
-          RowKind.Task,
-          task.id,
-          TITLE_RENAME_CLASS,
-        ) || (
-          <h2
-            onClick={() => onRename(RowKind.Task, task.id, task.text)}
-            className="w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
-          >
-            {task.text}
-          </h2>
-        )}
+        <EditableText
+          key={task.id}
+          tag="h2"
+          text={task.text}
+          onCommit={(name) => onRename(RowKind.Task, task.id, name)}
+          className="w-fit max-w-full break-words font-semibold text-gray-800"
+          inputClassName={TITLE_RENAME_CLASS}
+        />
       </div>
 
       <SortableContext

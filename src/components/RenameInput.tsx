@@ -36,6 +36,7 @@ export function RenameInput({
         if (event.key === 'Escape') onCancel()
       }}
       onBlur={onCancel}
+      onContextMenu={onCancel}
       {...ignoreRowEvents}
       className={`${className} resize-none overflow-hidden break-words`}
     />
