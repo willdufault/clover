@@ -1,5 +1,5 @@
 import type { Task } from '../../src/types'
-import { TODAY_VIEW_ID, visibleTasks } from '../../src/views'
+import { TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
 
 const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, steps: [], stage: 'open' })
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
@@ -12,5 +12,5 @@ test('Today view shows flagged, due today and overdue tasks only', () => {
     { ...makeTask('future', 'B'), due: '2026-01-03' },
     makeTask('plain', 'B'),
   ]
-  expect(ids(visibleTasks(tasks, TODAY_VIEW_ID, '2026-01-02'))).toEqual(['flag', 'due', 'late'])
+  expect(ids(tasksInList(tasks, TODAY_LIST_ID, '2026-01-02'))).toEqual(['flag', 'due', 'late'])
 })

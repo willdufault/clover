@@ -1,10 +1,10 @@
-import { applyDrop, type BoardState } from '../../src/drop'
+import { applyDrop, type ListsAndTasks } from '../../src/drop'
 import type { Step, Task } from '../../src/types'
-import { TODAY_VIEW_ID } from '../../src/views'
+import { TODAY_LIST_ID } from '../../src/smartLists'
 
-const makeStep = (id: string, done = false): Step => ({ id, text: id, done })
+const makeStep = (id: string, completed = false): Step => ({ id, text: id, completed })
 const makeTask = (id: string, listId: string, steps: Step[] = []): Task => ({ id, text: id, listId, steps, stage: 'open' })
-const makeState = (): BoardState => ({
+const makeState = (): ListsAndTasks => ({
   lists: [
     { id: 'A', name: 'A' },
     { id: 'B', name: 'B' },
@@ -19,7 +19,7 @@ const makeState = (): BoardState => ({
     makeTask('c1', 'C', [makeStep('z1')]),
   ],
 })
-const baseDrop = { viewId: 'A', selectedTaskId: null as string | null }
+const baseDrop = { selectedListId: 'A', detailTaskId: null as string | null }
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
 
 test('reorder lists: only list order changes', () => {
@@ -36,12 +36,12 @@ test('reorder tasks in a list: other tasks untouched', () => {
 })
 
 test('reorder tasks in All', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, viewId: 'all', dragKind: 'task', activeId: 'c1', overId: 'a1' })
+  const result = applyDrop(makeState(), { ...baseDrop, selectedListId: 'all', dragKind: 'task', activeId: 'c1', overId: 'a1' })
   expect(ids(result.tasks)).toEqual(['c1', 'a1', 'a2', 'a3', 'b1', 'b2'])
 })
 
 test('reorder steps: task order and other tasks untouched', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, selectedTaskId: 'a1', dragKind: 'step', activeId: 's1', overId: 's3' })
+  const result = applyDrop(makeState(), { ...baseDrop, detailTaskId: 'a1', dragKind: 'step', activeId: 's1', overId: 's3' })
   const expected = makeState()
   expect(ids(result.tasks)).toEqual(ids(expected.tasks))
   expect(ids(result.tasks[0].steps)).toEqual(['s2', 's3', 's1'])
@@ -64,7 +64,7 @@ test('closed task dropped on a list goes after the last open task', () => {
 })
 
 test('task dropped on a list from All sets its listId', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, viewId: 'all', dragKind: 'task', activeId: 'c1', overId: 'A' })
+  const result = applyDrop(makeState(), { ...baseDrop, selectedListId: 'all', dragKind: 'task', activeId: 'c1', overId: 'A' })
   expect(result.tasks[0]).toEqual({ ...makeState().tasks[5], listId: 'A' })
 })
 
@@ -77,7 +77,7 @@ test('task dropped on its own list or on All is a no-op', () => {
 test('mismatched ids are no-ops', () => {
   const state = makeState()
   const expectNoop = (drop: Partial<Parameters<typeof applyDrop>[1]>) =>
-    expect(applyDrop(state, { ...baseDrop, selectedTaskId: 'a1', dragKind: 'task', activeId: 'a1', overId: 'a2', ...drop })).toEqual(makeState())
+    expect(applyDrop(state, { ...baseDrop, detailTaskId: 'a1', dragKind: 'task', activeId: 'a1', overId: 'a2', ...drop })).toEqual(makeState())
   expectNoop({ dragKind: 'step', activeId: 's1', overId: 'a2' }) // step over task
   expectNoop({ dragKind: 'task', activeId: 'a1', overId: 's1' }) // task over step
   expectNoop({ dragKind: 'step', activeId: 's1', overId: 'x1' }) // step of another task
@@ -94,7 +94,7 @@ test('moving a task to another list keeps due, priority and stage', () => {
 })
 
 test('dropping a task on Today flags it and keeps its list and position', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, dragKind: 'task', activeId: 'a2', overId: TODAY_VIEW_ID })
+  const result = applyDrop(makeState(), { ...baseDrop, dragKind: 'task', activeId: 'a2', overId: TODAY_LIST_ID })
   expect(ids(result.tasks)).toEqual(ids(makeState().tasks))
   expect(result.tasks[1]).toEqual({ ...makeState().tasks[1], addedToToday: true })
 })

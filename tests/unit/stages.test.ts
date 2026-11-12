@@ -1,7 +1,7 @@
-import { moveAfterLastOpen } from '../../src/order'
+import { moveAfterIncomplete } from '../../src/stages'
 
 type Item = { id: string; open: boolean }
-const isOpen = (item: Item) => item.open
+const isCompleted = (item: Item) => !item.open
 const ids = (items: Item[]) => items.map((item) => item.id)
 
 test('moves a closed item right after the last open one, above earlier closed items', () => {
@@ -11,7 +11,7 @@ test('moves a closed item right after the last open one, above earlier closed it
     { id: 'c', open: true },
     { id: 'd', open: false },
   ]
-  expect(ids(moveAfterLastOpen(items, 'a', isOpen))).toEqual(['b', 'c', 'a', 'd'])
+  expect(ids(moveAfterIncomplete(items, 'a', isCompleted))).toEqual(['b', 'c', 'a', 'd'])
 })
 
 test('moves a reopened item to the bottom of the open items', () => {
@@ -21,10 +21,10 @@ test('moves a reopened item to the bottom of the open items', () => {
     { id: 'c', open: true },
     { id: 'd', open: false },
   ]
-  expect(ids(moveAfterLastOpen(items, 'c', isOpen))).toEqual(['a', 'c', 'b', 'd'])
+  expect(ids(moveAfterIncomplete(items, 'c', isCompleted))).toEqual(['a', 'c', 'b', 'd'])
 })
 
 test('returns the same array for an unknown id', () => {
   const items = [{ id: 'a', open: true }]
-  expect(moveAfterLastOpen(items, 'zzz', isOpen)).toBe(items)
+  expect(moveAfterIncomplete(items, 'zzz', isCompleted)).toBe(items)
 })

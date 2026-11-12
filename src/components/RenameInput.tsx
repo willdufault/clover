@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
-import { stopDrag } from './stopDrag'
+import { ignoreRowEvents } from './ignoreRowEvents'
 
-// In-place rename box: Enter commits, Escape or blur cancels. Grows with its text.
 export function RenameInput({
   draft,
   onChange,
@@ -37,7 +36,8 @@ export function RenameInput({
         if (event.key === 'Escape') onCancel()
       }}
       onBlur={onCancel}
-      {...stopDrag}
+      onContextMenu={onCancel}
+      {...ignoreRowEvents}
       className={`${className} resize-none overflow-hidden break-words`}
     />
   )

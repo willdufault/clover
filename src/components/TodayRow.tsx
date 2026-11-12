@@ -1,9 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
-import { navRowClass } from '../styles'
-import { TODAY_VIEW_ID, TODAY_VIEW_NAME } from '../views'
-import { Count } from './Count'
+import { sidebarRowClass } from '../styles'
+import { TODAY_LIST_ID, TODAY_LIST_NAME } from '../smartLists'
+import { TaskCountBadge } from './TaskCountBadge'
 
-// Sidebar Today row: drop target only.
 export function TodayRow({
   selected,
   dragOver,
@@ -15,15 +14,15 @@ export function TodayRow({
   dragOver: boolean
   onClick: () => void
 }) {
-  const { setNodeRef } = useDroppable({ id: TODAY_VIEW_ID })
+  const { setNodeRef } = useDroppable({ id: TODAY_LIST_ID })
   return (
     <div
       ref={setNodeRef}
       onClick={onClick}
-      className={navRowClass(selected, dragOver)}
+      className={sidebarRowClass(selected, dragOver)}
     >
-      <span>{TODAY_VIEW_NAME}</span>
-      <Count count={count} />
+      <span>{TODAY_LIST_NAME}</span>
+      <TaskCountBadge count={count} />
     </div>
   )
 }

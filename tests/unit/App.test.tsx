@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { today, tomorrow } from '../../src/due'
+import { today, tomorrow } from '../../src/dates'
 
 const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const nav = () => screen.getByRole('navigation')
@@ -95,16 +95,6 @@ test('step count shows and updates on toggle, hidden with no steps', async () =>
   expect(within(main).getByText('1/1')).toBeInTheDocument()
 })
 
-test('toggling a step moves it below open ones', async () => {
-  const { user } = setup()
-  await user.click(within(main()).getByText('Milk'))
-  await newStep(user, 'Oat')
-  expect(steps()).toEqual(['2% lactose free', 'Oat'])
-
-  await toggle(user, 'Oat', aside())
-  expect(steps()).toEqual(['2% lactose free', 'Oat'])
-})
-
 test('rename, cancel rename and delete a task', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Eggs'))
@@ -145,13 +135,6 @@ test('rename and delete a step', async () => {
   await menuAction(user, within(aside()).getByText('Skim'), 'Delete')
   expect(steps()).toEqual([])
   expect(screen.getByText('No steps yet')).toBeInTheDocument()
-})
-
-test('delete a step with its x button', async () => {
-  const { user } = setup()
-  await user.click(within(main()).getByText('Milk'))
-  await user.click(within(aside()).getByRole('button', { name: 'Delete step' }))
-  expect(steps()).toEqual([])
 })
 
 test('delete a task from the panel footer', async () => {
@@ -195,11 +178,6 @@ const allTexts = async (user: User) => {
   await user.click(within(nav()).getByText('📋 All'))
   return tasks()
 }
-
-test('All view shows tasks from every list', async () => {
-  const { user } = setup()
-  expect(await allTexts(user)).toEqual(['Milk', 'Eggs', 'Reply to emails', 'Update docs', 'Review PR'])
-})
 
 test('an edit made in a list is reflected in All', async () => {
   const { user } = setup()

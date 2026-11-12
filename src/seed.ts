@@ -12,7 +12,7 @@ export const SEED_TASKS: Task[] = [
     text: 'Milk',
     stage: 'open',
     listId: 'groceries',
-    steps: [{ id: 'g1a', text: '2% lactose free', done: false }],
+    steps: [{ id: 'g1a', text: '2% lactose free', completed: false }],
   },
   { id: 'g2', text: 'Eggs', stage: 'open', listId: 'groceries', steps: [] },
   { id: 'w1', text: 'Reply to emails', stage: 'open', listId: 'work', steps: [] },

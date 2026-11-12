@@ -9,6 +9,8 @@ export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
   cancelled: { emoji: '❌️', label: 'Cancelled' },
 }
 
+export const STAGES = Object.keys(STAGE_LABELS) as Stage[]
+
 export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }> = {
   low: { emoji: '🔵', label: 'Low' },
   high: { emoji: '🔴', label: 'High' },

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { nextMonday, today, tomorrow } from '../due'
-import { STAGE_LABELS } from '../labels'
-import { ItemKind, type Priority, type Stage } from '../types'
+import { nextMonday, today, tomorrow } from '../dates'
+import { STAGES, STAGE_LABELS } from '../labels'
+import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
 
@@ -53,15 +53,15 @@ function SubmenuRow({
   )
 }
 
-export type MenuState = {
+export type ContextMenuState = {
   x: number
   y: number
-  kind: ItemKind
+  kind: RowKind
   ids: string[]
   due?: string
 }
 
-export type OpenMenu = (kind: ItemKind, id: string) => (event: React.MouseEvent) => void
+export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
 
 export default function ContextMenu({
   menu,
@@ -70,15 +70,15 @@ export default function ContextMenu({
   onSetDue,
   onSetPriority,
   onSetStage,
-  onSetStepDone,
+  onSetStepCompleted,
 }: {
-  menu: MenuState
+  menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
   onSetStage: (stage: Stage) => void
-  onSetStepDone: (done: boolean) => void
+  onSetStepCompleted: (completed: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
@@ -88,10 +88,9 @@ export default function ContextMenu({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault() // tells App's Escape handler this one is taken
-        onClose()
-      }
+      if (event.key !== 'Escape') return
+      event.preventDefault() // tells App's Escape handler this one is taken
+      onClose()
     }
     // Capture so this runs before App's bubbling listener.
     window.addEventListener('keydown', onKeyDown, true)
@@ -107,7 +106,7 @@ export default function ContextMenu({
   })
 
   const taskItems: MenuItem[] = [
-    stageItem(Object.keys(STAGE_LABELS) as Stage[], onSetStage),
+    stageItem(STAGES, onSetStage),
     {
       label: 'Set due date',
       submenu: [
@@ -150,7 +149,6 @@ export default function ContextMenu({
 
   return (
     <>
-      {/* Invisible backdrop to catch clicks outside the menu. */}
       <div
         className="fixed inset-0"
         onClick={onClose}
@@ -167,16 +165,16 @@ export default function ContextMenu({
           top,
         }}
       >
-        {menu.kind === ItemKind.Task && (
+        {menu.kind === RowKind.Task && (
           <>
             {renderItems(taskItems)}
             <hr className="my-1 border-gray-200" />
           </>
         )}
-        {menu.kind === ItemKind.Step && (
+        {menu.kind === RowKind.Step && (
           <>
             {renderItems([
-              stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done')),
+              stageItem(['open', 'done'], (stage) => onSetStepCompleted(stage === 'done')),
             ])}
             <hr className="my-1 border-gray-200" />
           </>
