@@ -54,10 +54,10 @@ export default function Sidebar({
             tag="div"
             onClick={() => onSelectView(list.id)}
             onContextMenu={onContextMenu(ItemKind.List, list.id, list.name)}
-            className={navRowClass(
-              list.id === viewId,
-              list.id === dragOverViewId,
-            )}
+            className={
+              'border-b border-gray-200 ' +
+              navRowClass(list.id === viewId, list.id === dragOverViewId)
+            }
           >
             <span className="min-w-0 truncate">{list.name}</span>
             <Count count={visibleTasks(tasks, list.id).length} />

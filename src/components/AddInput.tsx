@@ -23,7 +23,7 @@ export function AddInput({
       onChange={(event) => setText(event.target.value)}
       onKeyDown={(event) => event.key === 'Enter' && add()}
       placeholder={placeholder}
-      className={'mt-4 ' + FIELD_CLASS}
+      className={'mt-4 text-sm ' + FIELD_CLASS}
     />
   )
 }
