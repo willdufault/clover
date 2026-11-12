@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -7,7 +6,7 @@ import { navRowClass } from '../styles'
 import { ItemKind, type Task, type TaskList } from '../types'
 import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, visibleTasks } from '../views'
 import { Count } from './Count'
-import { RenameInput } from './RenameInput'
+import { AddInput } from './AddInput'
 import { SortableRow } from './SortableRow'
 import { TodayRow } from './TodayRow'
 import type { OpenMenu } from './ContextMenu'
@@ -29,14 +28,6 @@ export default function Sidebar({
   onCreateList: (name: string) => void
   onContextMenu: OpenMenu
 }) {
-  const [addingList, setAddingList] = useState(false)
-  const [newListName, setNewListName] = useState('')
-
-  const stopAdding = () => {
-    setAddingList(false)
-    setNewListName('')
-  }
-
   return (
     <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
       <TodayRow
@@ -74,27 +65,7 @@ export default function Sidebar({
         ))}
       </SortableContext>
 
-      <hr className="my-1 border-gray-300" />
-      {addingList ? (
-        <RenameInput
-          draft={newListName}
-          onChange={setNewListName}
-          onCommit={() => {
-            onCreateList(newListName)
-            stopAdding()
-          }}
-          onCancel={stopAdding}
-          placeholder="List name…"
-          className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-        />
-      ) : (
-        <button
-          onClick={() => setAddingList(true)}
-          className="rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200/60"
-        >
-          + New list
-        </button>
-      )}
+      <AddInput placeholder="+ New list" onAdd={onCreateList} />
     </nav>
   )
 }

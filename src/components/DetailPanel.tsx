@@ -6,8 +6,8 @@ import { formatDue, isOverdue, relativeDay } from '../due'
 import { PRIORITY_LABELS } from '../labels'
 import { FIELD_CLASS, dueClass } from '../styles'
 import { ItemKind, type Priority, type Stage, type Step, type Task } from '../types'
-import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
+import { AddInput } from './AddInput'
 import { SortableRow } from './SortableRow'
 import { StageSelect } from './StageSelect'
 import { stopDrag } from './stopDrag'
@@ -117,11 +117,6 @@ export default function DetailPanel({
         )}
       </div>
 
-      <AddInput
-        placeholder="+ New step"
-        onAdd={onAddStep}
-      />
-
       <SortableContext
         items={task.steps}
         strategy={verticalListSortingStrategy}
@@ -134,6 +129,8 @@ export default function DetailPanel({
       {task.steps.length === 0 && (
         <p className="mt-4 text-sm text-gray-400">No steps yet</p>
       )}
+
+      <AddInput placeholder="+ New step" onAdd={onAddStep} />
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
       <div className="flex items-center gap-2">

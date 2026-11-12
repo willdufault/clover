@@ -14,7 +14,7 @@ const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
-const steps = () => namesIn(aside())
+const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
 const lists = () =>
   within(nav())
     .getAllByRole('button')
@@ -42,8 +42,10 @@ const rename = async (user: User, element: HTMLElement, name: string) => {
   await user.keyboard(`${name}{Enter}`)
 }
 const newList = async (user: User, name: string) => {
-  await user.click(screen.getByText('+ New list'))
-  await user.type(screen.getByPlaceholderText('List name…'), `${name}{Enter}`)
+  await user.type(screen.getByPlaceholderText('+ New list'), `${name}{Enter}`)
+}
+const newStep = async (user: User, name: string) => {
+  await user.type(within(aside()).getByPlaceholderText('+ New step'), `${name}{Enter}`)
 }
 const toggle = (user: User, name: string, root: HTMLElement = main()) =>
   user.click(within(row(name, root)).getByRole('checkbox'))
@@ -75,7 +77,7 @@ test('open side panel, add and toggle a step', async () => {
   await user.click(within(main()).getByText('Milk'))
   expect(within(aside()).getByText('2% lactose free')).toBeInTheDocument()
 
-  await user.type(screen.getByPlaceholderText(/new step/i), 'Oat{Enter}')
+  await newStep(user, 'Oat')
   expect(within(aside()).getByText('Oat')).toBeInTheDocument()
   expect(within(screen.getByRole('main')).queryByText('Oat')).not.toBeInTheDocument()
 
@@ -96,8 +98,8 @@ test('step count shows and updates on toggle, hidden with no steps', async () =>
 test('toggling a step moves it below open ones', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new step/i), 'Oat{Enter}')
-  expect(steps()).toEqual(['Oat', '2% lactose free'])
+  await newStep(user, 'Oat')
+  expect(steps()).toEqual(['2% lactose free', 'Oat'])
 
   await toggle(user, 'Oat', aside())
   expect(steps()).toEqual(['2% lactose free', 'Oat'])
@@ -231,7 +233,7 @@ test('whitespace-only names are ignored', async () => {
   expect(tasks()).toEqual(['Milk', 'Eggs'])
 
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new step/i), '   {Enter}')
+  await newStep(user, '   ')
   expect(steps()).toEqual(['2% lactose free'])
 
   await newList(user, '   ')
@@ -255,9 +257,9 @@ test('new list, task and step land in the right place', async () => {
   expect(tasks()).toEqual(['Milk', 'Eggs'])
 
   await user.click(within(main()).getByText('Milk'))
-  await user.type(screen.getByPlaceholderText(/new step/i), 'Oat{Enter}')
+  await newStep(user, 'Oat')
   expect(tasks()).toEqual(['Milk', 'Eggs'])
-  expect(steps()).toEqual(['Oat', '2% lactose free'])
+  expect(steps()).toEqual(['2% lactose free', 'Oat'])
 
   await user.click(within(main()).getByText('Eggs'))
   expect(screen.queryByText('Oat')).not.toBeInTheDocument()
@@ -319,7 +321,7 @@ describe('changes only affect the touched item', () => {
     // Step edits leave sibling tasks and other tasks' steps untouched.
     await user.click(within(nav()).getByText('Groceries'))
     await user.click(within(main()).getByText('Milk'))
-    await user.type(screen.getByPlaceholderText(/new step/i), 'Oat{Enter}')
+    await newStep(user, 'Oat')
     await toggle(user, 'Oat', aside())
     await rename(user, within(aside()).getByText('Oat'), 'Soy')
     await menuAction(user, within(aside()).getByText('Soy'), 'Delete')
@@ -609,7 +611,7 @@ describe('task fields', () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Eggs'))
     await user.click(within(main()).getByText('Milk'))
-    await user.type(screen.getByPlaceholderText(/new step/i), 'Eggs{Enter}')
+    await newStep(user, 'Eggs')
     const before = tasks()
     await toggle(user, 'Eggs', aside())
     expect(tasks()).toEqual(before)
@@ -652,11 +654,11 @@ test('Today shows overdue and due-today tasks but not others', async () => {
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home$/)
     await menuAction(user, within(main()).getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home\+ New list$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
   })
 })
 
@@ -709,7 +711,7 @@ describe('multi-select', () => {
   test('bulk delete steps', async () => {
     const { user } = setup()
     await user.click(row('Milk'))
-    await user.type(within(aside()).getByPlaceholderText(/new step/i), 'Skim{Enter}')
+    await newStep(user, 'Skim')
     await user.click(row('Skim', aside()))
     await ctrlClick(user, '2% lactose free', aside())
     await rightClick(user, row('Skim', aside()))
@@ -721,14 +723,14 @@ describe('multi-select', () => {
   test('modifier-click on step text selects without renaming', async () => {
     const { user } = setup()
     await user.click(row('Milk'))
-    await user.type(within(aside()).getByPlaceholderText(/new step/i), 'Skim{Enter}')
+    await newStep(user, 'Skim')
     await user.click(row('Skim', aside()))
-    const boxes = within(aside()).getAllByRole('textbox').length
+    const boxes = within(aside()).queryAllByRole('textbox').length
     for (const key of ['Control', 'Shift']) {
       await user.keyboard(`{${key}>}`)
       await user.click(within(aside()).getByText('2% lactose free'))
       await user.keyboard(`{/${key}}`)
-      expect(within(aside()).getAllByRole('textbox')).toHaveLength(boxes)
+      expect(within(aside()).queryAllByRole('textbox')).toHaveLength(boxes)
       expect(row('Skim', aside())).toHaveClass('bg-gray-200')
       expect(row('2% lactose free', aside())).toHaveClass('bg-gray-200')
       await user.click(row('Skim', aside()))
@@ -743,4 +745,31 @@ test('panel title stage select changes the task stage', async () => {
   await user.selectOptions(select, '⚡ In progress')
   expect(select).toHaveDisplayValue('⚡ In progress')
   expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+})
+
+test('+ New step adds below existing steps and keeps focus for the next', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await newStep(user, 'Oat')
+  const input = within(aside()).getByPlaceholderText('+ New step')
+  expect(input).toHaveFocus()
+  await user.keyboard('Soy{Enter}Rice{Enter}{Enter}')
+  expect(steps()).toEqual(['2% lactose free', 'Oat', 'Soy', 'Rice'])
+  expect(input).toHaveFocus()
+})
+
+test('+ New list keeps focus for the next list', async () => {
+  const { user } = setup()
+  await newList(user, 'A')
+  const input = screen.getByPlaceholderText('+ New list')
+  expect(input).toHaveFocus()
+  await user.keyboard('B{Enter}C{Enter}{Enter}')
+  expect(lists()).toEqual(['Groceries', 'Work', 'Home', 'A', 'B', 'C'])
+  expect(input).toHaveFocus()
+})
+
+test('sidebar has no hr above + New list', () => {
+  setup()
+  const input = within(nav()).getByPlaceholderText('+ New list')
+  expect(input.previousElementSibling?.tagName).not.toBe('HR')
 })

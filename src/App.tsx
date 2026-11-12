@@ -132,11 +132,12 @@ export default function App() {
       ...tasks,
     ])
 
-  const addStep = (text: string) =>
+  const addStep = (text: string) => {
     updateSteps(selectedTask!.id, (steps) => [
-      { id: crypto.randomUUID(), text, done: false },
       ...steps,
+      { id: crypto.randomUUID(), text, done: false },
     ])
+  }
 
   const deleteTasks = (ids: string[]) => {
     setTasks((tasks) => tasks.filter((task) => !ids.includes(task.id)))
