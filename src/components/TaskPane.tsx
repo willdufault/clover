@@ -2,19 +2,19 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { formatDue } from '../due'
+import { formatDueDate } from '../dates'
 import { PRIORITY_LABELS } from '../labels'
-import { isOpen } from '../order'
-import { TITLE_RENAME_CLASS, dueClass } from '../styles'
-import { ItemKind, type Stage, type Task } from '../types'
+import { isCompleted } from '../stages'
+import { TITLE_RENAME_CLASS, dueDateClass } from '../styles'
+import { RowKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
-import type { OpenMenu } from './ContextMenu'
+import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
 import { StageSelect } from './StageSelect'
 
-export default function TaskView({
-  viewId,
-  viewName,
+export default function TaskPane({
+  selectedListId,
+  listName,
   renamable,
   tasks,
   selectedIds,
@@ -25,31 +25,31 @@ export default function TaskView({
   onRename,
   renderRenameInput,
 }: {
-  viewId: string
-  viewName: string | undefined
+  selectedListId: string
+  listName: string | undefined
   renamable: boolean
   tasks: Task[]
   selectedIds: string[]
   onAddTask: (text: string) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
   onSetStage: (id: string, stage: Stage) => void
-  onContextMenu: OpenMenu
-  onRename: (kind: ItemKind, id: string, text: string) => void
-  renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
+  onContextMenu: OpenContextMenu
+  onRename: (kind: RowKind, id: string, text: string) => void
+  renderRenameInput: (kind: RowKind, id: string, className: string) => React.ReactNode
 }) {
   const metaItems = (task: Task) => {
     const items = []
     if (task.steps.length > 0)
       items.push(
         <span key="steps" className="text-xs text-gray-500">
-          {task.steps.filter((step) => step.done).length}/
+          {task.steps.filter((step) => step.completed).length}/
           {task.steps.length}
         </span>,
       )
     if (task.due)
       items.push(
-        <span key="due" className={dueClass(task.due)}>
-          📅 {formatDue(task.due)}
+        <span key="due" className={dueDateClass(task.due)}>
+          📅 {formatDueDate(task.due)}
         </span>,
       )
     if (task.priority)
@@ -68,11 +68,11 @@ export default function TaskView({
       <SortableRow
         key={task.id}
         id={task.id}
-        kind={ItemKind.Task}
+        kind={RowKind.Task}
         text={task.text}
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
-        onContextMenu={onContextMenu(ItemKind.Task, task.id)}
+        onContextMenu={onContextMenu(RowKind.Task, task.id)}
         className={
           'group flex select-none items-center gap-3 border-b border-gray-100 py-2' +
           (selectedIds.includes(task.id) ? ' bg-gray-100' : '')
@@ -85,7 +85,7 @@ export default function TaskView({
         <div className="flex min-w-0 flex-col">
           <span
             className={
-              !isOpen(task.stage)
+              isCompleted(task.stage)
                 ? 'break-words text-gray-400 line-through'
                 : 'break-words text-gray-800'
             }
@@ -112,18 +112,18 @@ export default function TaskView({
   return (
     <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
       {renderRenameInput(
-        ItemKind.List,
-        viewId,
+        RowKind.List,
+        selectedListId,
         TITLE_RENAME_CLASS,
       ) || (
         <h1
-          onClick={() => renamable && onRename(ItemKind.List, viewId, viewName ?? '')}
+          onClick={() => renamable && onRename(RowKind.List, selectedListId, listName ?? '')}
           className={
             'w-fit max-w-full break-words font-semibold text-gray-800' +
             (renamable ? ' cursor-text' : '')
           }
         >
-          {viewName}
+          {listName}
         </h1>
       )}
 

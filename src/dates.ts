@@ -19,15 +19,15 @@ export const nextMonday = (now = new Date()) => {
 
 export const isOverdue = (due: string, now = new Date()) => due < today(now)
 
-export const relativeDay = (due: string, now = new Date()) => {
+export const relativeDayLabel = (due: string, now = new Date()) => {
   const todayDate = today(now)
   if (due === addDays(todayDate, -1)) return 'Yesterday'
   if (due === todayDate) return 'Today'
   if (due === addDays(todayDate, 1)) return 'Tomorrow'
 }
 
-export const formatDue = (due: string, now = new Date()) =>
-  relativeDay(due, now) ??
+export const formatDueDate = (due: string, now = new Date()) =>
+  relativeDayLabel(due, now) ??
   new Intl.DateTimeFormat('en-US', {
     timeZone: 'UTC',
     weekday: 'short',

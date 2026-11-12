@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { today, tomorrow } from '../../src/due'
+import { today, tomorrow } from '../../src/dates'
 
 const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const nav = () => screen.getByRole('navigation')

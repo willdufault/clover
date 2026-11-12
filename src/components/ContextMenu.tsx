@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { nextMonday, today, tomorrow } from '../due'
+import { nextMonday, today, tomorrow } from '../dates'
 import { STAGE_LABELS } from '../labels'
-import { ItemKind, type Priority, type Stage } from '../types'
+import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
 
@@ -53,15 +53,15 @@ function SubmenuRow({
   )
 }
 
-export type MenuState = {
+export type ContextMenuState = {
   x: number
   y: number
-  kind: ItemKind
+  kind: RowKind
   ids: string[]
   due?: string
 }
 
-export type OpenMenu = (kind: ItemKind, id: string) => (event: React.MouseEvent) => void
+export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
 
 export default function ContextMenu({
   menu,
@@ -70,15 +70,15 @@ export default function ContextMenu({
   onSetDue,
   onSetPriority,
   onSetStage,
-  onSetStepDone,
+  onSetStepCompleted,
 }: {
-  menu: MenuState
+  menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
   onSetStage: (stage: Stage) => void
-  onSetStepDone: (done: boolean) => void
+  onSetStepCompleted: (completed: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
@@ -167,16 +167,16 @@ export default function ContextMenu({
           top,
         }}
       >
-        {menu.kind === ItemKind.Task && (
+        {menu.kind === RowKind.Task && (
           <>
             {renderItems(taskItems)}
             <hr className="my-1 border-gray-200" />
           </>
         )}
-        {menu.kind === ItemKind.Step && (
+        {menu.kind === RowKind.Step && (
           <>
             {renderItems([
-              stageItem(['open', 'done'], (stage) => onSetStepDone(stage === 'done')),
+              stageItem(['open', 'done'], (stage) => onSetStepCompleted(stage === 'done')),
             ])}
             <hr className="my-1 border-gray-200" />
           </>

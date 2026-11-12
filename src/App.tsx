@@ -12,14 +12,14 @@ import {
 } from '@dnd-kit/core'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
-import { isOpen, moveAfterLastOpen } from './order'
+import { isCompleted, moveAfterIncomplete } from './stages'
 import { nextSelection } from './selection'
-import { ItemKind, type Stage, type Step, type Task } from './types'
-import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, TODAY_VIEW_NAME, visibleTasks } from './views'
-import ContextMenu, { type MenuState } from './components/ContextMenu'
-import DetailPanel from './components/DetailPanel'
-import Sidebar from './components/Sidebar'
-import TaskView from './components/TaskView'
+import { RowKind, type Stage, type Step, type Task } from './types'
+import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, TODAY_LIST_NAME, tasksInList } from './smartLists'
+import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
+import TaskDetailPane from './components/TaskDetailPane'
+import ListSidebar from './components/ListSidebar'
+import TaskPane from './components/TaskPane'
 import { RenameInput } from './components/RenameInput'
 
 export default function App() {
@@ -28,61 +28,61 @@ export default function App() {
   )
   const [lists, setLists] = useState(SEED_LISTS)
   const [tasks, setTasks] = useState(SEED_TASKS)
-  const [viewId, setViewId] = useState(SEED_LISTS[0].id)
+  const [selectedListId, setSelectedListId] = useState(SEED_LISTS[0].id)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
-  const [activeDrag, setActiveDrag] = useState<{ kind: ItemKind; text: string } | null>(
+  const [activeDrag, setActiveDrag] = useState<{ kind: RowKind; text: string } | null>(
     null,
   )
-  const [dragOverViewId, setDragOverViewId] = useState<string | null>(null)
-  const [menu, setMenu] = useState<MenuState | null>(null)
+  const [dragOverListId, setDragOverListId] = useState<string | null>(null)
+  const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const [renaming, setRenaming] = useState<{
-    kind: ItemKind
+    kind: RowKind
     id: string
     draft: string
   } | null>(null)
 
-  const viewTasks = visibleTasks(tasks, viewId)
-  const viewList = lists.find((list) => list.id === viewId)
-  let viewName = viewList?.name
-  if (viewId === ALL_VIEW_ID) viewName = ALL_VIEW_NAME
-  if (viewId === TODAY_VIEW_ID) viewName = TODAY_VIEW_NAME
+  const listTasks = tasksInList(tasks, selectedListId)
+  const currentList = lists.find((list) => list.id === selectedListId)
+  let listName = currentList?.name
+  if (selectedListId === ALL_LIST_ID) listName = ALL_LIST_NAME
+  if (selectedListId === TODAY_LIST_ID) listName = TODAY_LIST_NAME
   // Ignore selected ids that left the current view.
-  const selectedTaskIds = rawSelectedTaskIds.filter((id) => viewTasks.some((task) => task.id === id))
-  const selectedTask =
+  const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
+  const detailTask =
     selectedTaskIds.length === 1
-      ? viewTasks.find((task) => task.id === selectedTaskIds[0])
+      ? listTasks.find((task) => task.id === selectedTaskIds[0])
       : undefined
-  const selectedTaskId = selectedTask?.id ?? null
+  const detailTaskId = detailTask?.id ?? null
 
   // Replace the task selection; step selection belongs to the open task, so it resets.
-  const selectTasks = (ids: string[]) => {
+  const replaceTaskSelection = (ids: string[]) => {
     setSelectedTaskIds(ids)
     setSelectedStepIds([])
   }
 
-  const selectView = (id: string) => {
-    setViewId(id)
-    selectTasks([])
+  const selectList = (id: string) => {
+    setSelectedListId(id)
+    replaceTaskSelection([])
   }
 
-  const modifiers = (event: React.MouseEvent) => ({
+  const clickModifiers = (event: React.MouseEvent) => ({
     ctrl: event.ctrlKey || event.metaKey,
     shift: event.shiftKey,
   })
 
   const selectTask = (id: string, event: React.MouseEvent) =>
-    selectTasks(
-      nextSelection(selectedTaskIds, viewTasks.map((task) => task.id), id, modifiers(event)),
+    replaceTaskSelection(
+      nextSelection(selectedTaskIds, listTasks.map((task) => task.id), id, clickModifiers(event)),
     )
 
   const selectStep = (id: string, event: React.MouseEvent) =>
     setSelectedStepIds(
       nextSelection(
         selectedStepIds,
-        selectedTask!.steps.map((step) => step.id),
+        detailTask!.steps.map((step) => step.id),
         id,
-        modifiers(event),
+        clickModifiers(event),
       ),
     )
 
@@ -91,7 +91,7 @@ export default function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       if (event.key === 'Escape' && !event.defaultPrevented && !target.closest('input, textarea, select'))
-        selectTasks([])
+        replaceTaskSelection([])
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -99,14 +99,11 @@ export default function App() {
     }
   }, [])
 
-  // Apply update to the steps of the task with id.
-  const updateSteps = (
-    taskId: string,
-    update: (steps: Step[]) => Step[],
-  ) =>
+  // Apply update to the steps of the detail task.
+  const updateDetailSteps = (update: (steps: Step[]) => Step[]) =>
     setTasks((tasks) =>
       tasks.map((task) =>
-        task.id === taskId ? { ...task, steps: update(task.steps) } : task,
+        task.id === detailTaskId ? { ...task, steps: update(task.steps) } : task,
       ),
     )
 
@@ -117,74 +114,74 @@ export default function App() {
         text,
         steps: [],
         stage: 'open',
-        listId: viewList?.id,
-        addedToToday: viewId === TODAY_VIEW_ID ? true : undefined,
+        listId: currentList?.id,
+        addedToToday: selectedListId === TODAY_LIST_ID ? true : undefined,
       },
       ...tasks,
     ])
 
   const addStep = (text: string) => {
-    updateSteps(selectedTask!.id, (steps) => [
+    updateDetailSteps((steps) => [
       ...steps,
-      { id: crypto.randomUUID(), text, done: false },
+      { id: crypto.randomUUID(), text, completed: false },
     ])
   }
 
   const deleteTasks = (ids: string[]) => {
     setTasks((tasks) => tasks.filter((task) => !ids.includes(task.id)))
-    selectTasks([])
+    replaceTaskSelection([])
   }
 
-  const patchTask = (id: string, patch: Partial<Task>) =>
+  const updateTask = (id: string, patch: Partial<Task>) =>
     setTasks((tasks) =>
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
   // Set a task's stage, moving it after the last open task when it closes or reopens.
-  const setStage = (id: string, stage: Stage) =>
+  const setTaskStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
       const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
-      return isOpen(before.stage) === isOpen(stage)
+      return isCompleted(before.stage) === isCompleted(stage)
         ? patched
-        : moveAfterLastOpen(patched, id, (task) => isOpen(task.stage))
+        : moveAfterIncomplete(patched, id, (task) => isCompleted(task.stage))
     })
 
-  const patchStep = (id: string, patch: Partial<Step>) =>
-    updateSteps(selectedTaskId!, (steps) =>
+  const updateStep = (id: string, patch: Partial<Step>) =>
+    updateDetailSteps((steps) =>
       steps.map((step) =>
         step.id === id ? { ...step, ...patch } : step,
       ),
     )
 
   const toggleStep = (id: string) =>
-    updateSteps(selectedTaskId!, (steps) =>
-      moveAfterLastOpen(
+    updateDetailSteps((steps) =>
+      moveAfterIncomplete(
         steps.map((step) =>
-          step.id === id ? { ...step, done: !step.done } : step,
+          step.id === id ? { ...step, completed: !step.completed } : step,
         ),
         id,
-        (step) => !step.done,
+        (step) => step.completed,
       ),
     )
 
   const deleteSteps = (ids: string[]) => {
-    updateSteps(selectedTaskId!, (steps) =>
+    updateDetailSteps((steps) =>
       steps.filter((step) => !ids.includes(step.id)),
     )
     setSelectedStepIds([])
   }
 
-  const openMenu =
-    (kind: ItemKind, id: string) =>
+  const openContextMenu =
+    (kind: RowKind, id: string) =>
     (event: React.MouseEvent) => {
       event.preventDefault()
       setRenaming(null)
-      const selected = kind === ItemKind.Task ? selectedTaskIds : selectedStepIds
+      const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
       let ids = [id]
-      if (kind !== ItemKind.List && selected.includes(id)) ids = selected
-      else if (kind === ItemKind.Task) selectTasks(ids)
-      else if (kind === ItemKind.Step) setSelectedStepIds(ids)
+      if (kind !== RowKind.List && selected.includes(id)) ids = selected
+      else if (kind === RowKind.Task) replaceTaskSelection(ids)
+      else if (kind === RowKind.Step) setSelectedStepIds(ids)
       const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
       setMenu({
         x: event.clientX,
@@ -195,10 +192,10 @@ export default function App() {
       })
     }
 
-  const startRename = (kind: ItemKind, id: string, draft: string) =>
+  const startRename = (kind: RowKind, id: string, draft: string) =>
     setRenaming({ kind, id, draft })
 
-  const renderRenameInput = (kind: ItemKind, id: string, className: string) =>
+  const renderRenameInput = (kind: RowKind, id: string, className: string) =>
     renaming?.kind === kind && renaming.id === id && (
       <RenameInput
         draft={renaming.draft}
@@ -216,21 +213,21 @@ export default function App() {
     const name = draft.trim()
     setRenaming(null)
     if (!name) return
-    if (kind === ItemKind.List) {
+    if (kind === RowKind.List) {
       setLists(
         lists.map((list) => (list.id === id ? { ...list, name } : list)),
       )
-    } else if (kind === ItemKind.Task) {
-      patchTask(id, { text: name })
+    } else if (kind === RowKind.Task) {
+      updateTask(id, { text: name })
     } else {
-      patchStep(id, { text: name })
+      updateStep(id, { text: name })
     }
   }
 
   const createList = (name: string) => {
     const newList = { id: crypto.randomUUID(), name }
     setLists([...lists, newList])
-    selectView(newList.id)
+    selectList(newList.id)
   }
 
   const deleteList = (id: string) => {
@@ -242,38 +239,38 @@ export default function App() {
         task.listId === id ? { ...task, listId: undefined } : task,
       ),
     )
-    if (id === viewId) {
-      selectView(
-        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL_VIEW_ID,
+    if (id === selectedListId) {
+      selectList(
+        remaining.length > 0 ? (remaining[index - 1] ?? remaining[0]).id : ALL_LIST_ID,
       )
     }
   }
 
   // Remember what is being dragged so DragOverlay can render a floating clone.
-  const onDragStart = ({ active }: DragStartEvent) => {
-    setActiveDrag(active.data.current as { kind: ItemKind; text: string })
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    setActiveDrag(active.data.current as { kind: RowKind; text: string })
   }
 
   // Highlight the sidebar list row a task is hovering over.
-  const onDragOver = ({ over }: DragOverEvent) => {
+  const handleDragOver = ({ over }: DragOverEvent) => {
     const listIds = lists.map((list) => list.id)
-    setDragOverViewId(
+    setDragOverListId(
       over &&
-        activeDrag?.kind === ItemKind.Task &&
-        [...listIds, TODAY_VIEW_ID].includes(String(over.id))
+        activeDrag?.kind === RowKind.Task &&
+        [...listIds, TODAY_LIST_ID].includes(String(over.id))
         ? String(over.id)
         : null,
     )
   }
 
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveDrag(null)
-    setDragOverViewId(null)
+    setDragOverListId(null)
     if (!over) return
     const overId = String(over.id)
     const nextState = applyDrop({ lists, tasks }, {
-      viewId,
-      selectedTaskId,
+      selectedListId,
+      detailTaskId,
       dragKind: activeDrag?.kind,
       activeId: String(active.id),
       overId,
@@ -282,10 +279,10 @@ export default function App() {
     setLists(nextState.lists)
     setTasks(nextState.tasks)
     if (
-      activeDrag?.kind === ItemKind.Task &&
-      (overId === TODAY_VIEW_ID || lists.some((list) => list.id === overId))
+      activeDrag?.kind === RowKind.Task &&
+      (overId === TODAY_LIST_ID || lists.some((list) => list.id === overId))
     )
-      selectTasks([])
+      replaceTaskSelection([])
   }
 
   return (
@@ -293,12 +290,12 @@ export default function App() {
       // hit-test by cursor: the wide dragged row would otherwise overlap main-area task rows instead of sidebar lists
       collisionDetection={pointerWithin}
       sensors={sensors}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
       onDragCancel={() => {
         setActiveDrag(null)
-        setDragOverViewId(null)
+        setDragOverListId(null)
       }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
@@ -306,42 +303,42 @@ export default function App() {
           <span className="font-semibold text-gray-800">🍀 clover</span>
         </header>
         <div className="flex flex-1 min-h-0">
-          <Sidebar
+          <ListSidebar
             lists={lists}
             tasks={tasks}
-            viewId={viewId}
-            dragOverViewId={dragOverViewId}
-            onSelectView={selectView}
+            selectedListId={selectedListId}
+            dragOverListId={dragOverListId}
+            onSelectList={selectList}
             onCreateList={createList}
-            onContextMenu={openMenu}
+            onContextMenu={openContextMenu}
           />
-          <TaskView
-            viewId={viewId}
-            viewName={viewName}
-            renamable={!!viewList}
+          <TaskPane
+            selectedListId={selectedListId}
+            listName={listName}
+            renamable={!!currentList}
             onRename={startRename}
-            tasks={viewTasks}
+            tasks={listTasks}
             onAddTask={addTask}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
-            onSetStage={setStage}
-            onContextMenu={openMenu}
+            onSetStage={setTaskStage}
+            onContextMenu={openContextMenu}
             renderRenameInput={renderRenameInput}
           />
-          {selectedTask && (
-            <DetailPanel
-              task={selectedTask}
+          {detailTask && (
+            <TaskDetailPane
+              task={detailTask}
               selectedIds={selectedStepIds}
               onSelectStep={selectStep}
-              onClose={() => selectTasks([])}
-              onDeleteTask={() => deleteTasks([selectedTask.id])}
+              onClose={() => replaceTaskSelection([])}
+              onDeleteTask={() => deleteTasks([detailTask.id])}
               onAddStep={addStep}
               onToggleStep={toggleStep}
               onDeleteStep={(id) => deleteSteps([id])}
-              onSetDue={(id, due) => patchTask(id, { due })}
-              onSetPriority={(id, priority) => patchTask(id, { priority })}
-              onSetStage={setStage}
-              onContextMenu={openMenu}
+              onSetDue={(id, due) => updateTask(id, { due })}
+              onSetPriority={(id, priority) => updateTask(id, { priority })}
+              onSetStage={setTaskStage}
+              onContextMenu={openContextMenu}
               onRename={startRename}
               renderRenameInput={renderRenameInput}
             />
@@ -361,18 +358,18 @@ export default function App() {
           menu={menu}
           onClose={() => setMenu(null)}
           onDelete={() => {
-            if (menu.kind === ItemKind.List) deleteList(menu.ids[0])
-            else if (menu.kind === ItemKind.Task) deleteTasks(menu.ids)
+            if (menu.kind === RowKind.List) deleteList(menu.ids[0])
+            else if (menu.kind === RowKind.Task) deleteTasks(menu.ids)
             else deleteSteps(menu.ids)
           }}
-          onSetDue={(due) => menu.ids.forEach((id) => patchTask(id, { due }))}
+          onSetDue={(due) => menu.ids.forEach((id) => updateTask(id, { due }))}
           onSetPriority={(priority) =>
-            menu.ids.forEach((id) => patchTask(id, { priority }))
+            menu.ids.forEach((id) => updateTask(id, { priority }))
           }
-          onSetStage={(stage) => menu.ids.forEach((id) => setStage(id, stage))}
-          onSetStepDone={(done) =>
-            selectedTask!.steps
-              .filter((step) => menu.ids.includes(step.id) && step.done !== done)
+          onSetStage={(stage) => menu.ids.forEach((id) => setTaskStage(id, stage))}
+          onSetStepCompleted={(completed) =>
+            detailTask!.steps
+              .filter((step) => menu.ids.includes(step.id) && step.completed !== completed)
               .forEach((step) => toggleStep(step.id))
           }
         />
