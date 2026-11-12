@@ -735,3 +735,12 @@ describe('multi-select', () => {
     }
   })
 })
+
+test('panel title stage select changes the task stage', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  const select = within(aside()).getAllByRole('combobox')[0]
+  await user.selectOptions(select, '⚡ In progress')
+  expect(select).toHaveDisplayValue('⚡ In progress')
+  expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+})

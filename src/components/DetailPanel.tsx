@@ -5,10 +5,11 @@ import {
 import { formatDue, isOverdue, relativeDay } from '../due'
 import { PRIORITY_LABELS } from '../labels'
 import { FIELD_CLASS, dueClass } from '../styles'
-import { ItemKind, type Priority, type Step, type Task } from '../types'
+import { ItemKind, type Priority, type Stage, type Step, type Task } from '../types'
 import { AddInput } from './AddInput'
 import type { OpenMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
+import { StageSelect } from './StageSelect'
 import { stopDrag } from './stopDrag'
 
 export default function DetailPanel({
@@ -22,6 +23,7 @@ export default function DetailPanel({
   onDeleteStep,
   onSetDue,
   onSetPriority,
+  onSetStage,
   onContextMenu,
   onRename,
   renderRenameInput,
@@ -36,6 +38,7 @@ export default function DetailPanel({
   onDeleteStep: (id: string) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
+  onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenMenu
   onRename: (kind: ItemKind, id: string, text: string) => void
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
@@ -94,18 +97,25 @@ export default function DetailPanel({
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-gray-200 bg-gray-100">
       <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-3">
-      {renderRenameInput(
-        ItemKind.Task,
-        task.id,
-        'field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
-      ) || (
-        <h2
-          onClick={() => onRename(ItemKind.Task, task.id, task.text)}
-          className="w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
-        >
-          {task.text}
-        </h2>
-      )}
+      <div className="flex items-center gap-3">
+        <StageSelect
+          value={task.stage}
+          onChange={(stage) => onSetStage(task.id, stage)}
+          className="w-5 shrink-0 appearance-none overflow-hidden bg-transparent"
+        />
+        {renderRenameInput(
+          ItemKind.Task,
+          task.id,
+          'field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
+        ) || (
+          <h2
+            onClick={() => onRename(ItemKind.Task, task.id, task.text)}
+            className="w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
+          >
+            {task.text}
+          </h2>
+        )}
+      </div>
 
       <AddInput
         placeholder="+ New step"

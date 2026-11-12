@@ -354,6 +354,7 @@ export default function App() {
               onDeleteStep={(id) => deleteSteps([id])}
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
+              onSetStage={setStage}
               onContextMenu={openMenu}
               onRename={startRename}
               renderRenameInput={renderRenameInput}
