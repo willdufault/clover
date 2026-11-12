@@ -381,6 +381,12 @@ export default function App() {
           onSetPriority={(priority) =>
             menu.ids.forEach((id) => patchTask(id, { priority }))
           }
+          onSetStage={(stage) => menu.ids.forEach((id) => setStage(id, stage))}
+          onSetSubtaskDone={(done) =>
+            selectedTask!.subtasks
+              .filter((subtask) => menu.ids.includes(subtask.id) && subtask.done !== done)
+              .forEach((subtask) => toggleSubtask(subtask.id))
+          }
         />
       )}
     </DndContext>

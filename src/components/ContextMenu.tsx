@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../due'
-import { ItemKind, type Priority } from '../types'
+import { STAGE_LABELS } from '../labels'
+import { ItemKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
 
@@ -74,12 +75,16 @@ export default function ContextMenu({
   onDelete,
   onSetDue,
   onSetPriority,
+  onSetStage,
+  onSetSubtaskDone,
 }: {
   menu: MenuState
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
   onSetPriority: (priority?: Priority) => void
+  onSetStage: (stage: Stage) => void
+  onSetSubtaskDone: (done: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
@@ -95,7 +100,16 @@ export default function ContextMenu({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  const stageItem = (stages: Stage[], action: (stage: Stage) => void): MenuItem => ({
+    label: 'Set stage',
+    submenu: stages.map((stage) => ({
+      label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
+      action: () => action(stage),
+    })),
+  })
+
   const taskItems: MenuItem[] = [
+    stageItem(['open', 'inProgress', 'waiting', 'done', 'cancelled'], onSetStage),
     {
       label: 'Set due date',
       submenu: [
@@ -160,6 +174,14 @@ export default function ContextMenu({
         {menu.kind === ItemKind.Task && (
           <>
             <MenuList items={taskItems} />
+            <hr className="my-1 border-gray-200" />
+          </>
+        )}
+        {menu.kind === ItemKind.Subtask && (
+          <>
+            <MenuList
+              items={[stageItem(['open', 'done'], (stage) => onSetSubtaskDone(stage === 'done'))]}
+            />
             <hr className="my-1 border-gray-200" />
           </>
         )}

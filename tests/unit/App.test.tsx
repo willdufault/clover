@@ -538,14 +538,58 @@ describe('task fields', () => {
     expect(within(aside()).getByDisplayValue('Medium')).toBeInTheDocument()
   })
 
-  test('subtask context menu has only Delete', async () => {
+  // Stage select options share the menu's labels, so take the last match (the menu renders last).
+  const pickStage = async (user: User, label: string) => {
+    await user.hover(screen.getByText('Set stage'))
+    fireEvent.click(screen.getAllByText(label).at(-1)!)
+  }
+
+  test('subtask context menu has Set stage and Delete', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
     expect(screen.queryByText('Rename')).toBeNull()
+    expect(screen.getByText('Set stage')).toBeInTheDocument()
     expect(screen.getByText('Delete')).toBeInTheDocument()
     expect(screen.queryByText('Set due date')).toBeNull()
     expect(screen.queryByText('Set priority')).toBeNull()
+    await user.hover(screen.getByText('Set stage'))
+    expect(screen.queryByText('⚡ In progress', { selector: 'button' })).toBeNull()
+    expect(screen.getByText('⬜ Open', { selector: 'button' })).toBeInTheDocument()
+    expect(screen.getByText('✅ Done', { selector: 'button' })).toBeInTheDocument()
+  })
+
+  test('task context menu sets stage on all selected tasks', async () => {
+    const { user } = setup()
+    await rightClick(user, within(main()).getByText('Milk'))
+    await pickStage(user, '⚡ In progress')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+    await user.click(within(main()).getByText('Milk'))
+    await user.keyboard('{Shift>}')
+    await user.click(within(main()).getByText('Eggs'))
+    await user.keyboard('{/Shift}')
+    await rightClick(user, within(main()).getByText('Eggs'))
+    await pickStage(user, '⏳ Waiting')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⏳ Waiting')
+    expect(stageSelect('Eggs')).toHaveDisplayValue('⏳ Waiting')
+  })
+
+  test('subtask context menu sets done, and is a no-op when unchanged', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    const checkbox = () => within(row('2% lactose free', aside())).getByRole('checkbox')
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '⬜ Open')
+    expect(checkbox()).not.toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '✅ Done')
+    expect(checkbox()).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '✅ Done')
+    expect(checkbox()).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    await pickStage(user, '⬜ Open')
+    expect(checkbox()).not.toBeChecked()
   })
 
   test('subtask toggle and delete leave a same-named task unchanged', async () => {
