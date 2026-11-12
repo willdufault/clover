@@ -20,7 +20,6 @@ export default function Sidebar({
   onSelectView,
   onCreateList,
   onContextMenu,
-  renderRenameInput,
 }: {
   lists: TaskList[]
   tasks: Task[]
@@ -29,7 +28,6 @@ export default function Sidebar({
   onSelectView: (id: string) => void
   onCreateList: (name: string) => void
   onContextMenu: OpenMenu
-  renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
@@ -70,16 +68,8 @@ export default function Sidebar({
               list.id === dragOverViewId,
             )}
           >
-            {renderRenameInput(
-              ItemKind.List,
-              list.id,
-              'w-full min-w-0 rounded border border-blue-400 bg-white px-1.5 py-0.5 text-sm font-medium text-gray-800 outline-none',
-            ) || (
-              <>
-                <span className="min-w-0 break-words">{list.name}</span>
-                <Count count={visibleTasks(tasks, list.id).length} />
-              </>
-            )}
+            <span className="min-w-0 break-words">{list.name}</span>
+            <Count count={visibleTasks(tasks, list.id).length} />
           </SortableRow>
         ))}
       </SortableContext>

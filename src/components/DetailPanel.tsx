@@ -21,6 +21,7 @@ export default function DetailPanel({
   onSetDue,
   onSetPriority,
   onContextMenu,
+  onRename,
   renderRenameInput,
 }: {
   task: Task
@@ -32,6 +33,7 @@ export default function DetailPanel({
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
+  onRename: (kind: ItemKind, id: string, text: string) => void
   renderRenameInput: (kind: ItemKind, id: string, className: string) => React.ReactNode
 }) {
   const subtaskRow = (subtask: Subtask) => (
@@ -61,8 +63,13 @@ export default function DetailPanel({
         'min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none',
       ) || (
         <span
+          onClick={(event) => {
+            if (event.ctrlKey || event.metaKey || event.shiftKey) return
+            event.stopPropagation()
+            onRename(ItemKind.Subtask, subtask.id, subtask.text)
+          }}
           className={
-            'min-w-0 break-words ' +
+            'min-w-0 flex-1 cursor-text break-words ' +
             (subtask.done ? 'text-gray-400 line-through' : 'text-gray-800')
           }
         >
@@ -81,7 +88,18 @@ export default function DetailPanel({
       >
         ›
       </button>
-      <h2 className="mt-1 break-words font-semibold text-gray-800">{task.text}</h2>
+      {renderRenameInput(
+        ItemKind.Task,
+        task.id,
+        'mt-1 field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
+      ) || (
+        <h2
+          onClick={() => onRename(ItemKind.Task, task.id, task.text)}
+          className="mt-1 w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
+        >
+          {task.text}
+        </h2>
+      )}
 
       <AddInput
         placeholder="+ New subtask"

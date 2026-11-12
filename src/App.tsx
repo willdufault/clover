@@ -206,6 +206,9 @@ export default function App() {
       })
     }
 
+  const startRename = (kind: ItemKind, id: string, draft: string) =>
+    setRenaming({ kind, id, draft })
+
   const renderRenameInput = (kind: ItemKind, id: string, className: string) =>
     renaming?.kind === kind && renaming.id === id && (
       <RenameInput
@@ -324,10 +327,12 @@ export default function App() {
             onSelectView={selectView}
             onCreateList={createList}
             onContextMenu={openMenu}
-            renderRenameInput={renderRenameInput}
           />
           <TaskView
+            viewId={viewId}
             viewName={viewName}
+            renamable={viewId !== ALL_VIEW_ID && viewId !== TODAY_VIEW_ID}
+            onRename={startRename}
             tasks={viewTasks}
             onAddTask={addTask}
             selectedIds={selectedTaskIds}
@@ -347,6 +352,7 @@ export default function App() {
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}
+              onRename={startRename}
               renderRenameInput={renderRenameInput}
             />
           )}
@@ -364,9 +370,6 @@ export default function App() {
         <ContextMenu
           menu={menu}
           onClose={() => setMenu(null)}
-          onRename={() =>
-            setRenaming({ kind: menu.kind, id: menu.ids[0], draft: menu.text })
-          }
           onDelete={() => {
             if (menu.kind === ItemKind.List) deleteList(menu.ids[0])
             else if (menu.kind === ItemKind.Task) deleteTasks(menu.ids)
