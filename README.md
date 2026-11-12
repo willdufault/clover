@@ -19,9 +19,10 @@ src/
   main.tsx, App.tsx        entry point and root component
   types.ts, seed.ts        types and seed data
   styles.ts, index.css     styles
-  views, order, drop,      logic modules
-  due, labels, selection
-  components/              UI (Sidebar, TaskView, DetailPanel, ...)
+  smartLists, stages,      logic modules
+  drop, dates, labels,
+  selection
+  components/              UI (ListSidebar, TaskPane, TaskDetailPane, ...)
 tests/unit/                unit tests (vitest, jsdom)
 tests/e2e/                 browser tests (Playwright)
 public/                    static assets

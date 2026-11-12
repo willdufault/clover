@@ -47,7 +47,7 @@ export default function App() {
   let listName = currentList?.name
   if (selectedListId === ALL_LIST_ID) listName = ALL_LIST_NAME
   if (selectedListId === TODAY_LIST_ID) listName = TODAY_LIST_NAME
-  // Ignore selected ids that left the current view.
+  // Ignore selected ids that left the current list.
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
   const detailTask =
     selectedTaskIds.length === 1
@@ -55,7 +55,7 @@ export default function App() {
       : undefined
   const detailTaskId = detailTask?.id ?? null
 
-  // Replace the task selection; step selection belongs to the open task, so it resets.
+  // Replace the task selection; step selection belongs to the detail task, so it resets.
   const replaceTaskSelection = (ids: string[]) => {
     setSelectedTaskIds(ids)
     setSelectedStepIds([])
@@ -137,7 +137,7 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
-  // Set a task's stage, moving it after the last open task when it closes or reopens.
+  // Set a task's stage, moving it after the last incomplete task when it completes or reopens.
   const setTaskStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
