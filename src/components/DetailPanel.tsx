@@ -16,6 +16,7 @@ export default function DetailPanel({
   selectedIds,
   onSelectSubtask,
   onClose,
+  onDeleteTask,
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
@@ -29,6 +30,7 @@ export default function DetailPanel({
   selectedIds: string[]
   onSelectSubtask: (id: string, event: React.MouseEvent) => void
   onClose: () => void
+  onDeleteTask: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
   onDeleteSubtask: (id: string) => void
@@ -90,22 +92,16 @@ export default function DetailPanel({
   )
 
   return (
-    <aside className="w-72 shrink-0 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-l border-gray-200 bg-gray-100 p-3">
-      <button
-        onClick={onClose}
-        aria-label="Close panel"
-        className="rounded pr-2 text-2xl leading-none text-gray-400 hover:text-gray-600"
-      >
-        ›
-      </button>
+    <aside className="flex w-72 shrink-0 flex-col border-l border-gray-200 bg-gray-100">
+      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-3">
       {renderRenameInput(
         ItemKind.Task,
         task.id,
-        'mt-1 field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
+        'field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
       ) || (
         <h2
           onClick={() => onRename(ItemKind.Task, task.id, task.text)}
-          className="mt-1 w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
+          className="w-fit max-w-full cursor-text break-words font-semibold text-gray-800"
         >
           {task.text}
         </h2>
@@ -171,6 +167,26 @@ export default function DetailPanel({
           {PRIORITY_LABELS.high.emoji} {PRIORITY_LABELS.high.label}
         </option>
       </select>
+      </div>
+      <div className="shrink-0 px-3 pb-3">
+        <hr className="mb-2 border-gray-300" />
+        <div className="flex justify-between">
+          <button
+            onClick={onClose}
+            aria-label="Close panel"
+            className="rounded pr-2 text-2xl leading-none text-gray-400 hover:text-gray-600"
+          >
+            ›
+          </button>
+          <button
+            onClick={onDeleteTask}
+            aria-label="Delete task"
+            className="rounded px-1 leading-none text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </aside>
   )
 }

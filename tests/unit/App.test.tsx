@@ -138,6 +138,14 @@ test('delete a subtask with its x button', async () => {
   expect(subtasks()).toEqual([])
 })
 
+test('delete a task from the panel footer', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(within(aside()).getByRole('button', { name: 'Delete task' }))
+  expect(within(main()).queryByText('Milk')).not.toBeInTheDocument()
+  expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+})
+
 test('create, switch, rename and delete lists', async () => {
   const { user } = setup()
   await newList(user, 'Fun')

@@ -347,6 +347,7 @@ export default function App() {
               selectedIds={selectedSubtaskIds}
               onSelectSubtask={selectSubtask}
               onClose={() => selectTasks([])}
+              onDeleteTask={() => deleteTasks([selectedTask.id])}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onDeleteSubtask={(id) => deleteSubtasks([id])}
