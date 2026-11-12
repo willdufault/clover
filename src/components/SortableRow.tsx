@@ -2,7 +2,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { RowKind } from '../types'
 
-// Row that can be dragged among its SortableContext siblings.
 export function SortableRow({
   id,
   kind,

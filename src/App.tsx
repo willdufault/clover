@@ -47,7 +47,6 @@ export default function App() {
   let listName = currentList?.name
   if (selectedListId === ALL_LIST_ID) listName = ALL_LIST_NAME
   if (selectedListId === TODAY_LIST_ID) listName = TODAY_LIST_NAME
-  // Ignore selected ids that left the current list.
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
   const detailTask =
     selectedTaskIds.length === 1
@@ -55,7 +54,7 @@ export default function App() {
       : undefined
   const detailTaskId = detailTask?.id ?? null
 
-  // Replace the task selection; step selection belongs to the detail task, so it resets.
+  // Also clears step selection, which belongs to the detail task.
   const replaceTaskSelection = (ids: string[]) => {
     setSelectedTaskIds(ids)
     setSelectedStepIds([])
@@ -99,7 +98,6 @@ export default function App() {
     }
   }, [])
 
-  // Apply update to the steps of the detail task.
   const updateDetailSteps = (update: (steps: Step[]) => Step[]) =>
     setTasks((tasks) =>
       tasks.map((task) =>
@@ -137,7 +135,7 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
-  // Set a task's stage, moving it after the last incomplete task when it completes or reopens.
+  // Completing or reopening also moves the task after the last incomplete one.
   const setTaskStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
@@ -206,7 +204,7 @@ export default function App() {
       />
     )
 
-  // Apply the in-progress rename (no-op on empty draft = cancel).
+  // An empty draft cancels.
   const commitRename = () => {
     if (!renaming) return
     const { kind, id, draft } = renaming
@@ -246,12 +244,10 @@ export default function App() {
     }
   }
 
-  // Remember what is being dragged so DragOverlay can render a floating clone.
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveDrag(active.data.current as { kind: RowKind; text: string })
   }
 
-  // Highlight the sidebar list row a task is hovering over.
   const handleDragOver = ({ over }: DragOverEvent) => {
     const listIds = lists.map((list) => list.id)
     setDragOverListId(
@@ -287,7 +283,7 @@ export default function App() {
 
   return (
     <DndContext
-      // hit-test by cursor: the wide dragged row would otherwise overlap main-area task rows instead of sidebar lists
+      // Cursor hit-test; the wide dragged row would otherwise overlap task rows instead of sidebar lists.
       collisionDetection={pointerWithin}
       sensors={sensors}
       onDragStart={handleDragStart}

@@ -2,7 +2,7 @@ import { STAGE_LABELS } from '../labels'
 import type { Stage } from '../types'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
-// Stage picker; the narrow width clips the closed select to the emoji.
+// Narrow width clips the closed select to the emoji.
 export function StageSelect({
   value,
   onChange,

@@ -19,7 +19,7 @@ export type DropEvent = {
 
 export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 
-// Reorder only within the container that both the dragged item and its drop target belong to.
+// Reorder only within the container holding both the dragged item and the drop target.
 export const applyDrop = (
   state: ListsAndTasks,
   { selectedListId, detailTaskId, dragKind, activeId, overId }: DropEvent,

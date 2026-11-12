@@ -2,7 +2,6 @@ import type { Stage } from './types'
 
 export const isCompleted = (stage: Stage) => stage === 'done' || stage === 'cancelled'
 
-// Move an item right after the last incomplete item.
 export const moveAfterIncomplete = <T extends { id: string }>(
   items: T[],
   id: string,

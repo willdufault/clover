@@ -3,7 +3,6 @@ import { sidebarRowClass } from '../styles'
 import { TODAY_LIST_ID, TODAY_LIST_NAME } from '../smartLists'
 import { TaskCountBadge } from './TaskCountBadge'
 
-// Sidebar Today row: drop target only.
 export function TodayRow({
   selected,
   dragOver,

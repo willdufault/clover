@@ -150,7 +150,6 @@ export default function ContextMenu({
 
   return (
     <>
-      {/* Invisible backdrop to catch clicks outside the menu. */}
       <div
         className="fixed inset-0"
         onClick={onClose}

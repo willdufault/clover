@@ -1,4 +1,4 @@
-// Next ordered selection after clicking clickedId. The last item is the range start.
+// Last selected item is the shift-click range anchor.
 export const nextSelection = (
   selected: string[],
   visibleIds: string[],
