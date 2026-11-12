@@ -190,6 +190,7 @@ export default function App() {
     (kind: ItemKind, id: string, text: string, due?: string) =>
     (event: React.MouseEvent) => {
       event.preventDefault()
+      setRenaming(null)
       const selected = kind === ItemKind.Task ? selectedTaskIds : selectedSubtaskIds
       let ids = [id]
       if (kind !== ItemKind.List && selected.includes(id)) ids = selected

@@ -119,6 +119,19 @@ test('rename, cancel rename and delete a task', async () => {
   expect(within(main()).queryByText('Ham')).not.toBeInTheDocument()
 })
 
+test('opening the context menu cancels an in-progress rename', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  for (const target of [() => within(aside()).getByText('2% lactose free'), () => within(main()).getByText('Milk')]) {
+    await user.click(within(aside()).getByText('2% lactose free'))
+    expect(within(aside()).getByDisplayValue('2% lactose free')).toBeInTheDocument()
+    await rightClick(user, target())
+    expect(within(aside()).queryByDisplayValue('2% lactose free')).not.toBeInTheDocument()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+  }
+  expect(within(aside()).getByText('2% lactose free')).toBeInTheDocument()
+})
+
 test('rename and delete a subtask', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
