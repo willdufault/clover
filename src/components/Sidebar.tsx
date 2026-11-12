@@ -68,7 +68,7 @@ export default function Sidebar({
               list.id === dragOverViewId,
             )}
           >
-            <span className="min-w-0 break-words">{list.name}</span>
+            <span className="min-w-0 truncate">{list.name}</span>
             <Count count={visibleTasks(tasks, list.id).length} />
           </SortableRow>
         ))}
