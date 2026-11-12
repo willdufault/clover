@@ -9,7 +9,7 @@ const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
@@ -129,6 +129,13 @@ test('rename and delete a subtask', async () => {
   await menuAction(user, within(aside()).getByText('Skim'), 'Delete')
   expect(subtasks()).toEqual([])
   expect(screen.getByText('No subtasks yet')).toBeInTheDocument()
+})
+
+test('delete a subtask with its x button', async () => {
+  const { user } = setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(within(aside()).getByRole('button', { name: 'Delete subtask' }))
+  expect(subtasks()).toEqual([])
 })
 
 test('create, switch, rename and delete lists', async () => {

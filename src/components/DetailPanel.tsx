@@ -18,6 +18,7 @@ export default function DetailPanel({
   onClose,
   onAddSubtask,
   onToggleSubtask,
+  onDeleteSubtask,
   onSetDue,
   onSetPriority,
   onContextMenu,
@@ -30,6 +31,7 @@ export default function DetailPanel({
   onClose: () => void
   onAddSubtask: (text: string) => void
   onToggleSubtask: (id: string) => void
+  onDeleteSubtask: (id: string) => void
   onSetDue: (id: string, due?: string) => void
   onSetPriority: (id: string, priority?: Priority) => void
   onContextMenu: OpenMenu
@@ -76,6 +78,14 @@ export default function DetailPanel({
           {subtask.text}
         </span>
       )}
+      <button
+        {...stopDrag}
+        onClick={() => onDeleteSubtask(subtask.id)}
+        aria-label="Delete subtask"
+        className="shrink-0 rounded px-1 leading-none text-gray-400 hover:text-gray-600"
+      >
+        ✕
+      </button>
     </SortableRow>
   )
 

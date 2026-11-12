@@ -349,6 +349,7 @@ export default function App() {
               onClose={() => selectTasks([])}
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
+              onDeleteSubtask={(id) => deleteSubtasks([id])}
               onSetDue={(id, due) => patchTask(id, { due })}
               onSetPriority={(id, priority) => patchTask(id, { priority })}
               onContextMenu={openMenu}
