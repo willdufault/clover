@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
-import { moveAfterLastOpen } from './order'
+import { isOpen, moveAfterLastOpen } from './order'
 import { nextSelection } from './selection'
 import { ItemKind, type Stage, type Step, type Task } from './types'
 import { ALL_VIEW_ID, ALL_VIEW_NAME, TODAY_VIEW_ID, TODAY_VIEW_NAME, visibleTasks } from './views'
@@ -43,10 +43,10 @@ export default function App() {
   } | null>(null)
 
   const viewTasks = visibleTasks(tasks, viewId)
-  let viewName: string | undefined
+  const viewList = lists.find((list) => list.id === viewId)
+  let viewName = viewList?.name
   if (viewId === ALL_VIEW_ID) viewName = ALL_VIEW_NAME
-  else if (viewId === TODAY_VIEW_ID) viewName = TODAY_VIEW_NAME
-  else viewName = lists.find((list) => list.id === viewId)?.name
+  if (viewId === TODAY_VIEW_ID) viewName = TODAY_VIEW_NAME
   // Ignore selected ids that left the current view.
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => viewTasks.some((task) => task.id === id))
   const selectedTask =
@@ -117,7 +117,7 @@ export default function App() {
         text,
         steps: [],
         stage: 'open',
-        listId: viewId === ALL_VIEW_ID || viewId === TODAY_VIEW_ID ? undefined : viewId,
+        listId: viewList?.id,
         addedToToday: viewId === TODAY_VIEW_ID ? true : undefined,
       },
       ...tasks,
@@ -140,17 +140,14 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
-  const isOpenTask = (task: Task) => task.stage !== 'done' && task.stage !== 'cancelled'
-
   // Set a task's stage, moving it after the last open task when it closes or reopens.
   const setStage = (id: string, stage: Stage) =>
     setTasks((tasks) => {
       const before = tasks.find((task) => task.id === id)!
       const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
-      const after = patched.find((task) => task.id === id)!
-      return isOpenTask(before) === isOpenTask(after)
+      return isOpen(before.stage) === isOpen(stage)
         ? patched
-        : moveAfterLastOpen(patched, id, isOpenTask)
+        : moveAfterLastOpen(patched, id, (task) => isOpen(task.stage))
     })
 
   const patchStep = (id: string, patch: Partial<Step>) =>
@@ -321,7 +318,7 @@ export default function App() {
           <TaskView
             viewId={viewId}
             viewName={viewName}
-            renamable={viewId !== ALL_VIEW_ID && viewId !== TODAY_VIEW_ID}
+            renamable={!!viewList}
             onRename={startRename}
             tasks={viewTasks}
             onAddTask={addTask}

@@ -21,8 +21,8 @@ function SubmenuRow({
   const panelRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (!open || !panelRef.current) return setShift(0)
-    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom + shift))
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
+  }, [open])
   return (
     <div
       ref={ref}
@@ -107,7 +107,7 @@ export default function ContextMenu({
   })
 
   const taskItems: MenuItem[] = [
-    stageItem(['open', 'inProgress', 'waiting', 'done', 'cancelled'], onSetStage),
+    stageItem(Object.keys(STAGE_LABELS) as Stage[], onSetStage),
     {
       label: 'Set due date',
       submenu: [

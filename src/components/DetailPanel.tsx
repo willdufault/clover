@@ -4,7 +4,7 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDue, isOverdue, relativeDay } from '../due'
 import { PRIORITY_LABELS } from '../labels'
-import { FIELD_CLASS, dueClass } from '../styles'
+import { FIELD_CLASS, TITLE_RENAME_CLASS, dueClass } from '../styles'
 import { ItemKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
@@ -104,12 +104,11 @@ export default function DetailPanel({
         <StageSelect
           value={task.stage}
           onChange={(stage) => onSetStage(task.id, stage)}
-          className="w-5 shrink-0 appearance-none overflow-hidden bg-transparent"
         />
         {renderRenameInput(
           ItemKind.Task,
           task.id,
-          'field-sizing-content max-w-full min-w-8 rounded pr-8 border border-blue-400 bg-white font-semibold text-gray-800 outline-none',
+          TITLE_RENAME_CLASS,
         ) || (
           <h2
             onClick={() => onRename(ItemKind.Task, task.id, task.text)}

@@ -1,3 +1,7 @@
+import type { Stage } from './types'
+
+export const isOpen = (stage: Stage) => stage !== 'done' && stage !== 'cancelled'
+
 // Move an item right after the last open item.
 export const moveAfterLastOpen = <T extends { id: string }>(
   items: T[],
