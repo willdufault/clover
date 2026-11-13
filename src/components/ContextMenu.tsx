@@ -60,6 +60,7 @@ export type ContextMenuState = {
   ids: string[]
   due?: string
   allInToday?: boolean
+  allDone?: boolean
 }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
@@ -100,19 +101,17 @@ export default function ContextMenu({
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
-  const stageItem = (stages: Stage[], action: (stage: Stage) => void): MenuItem => ({
-    label: 'Set stage',
-    submenu: stages.map((stage) => ({
-      label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
-      action: () => action(stage),
-    })),
-  })
-
   const taskItems: MenuItem[] = [
     menu.allInToday
       ? { label: '☀️ Remove from Today', action: () => onSetToday(false) }
       : { label: '☀️ Add to Today', action: () => onSetToday(true) },
-    stageItem(STAGES, onSetStage),
+    {
+      label: 'Set stage',
+      submenu: STAGES.map((stage) => ({
+        label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
+        action: () => onSetStage(stage),
+      })),
+    },
     {
       label: 'Set due date',
       submenu: [
@@ -179,7 +178,9 @@ export default function ContextMenu({
         {menu.kind === RowKind.Step && (
           <>
             {renderItems([
-              stageItem(['open', 'done'], (stage) => onSetStepCompleted(stage === 'done')),
+              menu.allDone
+                ? { label: 'Mark as open', action: () => onSetStepCompleted(false) }
+                : { label: 'Mark as done', action: () => onSetStepCompleted(true) },
             ])}
             <hr className="my-1 border-gray-200" />
           </>

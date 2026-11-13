@@ -526,19 +526,38 @@ describe('task fields', () => {
     fireEvent.click(screen.getAllByText(label).at(-1)!)
   }
 
-  test('step context menu has Set stage and Delete', async () => {
+  test('step context menu has Mark as done and Delete', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
     expect(screen.queryByText('Rename')).toBeNull()
-    expect(screen.getByText('Set stage')).toBeInTheDocument()
-    expect(screen.getByText('Delete')).toBeInTheDocument()
+    expect(screen.queryByText('Set stage')).toBeNull()
     expect(screen.queryByText('Set due date')).toBeNull()
     expect(screen.queryByText('Set priority')).toBeNull()
-    await user.hover(screen.getByText('Set stage'))
-    expect(screen.queryByText('⚡ In progress', { selector: 'button' })).toBeNull()
-    expect(screen.getByText('⬜ Open', { selector: 'button' })).toBeInTheDocument()
-    expect(screen.getByText('✅ Done', { selector: 'button' })).toBeInTheDocument()
+    expect(screen.queryByText('Mark as open')).toBeNull()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+    await user.click(screen.getByText('Mark as done'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    expect(screen.queryByText('Mark as done')).toBeNull()
+    await user.click(screen.getByText('Mark as open'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).not.toBeChecked()
+  })
+
+  test('step menu shows Mark as done unless every selected step is done', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'Oat')
+    await toggle(user, 'Oat', aside())
+    await user.click(row('2% lactose free', aside()))
+    await user.keyboard('{Control>}')
+    await user.click(row('Oat', aside()))
+    await user.keyboard('{/Control}')
+    await rightClick(user, row('Oat', aside()))
+    await user.click(screen.getByText('Mark as done'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
+    await rightClick(user, row('Oat', aside()))
+    expect(screen.getByText('Mark as open')).toBeInTheDocument()
   })
 
   test('task context menu sets stage on all selected tasks', async () => {
@@ -554,24 +573,6 @@ describe('task fields', () => {
     await pickStage(user, '⏳ Waiting')
     expect(stageSelect('Milk')).toHaveDisplayValue('⏳ Waiting')
     expect(stageSelect('Eggs')).toHaveDisplayValue('⏳ Waiting')
-  })
-
-  test('step context menu sets done, and is a no-op when unchanged', async () => {
-    const { user } = setup()
-    await user.click(within(main()).getByText('Milk'))
-    const checkbox = () => within(row('2% lactose free', aside())).getByRole('checkbox')
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '⬜ Open')
-    expect(checkbox()).not.toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '✅ Done')
-    expect(checkbox()).toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '✅ Done')
-    expect(checkbox()).toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '⬜ Open')
-    expect(checkbox()).not.toBeChecked()
   })
 
   test('step toggle and delete leave a same-named task unchanged', async () => {

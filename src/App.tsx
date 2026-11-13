@@ -164,6 +164,9 @@ export default function App() {
       else if (kind === RowKind.Step) setSelectedStepIds(ids)
       const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
       const idsTasks = tasks.filter((task) => ids.includes(task.id))
+      const allDone = detailTask?.steps
+        .filter((step) => ids.includes(step.id))
+        .every((step) => step.completed)
       setMenu({
         x: event.clientX,
         y: event.clientY,
@@ -171,6 +174,7 @@ export default function App() {
         ids,
         due: dueTask?.due,
         allInToday: idsTasks.every((task) => task.addedToToday),
+        allDone,
       })
     }
 
