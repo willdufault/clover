@@ -3,7 +3,7 @@ import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { RowKind, type Priority, type Stage } from '../types'
 
-const MENU_WIDTH = 176
+const MENU_WIDTH = 208
 
 type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
 
@@ -42,7 +42,7 @@ function SubmenuRow({
           ref={panelRef}
           style={{ top: shift }}
           className={
-            'absolute w-44 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
+            'absolute w-52 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
             (flip ? 'right-full' : 'left-full')
           }
         >
@@ -163,7 +163,7 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+        className="fixed z-50 w-52 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
