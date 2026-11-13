@@ -12,9 +12,8 @@ import {
 } from '@dnd-kit/core'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
-import { isCompleted, moveAfterIncomplete } from './stages'
 import { nextSelection } from './selection'
-import { RowKind, type Stage, type Step, type Task } from './types'
+import { RowKind, type Step, type Task } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
@@ -127,31 +126,10 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
-  // Completing or reopening also moves the task after the last incomplete one.
-  const setTaskStage = (id: string, stage: Stage) =>
-    setTasks((tasks) => {
-      const before = tasks.find((task) => task.id === id)!
-      const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
-      return isCompleted(before.stage) === isCompleted(stage)
-        ? patched
-        : moveAfterIncomplete(patched, id, (task) => isCompleted(task.stage))
-    })
-
-  const updateStep = (id: string, patch: Partial<Step>) =>
-    updateDetailSteps((steps) =>
-      steps.map((step) =>
-        step.id === id ? { ...step, ...patch } : step,
-      ),
-    )
-
   const toggleStep = (id: string) =>
     updateDetailSteps((steps) =>
-      moveAfterIncomplete(
-        steps.map((step) =>
-          step.id === id ? { ...step, completed: !step.completed } : step,
-        ),
-        id,
-        (step) => step.completed,
+      steps.map((step) =>
+        step.id === id ? { ...step, completed: !step.completed } : step,
       ),
     )
 
@@ -189,7 +167,9 @@ export default function App() {
     } else if (kind === RowKind.Task) {
       updateTask(id, { text: name })
     } else {
-      updateStep(id, { text: name })
+      updateDetailSteps((steps) =>
+        steps.map((step) => (step.id === id ? { ...step, text: name } : step)),
+      )
     }
   }
 
@@ -283,7 +263,7 @@ export default function App() {
             onAddTask={addTask}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
-            onSetStage={setTaskStage}
+            onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
           />
           {detailTask && (
@@ -298,7 +278,7 @@ export default function App() {
               onDeleteStep={(id) => deleteSteps([id])}
               onSetDue={(id, due) => updateTask(id, { due })}
               onSetPriority={(id, priority) => updateTask(id, { priority })}
-              onSetStage={setTaskStage}
+              onSetStage={(id, stage) => updateTask(id, { stage })}
               onContextMenu={openContextMenu}
               onRename={renameItem}
             />
@@ -326,7 +306,7 @@ export default function App() {
           onSetPriority={(priority) =>
             menu.ids.forEach((id) => updateTask(id, { priority }))
           }
-          onSetStage={(stage) => menu.ids.forEach((id) => setTaskStage(id, stage))}
+          onSetStage={(stage) => menu.ids.forEach((id) => updateTask(id, { stage }))}
           onSetStepCompleted={(completed) =>
             detailTask!.steps
               .filter((step) => menu.ids.includes(step.id) && step.completed !== completed)

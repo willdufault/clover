@@ -64,7 +64,7 @@ test('add a task and set its stage from the row', async () => {
   const stage = stageSelect('Bread')
   await user.selectOptions(stage, 'done')
   expect(stage).toHaveDisplayValue('✅ Done')
-  expect(tasks()).toEqual(['Milk', 'Eggs', 'Bread'])
+  expect(tasks()).toEqual(['Bread', 'Milk', 'Eggs'])
 
   await user.selectOptions(stage, 'inProgress')
   expect(stage).toHaveDisplayValue('⚡ In progress')
@@ -440,31 +440,21 @@ describe('priority', () => {
 })
 
 describe('stage', () => {
-  test('closing a task moves it right after the last open task', async () => {
-    const { user } = setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Review PR'), 'done')
-    await user.selectOptions(stageSelect('Reply to emails'), 'cancelled')
-    expect(tasks()).toEqual(['Update docs', 'Reply to emails', 'Review PR'])
-  })
-
-  test('reopening a task moves it to the bottom of the open section', async () => {
+  test('closing and reopening a task keeps position', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
     await user.selectOptions(stageSelect('Reply to emails'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'done')
-    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
-    expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
   })
 
-  test('switching from done to cancelled keeps position', async () => {
+  test('toggling a step keeps position', async () => {
     const { user } = setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'cancelled')
-    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'Oat')
+    await toggle(user, '2% lactose free', aside())
+    expect(steps()).toEqual(['2% lactose free', 'Oat'])
   })
 
   test('switching between open stages keeps position', async () => {
@@ -475,13 +465,6 @@ describe('stage', () => {
     expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
   })
 
-
-  test('closing a task in All moves it after the last open task across lists', async () => {
-    const { user } = setup()
-    await user.click(within(nav()).getByText('📋 All'))
-    await user.selectOptions(stageSelect('Milk'), 'done')
-    expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
-  })
 
   test('steps have no stage select', async () => {
     const { user } = setup()
