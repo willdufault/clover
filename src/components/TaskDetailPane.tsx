@@ -3,7 +3,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITY_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS } from '../labels'
 import { isCompleted } from '../stages'
 import { FIELD_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
@@ -38,7 +38,7 @@ export default function TaskDetailPane({
   onToggleStep: (id: string) => void
   onDeleteStep: (id: string) => void
   onSetDue: (id: string, due?: string) => void
-  onSetPriority: (id: string, priority?: Priority) => void
+  onSetPriority: (id: string, priority: Priority) => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
@@ -152,22 +152,15 @@ export default function TaskDetailPane({
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
       <select
-        value={task.priority ?? ''}
-        onChange={(event) =>
-          onSetPriority(
-            task.id,
-            (event.target.value || undefined) as Priority | undefined,
-          )
-        }
+        value={task.priority}
+        onChange={(event) => onSetPriority(task.id, event.target.value as Priority)}
         className={FIELD_CLASS}
       >
-        <option value="low">
-          {PRIORITY_LABELS.low.emoji} {PRIORITY_LABELS.low.label}
-        </option>
-        <option value="">Medium</option>
-        <option value="high">
-          {PRIORITY_LABELS.high.emoji} {PRIORITY_LABELS.high.label}
-        </option>
+        {PRIORITIES.map((priority) => (
+          <option key={priority} value={priority}>
+            {PRIORITY_LABELS[priority].emoji} {PRIORITY_LABELS[priority].label}
+          </option>
+        ))}
       </select>
       </div>
       <div className="shrink-0 px-3 pb-3">

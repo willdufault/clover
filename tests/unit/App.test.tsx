@@ -9,7 +9,7 @@ const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
@@ -30,7 +30,7 @@ const removeDue = () => within(aside()).getByText('×')
 type User = ReturnType<typeof userEvent.setup>
 const submenuClick = async (user: User, parent: string, leaf: string) => {
   await user.hover(screen.getByText(parent))
-  fireEvent.click(screen.getByText(leaf))
+  fireEvent.click(screen.getByText(leaf, { selector: 'button' }))
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
 const menuAction = async (user: User, element: HTMLElement, action: 'Delete') => {
@@ -413,28 +413,28 @@ describe('due dates', () => {
 describe('priority', () => {
   test('sidebar select sets priority, row shows it, medium clears it', async () => {
     const { user } = setup()
-    await pick(user, 'Medium', '🔴 High')
+    await pick(user, '🟡 Medium', '🔴 High')
     expect(within(main()).getByText('🔴 High priority')).toBeInTheDocument()
-    await pick(user, '🔴 High', '🔵 Low')
-    expect(within(main()).getByText('🔵 Low priority')).toBeInTheDocument()
-    await pick(user, '🔵 Low', 'Medium')
+    await pick(user, '🔴 High', '🟢 Low')
+    expect(within(main()).getByText('🟢 Low priority')).toBeInTheDocument()
+    await pick(user, '🟢 Low', '🟡 Medium')
     expect(screen.queryByText(/priority$/)).toBeNull()
   })
 
   test('context menu sets and clears priority', async () => {
     const { user } = setup()
     await rightClick(user, within(main()).getByText('Milk'))
-    await submenuClick(user, 'Set priority', 'High')
+    await submenuClick(user, 'Set priority', '🔴 High')
     expect(screen.getByText('🔴 High priority')).toBeInTheDocument()
     await rightClick(user, within(main()).getByText('Milk'))
     await user.hover(screen.getByText('Set priority'))
-    fireEvent.click(screen.getAllByText('Medium').at(-1)!)
+    fireEvent.click(screen.getByText('🟡 Medium', { selector: 'button' }))
     expect(screen.queryByText(/priority$/)).toBeNull()
   })
 
   test('steps show no priority', async () => {
     const { user } = setup()
-    await pick(user, 'Medium', '🔴 High')
+    await pick(user, '🟡 Medium', '🔴 High')
     expect(within(row('2% lactose free', aside())).queryByText(/priority$/)).toBeNull()
   })
 })
@@ -478,7 +478,7 @@ describe('task fields', () => {
     await user.click(within(main()).getByText('Milk'))
     setDue('2000-01-01')
     await user.selectOptions(stageSelect('Milk'), 'inProgress')
-    await user.selectOptions(within(aside()).getByDisplayValue('Medium'), '🔴 High')
+    await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
   }
 
   test('remove due date button is hidden without a due date and clears it', async () => {
@@ -513,7 +513,7 @@ describe('task fields', () => {
     await setAll(user)
     await user.click(within(main()).getByText('Eggs'))
     expect(dueInput()).toHaveValue('')
-    expect(within(aside()).getByDisplayValue('Medium')).toBeInTheDocument()
+    expect(within(aside()).getByDisplayValue('🟡 Medium')).toBeInTheDocument()
   })
 
   // Stage select options share the menu's labels, so take the last match (the menu renders last).
@@ -657,7 +657,7 @@ describe('multi-select', () => {
     expect(screen.queryByText('Rename')).toBeNull()
     await submenuClick(user, 'Set due date', 'Today')
     await rightClick(user, row('Eggs'))
-    await submenuClick(user, 'Set priority', 'High')
+    await submenuClick(user, 'Set priority', '🔴 High')
     expect(within(main()).getAllByText('🔴 High priority')).toHaveLength(2)
     expect(within(main()).getAllByText(/📅/)).toHaveLength(2)
     expect(row('Milk')).toHaveClass('bg-gray-100')

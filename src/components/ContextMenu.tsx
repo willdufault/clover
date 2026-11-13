@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
-import { STAGES, STAGE_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 176
@@ -76,7 +76,7 @@ export default function ContextMenu({
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
-  onSetPriority: (priority?: Priority) => void
+  onSetPriority: (priority: Priority) => void
   onSetStage: (stage: Stage) => void
   onSetStepCompleted: (completed: boolean) => void
 }) {
@@ -118,11 +118,10 @@ export default function ContextMenu({
     },
     {
       label: 'Set priority',
-      submenu: [
-        { label: 'Low', action: () => onSetPriority('low') },
-        { label: 'Medium', action: () => onSetPriority(undefined) },
-        { label: 'High', action: () => onSetPriority('high') },
-      ],
+      submenu: PRIORITIES.map((priority) => ({
+        label: PRIORITY_LABELS[priority].emoji + ' ' + PRIORITY_LABELS[priority].label,
+        action: () => onSetPriority(priority),
+      })),
     },
   ]
 

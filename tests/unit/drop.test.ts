@@ -3,7 +3,7 @@ import type { Step, Task } from '../../src/types'
 import { TODAY_LIST_ID } from '../../src/smartLists'
 
 const makeStep = (id: string, completed = false): Step => ({ id, text: id, completed })
-const makeTask = (id: string, listId: string, steps: Step[] = []): Task => ({ id, text: id, listId, steps, stage: 'open' })
+const makeTask = (id: string, listId: string, steps: Step[] = []): Task => ({ id, text: id, listId, steps, stage: 'open', priority: 'medium' })
 const makeState = (): ListsAndTasks => ({
   lists: [
     { id: 'A', name: 'A' },

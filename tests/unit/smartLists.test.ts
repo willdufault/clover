@@ -1,7 +1,7 @@
 import type { Task } from '../../src/types'
 import { TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
 
-const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, steps: [], stage: 'open' })
+const makeTask = (id: string, listId: string): Task => ({ id, text: id, listId, steps: [], stage: 'open', priority: 'medium' })
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
 
 test('Today view shows flagged, due today and overdue tasks only', () => {

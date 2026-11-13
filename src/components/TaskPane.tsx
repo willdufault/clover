@@ -51,7 +51,7 @@ export default function TaskPane({
           📅 {formatDueDate(task.due)}
         </span>,
       )
-    if (task.priority)
+    if (task.priority !== 'medium')
       items.push(
         <span key="priority" className="text-xs text-gray-500">
           {PRIORITY_LABELS[task.priority].emoji}{' '}

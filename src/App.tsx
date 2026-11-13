@@ -103,6 +103,7 @@ export default function App() {
         text,
         steps: [],
         stage: 'open',
+        priority: 'medium',
         listId: currentList?.id,
         addedToToday: selectedListId === TODAY_LIST_ID ? true : undefined,
       },
