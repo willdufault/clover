@@ -65,7 +65,7 @@ export default function TaskPane({
       items.push(
         <span key="priority" className="text-xs text-gray-500">
           {PRIORITY_LABELS[task.priority].emoji}{' '}
-          {PRIORITY_LABELS[task.priority].label} priority
+          {PRIORITY_LABELS[task.priority].label}
         </span>,
       )
     return items

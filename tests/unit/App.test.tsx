@@ -418,28 +418,28 @@ describe('priority', () => {
   test('sidebar select sets priority, row shows it, medium clears it', async () => {
     const { user } = setup()
     await pick(user, '🟡 Medium', '🔴 High')
-    expect(within(main()).getByText('🔴 High priority')).toBeInTheDocument()
+    expect(within(main()).getByText('🔴 High')).toBeInTheDocument()
     await pick(user, '🔴 High', '🟢 Low')
-    expect(within(main()).getByText('🟢 Low priority')).toBeInTheDocument()
+    expect(within(main()).getByText('🟢 Low')).toBeInTheDocument()
     await pick(user, '🟢 Low', '🟡 Medium')
-    expect(screen.queryByText(/priority$/)).toBeNull()
+    expect(within(main()).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 
   test('context menu sets and clears priority', async () => {
     const { user } = setup()
     await rightClick(user, within(main()).getByText('Milk'))
     await submenuClick(user, 'Set priority', '🔴 High')
-    expect(screen.getByText('🔴 High priority')).toBeInTheDocument()
+    expect(within(main()).getByText('🔴 High')).toBeInTheDocument()
     await rightClick(user, within(main()).getByText('Milk'))
     await user.hover(screen.getByText('Set priority'))
     fireEvent.click(screen.getByText('🟡 Medium', { selector: 'button' }))
-    expect(screen.queryByText(/priority$/)).toBeNull()
+    expect(within(main()).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 
   test('steps show no priority', async () => {
     const { user } = setup()
     await pick(user, '🟡 Medium', '🔴 High')
-    expect(within(row('2% lactose free', aside())).queryByText(/priority$/)).toBeNull()
+    expect(within(row('2% lactose free', aside())).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 })
 
@@ -498,7 +498,7 @@ describe('task fields', () => {
   test('row subtext order is count, due, priority', async () => {
     const { user } = setup()
     await setAll(user)
-    expect(row('Milk')).toHaveTextContent(/0\/1.*📅 Sat Jan 1.*🔴 High priority/)
+    expect(row('Milk')).toHaveTextContent(/0\/1.*📅 Sat Jan 1.*🔴 High/)
   })
 
   test('fields survive rename', async () => {
@@ -509,7 +509,7 @@ describe('task fields', () => {
     const oat = within(row('Oat'))
     expect(oat.getByText(/^📅 /)).toBeInTheDocument()
     expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
-    expect(oat.getByText('🔴 High priority')).toBeInTheDocument()
+    expect(oat.getByText('🔴 High')).toBeInTheDocument()
   })
 
   test('sidebar shows the selected task own values', async () => {
@@ -741,7 +741,7 @@ describe('multi-select', () => {
     await submenuClick(user, 'Set due date', 'Today')
     await rightClick(user, row('Eggs'))
     await submenuClick(user, 'Set priority', '🔴 High')
-    expect(within(main()).getAllByText('🔴 High priority')).toHaveLength(2)
+    expect(within(main()).getAllByText('🔴 High')).toHaveLength(2)
     expect(within(main()).getAllByText(/📅/)).toHaveLength(2)
     expect(row('Milk')).toHaveClass('bg-gray-100')
   })
