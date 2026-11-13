@@ -59,7 +59,7 @@ export default function ListSidebar({
               sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)
             }
           >
-            <span className="min-w-0 truncate">{list.name}</span>
+            <span className="min-w-0 truncate"><span>⚌ </span>{list.name}</span>
             <TaskCountBadge count={tasksInList(tasks, list.id).length} />
           </SortableRow>
         ))}

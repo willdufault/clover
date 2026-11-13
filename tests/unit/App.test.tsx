@@ -22,7 +22,7 @@ const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
 const lists = () =>
   within(nav())
     .getAllByRole('button')
-    .map((button) => (button.textContent ?? '').replace(/\d+$/, ''))
+    .map((button) => (button.textContent ?? '').replace(/\d+$/, '').replace(/^⚌ /, ''))
     .filter((text) => !text.startsWith('+'))
 const row = (name: string, root: HTMLElement = main()) =>
   rowsIn(root).find((rowElement) => rowName(rowElement) === name)!
@@ -700,11 +700,11 @@ describe('sort', () => {
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6⚌ Groceries3⚌ Work3⚌ Home$/)
     await menuAction(user, within(main()).getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
   })
 })
 
