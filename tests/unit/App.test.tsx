@@ -8,10 +8,14 @@ const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
+const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string) => {
+  await user.click(screen.getByLabelText('Sort'))
+  await user.click(screen.getByRole('button', { name: criteria }))
+}
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|☀️ Add to Today)$/.test(button.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
@@ -657,6 +661,38 @@ describe('Add to Today', () => {
     await user.click(within(aside()).getByLabelText('Remove from Today'))
     expect(within(aside()).queryByText('☀️ Added to Today')).toBeNull()
     expect(nav()).toHaveTextContent(/^☀️ Today📋/)
+  })
+})
+
+describe('sort', () => {
+  test('sorts the visible tasks by each criterion', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await user.selectOptions(stageSelect('Review PR'), 'inProgress')
+    await sortBy(user, 'Stage')
+    expect(tasks()).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
+
+    await user.click(row('Update docs'))
+    setDue('2026-05-01')
+    await user.click(row('Reply to emails'))
+    setDue('2026-01-01')
+    await sortBy(user, 'Due date')
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
+
+    await user.click(row('Review PR'))
+    await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
+    await sortBy(user, 'Priority')
+    expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
+  })
+
+  test('sorting a list leaves other lists in place', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await sortBy(user, 'Stage')
+    await user.click(within(nav()).getByText('📋 All'))
+    expect(tasks()).toEqual(['Milk', 'Eggs', 'Update docs', 'Review PR', 'Reply to emails'])
   })
 })
 

@@ -14,6 +14,7 @@ import { today } from './dates'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
 import { nextSelection } from './selection'
+import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
@@ -134,6 +135,9 @@ export default function App() {
     setTasks((tasks) =>
       tasks.map((task) => (ids.includes(task.id) ? { ...task, addedToToday } : task)),
     )
+
+  const sortList = (criteria: SortCriteria) =>
+    setTasks((tasks) => applySort(tasks, listTasks, criteria))
 
   const toggleStep = (id: string) =>
     updateDetailSteps((steps) =>
@@ -272,6 +276,7 @@ export default function App() {
             onRename={renameItem}
             tasks={listTasks}
             onAddTask={addTask}
+            onSort={sortList}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
             onSetStage={(id, stage) => updateTask(id, { stage })}
