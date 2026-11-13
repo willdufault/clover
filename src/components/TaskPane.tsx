@@ -38,6 +38,12 @@ export default function TaskPane({
 }) {
   const metaItems = (task: Task) => {
     const items = []
+    if (task.addedToToday)
+      items.push(
+        <span key="today" className="text-xs text-gray-500">
+          ☀️ Today
+        </span>,
+      )
     if (task.steps.length > 0)
       items.push(
         <span key="steps" className="text-xs text-gray-500">

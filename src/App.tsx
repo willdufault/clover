@@ -10,6 +10,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { today } from './dates'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
 import { nextSelection } from './selection'
@@ -27,7 +28,9 @@ export default function App() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
   const [lists, setLists] = useState(SEED_LISTS)
-  const [tasks, setTasks] = useState(SEED_TASKS)
+  const [tasks, setTasks] = useState(() =>
+    SEED_TASKS.map((task) => (task.due === today() ? { ...task, addedToToday: true } : task)),
+  )
   const [selectedListId, setSelectedListId] = useState(SEED_LISTS[0].id)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
@@ -127,6 +130,11 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
+  const setToday = (ids: string[], addedToToday: boolean) =>
+    setTasks((tasks) =>
+      tasks.map((task) => (ids.includes(task.id) ? { ...task, addedToToday } : task)),
+    )
+
   const toggleStep = (id: string) =>
     updateDetailSteps((steps) =>
       steps.map((step) =>
@@ -151,12 +159,14 @@ export default function App() {
       else if (kind === RowKind.Task) replaceTaskSelection(ids)
       else if (kind === RowKind.Step) setSelectedStepIds(ids)
       const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
+      const idsTasks = tasks.filter((task) => ids.includes(task.id))
       setMenu({
         x: event.clientX,
         y: event.clientY,
         kind,
         ids,
         due: dueTask?.due,
+        allInToday: idsTasks.every((task) => task.addedToToday),
       })
     }
 
@@ -278,6 +288,7 @@ export default function App() {
               onToggleStep={toggleStep}
               onDeleteStep={(id) => deleteSteps([id])}
               onSetDue={(id, due) => updateTask(id, { due })}
+              onSetToday={(id, added) => setToday([id], added)}
               onSetPriority={(id, priority) => updateTask(id, { priority })}
               onSetStage={(id, stage) => updateTask(id, { stage })}
               onContextMenu={openContextMenu}
@@ -304,6 +315,7 @@ export default function App() {
             else deleteSteps(menu.ids)
           }}
           onSetDue={(due) => menu.ids.forEach((id) => updateTask(id, { due }))}
+          onSetToday={(added) => setToday(menu.ids, added)}
           onSetPriority={(priority) =>
             menu.ids.forEach((id) => updateTask(id, { priority }))
           }

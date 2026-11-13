@@ -59,6 +59,7 @@ export type ContextMenuState = {
   kind: RowKind
   ids: string[]
   due?: string
+  allInToday?: boolean
 }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
@@ -68,6 +69,7 @@ export default function ContextMenu({
   onClose,
   onDelete,
   onSetDue,
+  onSetToday,
   onSetPriority,
   onSetStage,
   onSetStepCompleted,
@@ -76,6 +78,7 @@ export default function ContextMenu({
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
+  onSetToday: (added: boolean) => void
   onSetPriority: (priority: Priority) => void
   onSetStage: (stage: Stage) => void
   onSetStepCompleted: (completed: boolean) => void
@@ -106,6 +109,9 @@ export default function ContextMenu({
   })
 
   const taskItems: MenuItem[] = [
+    menu.allInToday
+      ? { label: '☀️ Remove from Today', action: () => onSetToday(false) }
+      : { label: '☀️ Add to Today', action: () => onSetToday(true) },
     stageItem(STAGES, onSetStage),
     {
       label: 'Set due date',

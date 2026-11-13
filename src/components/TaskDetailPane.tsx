@@ -24,6 +24,7 @@ export default function TaskDetailPane({
   onToggleStep,
   onDeleteStep,
   onSetDue,
+  onSetToday,
   onSetPriority,
   onSetStage,
   onContextMenu,
@@ -38,6 +39,7 @@ export default function TaskDetailPane({
   onToggleStep: (id: string) => void
   onDeleteStep: (id: string) => void
   onSetDue: (id: string, due?: string) => void
+  onSetToday: (id: string, added: boolean) => void
   onSetPriority: (id: string, priority: Priority) => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
@@ -127,6 +129,26 @@ export default function TaskDetailPane({
 
       <AddInput placeholder="+ New step" onAdd={onAddStep} />
 
+      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Today</h3>
+      {task.addedToToday ? (
+        <div className="flex items-center gap-2">
+          <span>☀️ Added to Today</span>
+          <button
+            onClick={() => onSetToday(task.id, false)}
+            aria-label="Remove from Today"
+            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onSetToday(task.id, true)}
+          className={FIELD_CLASS + ' text-left'}
+        >
+          ☀️ Add to Today
+        </button>
+      )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
       <div className="flex items-center gap-2">
         <input

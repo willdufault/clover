@@ -9,9 +9,9 @@ const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|☀️ Add to Today)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
@@ -361,11 +361,11 @@ describe('due dates', () => {
     setDue(yesterday.toISOString().slice(0, 10))
     expect(side.getByText('Yesterday')).toBeInTheDocument()
     setDue(today())
-    expect(side.getByText('Today')).toBeInTheDocument()
+    expect(side.getByText('Today', { selector: 'p' })).toBeInTheDocument()
     setDue(tomorrow())
     expect(side.getByText('Tomorrow')).toBeInTheDocument()
     setDue('2099-01-01')
-    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/)).toBeNull()
+    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/, { selector: 'p' })).toBeNull()
   })
 
   test('steps show no due subtext', async () => {
@@ -596,22 +596,68 @@ test('adding in Today creates a task visible in Today and All', async () => {
   expect(screen.queryByText('Now')).not.toBeInTheDocument()
 })
 
-test('Today shows overdue and due-today tasks but not others', async () => {
+test('Today shows only tasks added to Today, not overdue or due-today ones', async () => {
   const { user } = setup()
-  const due = async (name: string, value: string) => {
-    await user.click(screen.getByText(name))
-    setDue(value)
-  }
-  await due('Milk', '2000-01-01')
-  await due('Eggs', tomorrow())
+  await user.click(screen.getByText('Milk'))
+  setDue('2000-01-01')
+  await user.click(screen.getByText('Eggs'))
+  setDue(today())
   await user.click(within(nav()).getByText('Work'))
-  await due('Review PR', today())
+  await user.click(screen.getByText('Reply to emails'))
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('☀️ Today'))
-  const view = within(main())
-  expect(view.getByText('Milk')).toBeInTheDocument()
-  expect(view.getByText('Review PR')).toBeInTheDocument()
-  expect(view.queryByText('Eggs')).toBeNull()
-  expect(view.queryByText('Update docs')).toBeNull()
+  expect(tasks()).toEqual(['Reply to emails'])
+})
+
+test('task added to Today shows "☀️ Today" first in its subtext', async () => {
+  const { user } = setup()
+  await user.click(within(nav()).getByText('Work'))
+  await user.click(screen.getByText('Reply to emails'))
+  setDue(today())
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
+  expect(row('Reply to emails').textContent).toMatch(/☀️ Today.*📅/)
+})
+
+describe('Add to Today', () => {
+  test('context menu adds and removes', async () => {
+    const { user } = setup()
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await user.click(within(nav()).getByText('☀️ Today'))
+    expect(tasks()).toEqual(['Milk'])
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getByText('☀️ Remove from Today'))
+    expect(tasks()).toEqual([])
+  })
+
+  test('mixed selection offers Add, all-in-Today offers Remove', async () => {
+    const { user } = setup()
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await user.click(row('Milk'))
+    await user.keyboard('{Control>}')
+    await user.click(row('Eggs'))
+    await user.keyboard('{/Control}')
+    await rightClick(user, row('Eggs'))
+    expect(screen.queryByText('☀️ Remove from Today')).toBeNull()
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await rightClick(user, row('Eggs'))
+    expect(screen.getByText('☀️ Remove from Today')).toBeInTheDocument()
+    await user.click(screen.getByText('☀️ Remove from Today'))
+    await user.click(within(nav()).getByText('☀️ Today'))
+    expect(tasks()).toEqual([])
+  })
+
+  test('detail pane adds and removes with ×', async () => {
+    const { user } = setup()
+    await user.click(row('Milk'))
+    await user.click(within(aside()).getByText('☀️ Add to Today'))
+    expect(within(aside()).getByText('☀️ Added to Today')).toBeInTheDocument()
+    expect(nav()).toHaveTextContent(/^☀️ Today1/)
+    await user.click(within(aside()).getByLabelText('Remove from Today'))
+    expect(within(aside()).queryByText('☀️ Added to Today')).toBeNull()
+    expect(nav()).toHaveTextContent(/^☀️ Today📋/)
+  })
 })
 
 describe('sidebar counts', () => {
@@ -770,13 +816,13 @@ test('Escape in the add-step input or with the context menu open keeps the panel
 test('a task that left the view is not deleted with the selection', async () => {
   const { user } = setup()
   await user.click(screen.getByText('Milk'))
-  setDue('2000-01-01')
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('Work'))
   await user.click(screen.getByText('Review PR'))
-  setDue(today())
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('☀️ Today'))
   await user.click(within(main()).getByText('Milk'))
-  await user.click(removeDue())
+  await user.click(within(aside()).getByLabelText('Remove from Today'))
   expect(tasks()).toEqual(['Review PR'])
   await user.keyboard('{Control>}')
   await user.click(within(main()).getByText('Review PR'))
