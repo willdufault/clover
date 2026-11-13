@@ -131,7 +131,7 @@ export default function TaskDetailPane({
 
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Today</h3>
       {task.addedToToday ? (
-        <div className="flex items-center gap-2">
+        <div className={FIELD_CLASS + ' flex items-center justify-between'}>
           <span>☀️ Added to Today</span>
           <button
             onClick={() => onSetToday(task.id, false)}
@@ -150,14 +150,18 @@ export default function TaskDetailPane({
         </button>
       )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
-      <div className="flex items-center gap-2">
+      <div
+        className={
+          FIELD_CLASS +
+          ' flex items-center gap-2 focus-within:border-blue-500' +
+          (task.due && isOverdue(task.due) ? ' text-red-600' : '')
+        }
+      >
         <input
           type="date"
           value={task.due ?? ''}
           onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
-          className={
-            FIELD_CLASS + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
-          }
+          className="min-w-0 flex-1 bg-transparent outline-none"
         />
         {task.due && (
           <button
