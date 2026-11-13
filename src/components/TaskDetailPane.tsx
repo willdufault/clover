@@ -4,6 +4,7 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITY_LABELS } from '../labels'
+import { isCompleted } from '../stages'
 import { FIELD_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
@@ -90,8 +91,7 @@ export default function TaskDetailPane({
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-gray-200 bg-gray-100">
-      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-3">
-      <div className="flex items-center gap-3">
+      <div className="flex select-none items-center gap-3 m-3 mb-0 rounded-md bg-white px-4 py-3">
         <StageSelect
           value={task.stage}
           onChange={(stage) => onSetStage(task.id, stage)}
@@ -101,11 +101,17 @@ export default function TaskDetailPane({
           tag="h2"
           text={task.text}
           onCommit={(name) => onRename(RowKind.Task, task.id, name)}
-          className="w-fit max-w-full break-words font-semibold text-gray-800"
+          className={
+            'w-fit max-w-full break-words font-semibold ' +
+            (isCompleted(task.stage)
+              ? 'text-gray-400 line-through'
+              : 'text-gray-800')
+          }
           inputClassName={TITLE_RENAME_CLASS}
         />
       </div>
 
+      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-3">
       <SortableContext
         items={task.steps}
         strategy={verticalListSortingStrategy}
