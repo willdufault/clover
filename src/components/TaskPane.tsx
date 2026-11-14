@@ -124,16 +124,7 @@ export default function TaskPane({
   }
 
   return (
-    <main className="relative min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-8 pt-14 pb-10">
-      <svg viewBox="0 0 100 100" aria-hidden="true" className="pointer-events-none fixed right-10 bottom-8 size-44 text-clover-200/60">
-        <g fill="currentColor">
-          <path d="M50 48C44 34 30 30 26 40s8 18 24 8Z" />
-          <path d="M52 50c14-6 18-20 8-24s-18 8-8 24Z" />
-          <path d="M50 52c6 14 20 18 24 8s-8-18-24-8Z" />
-          <path d="M48 50c-14 6-18 20-8 24s18-8 8-24Z" />
-        </g>
-        <path d="M51 53c3 12 8 22 16 30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      </svg>
+    <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-8 pt-14 pb-10">
       <div className="w-full max-w-[50rem]">
       <div>
         <EditableText

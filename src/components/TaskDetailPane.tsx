@@ -93,7 +93,7 @@ export default function TaskDetailPane({
   )
 
   return (
-    <aside className="pane-in relative z-10 flex w-80 shrink-0 flex-col border-l border-line bg-paper">
+    <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
       <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
         <span className="mt-1.5">
           <StageSelect
