@@ -4,14 +4,13 @@ import {
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
-import { isCompleted } from '../stages'
-import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
+import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
-import { StageSelect } from './StageSelect'
+import { TaskSummary } from './TaskSummary'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export default function TaskDetailPane({
@@ -95,27 +94,7 @@ export default function TaskDetailPane({
   return (
     <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
       <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
-        <span className="mt-1.5">
-          <StageSelect
-            value={task.stage}
-            onChange={(stage) => onSetStage(task.id, stage)}
-          />
-        </span>
-        <div className="min-w-0 flex-1">
-          <EditableText
-            key={task.id}
-            tag="h2"
-            text={task.text}
-            onCommit={(name) => onRename(RowKind.Task, task.id, name)}
-            className={
-              '-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-2xl font-semibold tracking-tight transition hover:bg-cream ' +
-              (isCompleted(task.stage)
-                ? 'text-ink-faint line-through decoration-ink-faint/50'
-                : 'text-ink')
-            }
-            inputClassName={TITLE_RENAME_CLASS}
-          />
-        </div>
+        <TaskSummary key={task.id} task={task} heading onSetStage={onSetStage} onRename={onRename} />
         <button
           onClick={onClose}
           aria-label="Close panel"

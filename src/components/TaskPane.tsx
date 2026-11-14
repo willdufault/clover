@@ -13,7 +13,7 @@ import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { StageSelect } from './StageSelect'
+import { TaskSummary } from './TaskSummary'
 
 export default function TaskPane({
   selectedListId,
@@ -97,26 +97,9 @@ export default function TaskPane({
       >
         {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
         <svg viewBox="0 0 16 16" className="absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-faint opacity-0 transition group-hover:opacity-100" fill="currentColor" aria-hidden="true"><circle cx="6" cy="4" r="1.2" /><circle cx="10" cy="4" r="1.2" /><circle cx="6" cy="8" r="1.2" /><circle cx="10" cy="8" r="1.2" /><circle cx="6" cy="12" r="1.2" /><circle cx="10" cy="12" r="1.2" /></svg>
-        <StageSelect
-          value={task.stage}
-          onChange={(stage) => onSetStage(task.id, stage)}
-        />
-        <div className="flex min-w-0 flex-col">
-          <span
-            className={
-              isCompleted(task.stage)
-                ? 'break-words text-base text-ink-faint line-through decoration-ink-faint/50'
-                : 'break-words text-base font-medium text-ink'
-            }
-          >
-            {task.text}
-          </span>
-          {meta.length > 0 && (
-            <div className="mt-1 flex gap-3">
-              {meta}
-            </div>
-          )}
-        </div>
+        <TaskSummary task={task} onSetStage={onSetStage}>
+          {meta.length > 0 && <div className="mt-1 flex gap-3">{meta}</div>}
+        </TaskSummary>
       </SortableRow>
     )
   }
