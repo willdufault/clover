@@ -31,10 +31,7 @@ export default function ListSidebar({
   return (
     <div className="flex w-64 shrink-0 flex-col bg-sprout">
       <div className="overflow-hidden [scrollbar-gutter:stable] px-3 pt-6 pb-4">
-        <div className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2 text-lg font-semibold tracking-tight text-ink shadow-soft">
-          <span>🍀</span>
-          <span>clover</span>
-        </div>
+        <div className="px-3 py-2 text-lg font-semibold tracking-tight text-ink">🍀 clover</div>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
         <TodayRow
