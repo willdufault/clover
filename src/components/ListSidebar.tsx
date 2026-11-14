@@ -70,7 +70,7 @@ export default function ListSidebar({
         ))}
       </SortableContext>
 
-      <AddInput placeholder="+ New list" onAdd={onCreateList} />
+      <AddInput placeholder="+ New list" onAdd={onCreateList} className="mt-4" />
     </nav>
     </div>
   )

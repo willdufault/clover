@@ -136,7 +136,7 @@ export default function TaskDetailPane({
         </ul>
       </SortableContext>
 
-      <AddInput placeholder="+ New step" onAdd={onAddStep} className={task.steps.length > 0 ? "mt-2" : "mt-0"} />
+      <AddInput placeholder="+ New step" onAdd={onAddStep} className={task.steps.length > 0 ? 'mt-2' : undefined} />
       <h3 className={LABEL_CLASS + ' mt-7'}>
         Schedule
       </h3>

@@ -24,7 +24,7 @@ export function AddInput({
       onChange={(event) => setText(event.target.value)}
       onKeyDown={(event) => event.key === 'Enter' && add()}
       placeholder={placeholder}
-      className={'mt-4 text-sm ' + FIELD_CLASS + ' border-dashed border-clover-400/70! bg-transparent! placeholder:text-clover-700! hover:border-clover-400! focus:border-solid focus:border-clover-400! focus:bg-paper!' + (className ? ' ' + className : '')}
+      className={'text-sm ' + FIELD_CLASS + ' border-dashed border-clover-400/70! bg-transparent! placeholder:text-clover-700! hover:border-clover-400! focus:border-solid focus:border-clover-400! focus:bg-paper!' + (className ? ' ' + className : '')}
     />
   )
 }
