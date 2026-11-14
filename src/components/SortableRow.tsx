@@ -8,6 +8,7 @@ export function SortableRow({
   text,
   tag,
   className,
+  style,
   onClick,
   onContextMenu,
   children,
@@ -17,6 +18,7 @@ export function SortableRow({
   text: string
   tag: 'li' | 'div'
   className?: string
+  style?: React.CSSProperties
   onClick?: (event: React.MouseEvent) => void
   onContextMenu?: (event: React.MouseEvent) => void
   children: React.ReactNode
@@ -33,7 +35,7 @@ export function SortableRow({
   return (
     <Tag
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{ ...style, transform: CSS.Transform.toString(transform), transition }}
       data-kind={kind}
       onClick={onClick}
       onContextMenu={onContextMenu}

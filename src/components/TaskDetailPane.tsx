@@ -3,9 +3,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITIES, PRIORITY_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { isCompleted } from '../stages'
-import { FIELD_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
+import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
@@ -45,6 +45,7 @@ export default function TaskDetailPane({
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
 }) {
+
   const stepRow = (step: Step) => (
     <SortableRow
       key={step.id}
@@ -55,8 +56,8 @@ export default function TaskDetailPane({
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
       className={
-        'group flex select-none items-center gap-3 border-b border-gray-200 py-2' +
-        (selectedIds.includes(step.id) ? ' bg-gray-200' : '')
+        'group flex select-none items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition' +
+        (selectedIds.includes(step.id) ? ' ' + SELECTED_ROW_CLASS : ' hover:bg-milk')
       }
     >
       <input
@@ -64,7 +65,7 @@ export default function TaskDetailPane({
         checked={step.completed}
         {...ignoreRowEvents}
         onChange={() => onToggleStep(step.id)}
-        className="size-4 accent-blue-500"
+        className="check"
       />
       <EditableText
         tag="span"
@@ -73,9 +74,9 @@ export default function TaskDetailPane({
         onCommit={(name) => onRename(RowKind.Step, step.id, name)}
         className={
           'min-w-0 flex-1 break-words ' +
-          (step.completed ? 'text-gray-400 line-through' : 'text-gray-800')
+          (step.completed ? 'text-ink-faint line-through' : 'text-ink')
         }
-        inputClassName="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-sm text-gray-800 outline-none"
+        inputClassName="min-w-0 flex-1 rounded-lg border border-clover-400 bg-paper px-1 py-0.5 text-sm text-ink outline-none"
       />
       <button
         onPointerDown={ignoreRowEvents.onPointerDown}
@@ -84,7 +85,7 @@ export default function TaskDetailPane({
           onDeleteStep(step.id)
         }}
         aria-label="Delete step"
-        className="shrink-0 rounded px-1 leading-none text-gray-400 hover:text-gray-600"
+        className="shrink-0 rounded-full px-1 text-xs leading-none text-ink-faint opacity-0 transition group-hover:opacity-100 hover:text-coral"
       >
         ✕
       </button>
@@ -92,51 +93,85 @@ export default function TaskDetailPane({
   )
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-gray-200 bg-gray-100">
-      <div className="flex select-none items-center gap-3 m-3 mb-0 rounded-md bg-white px-4 py-3">
-        <StageSelect
-          value={task.stage}
-          onChange={(stage) => onSetStage(task.id, stage)}
-        />
-        <EditableText
-          key={task.id}
-          tag="h2"
-          text={task.text}
-          onCommit={(name) => onRename(RowKind.Task, task.id, name)}
-          className={
-            'w-fit max-w-full break-words font-semibold ' +
-            (isCompleted(task.stage)
-              ? 'text-gray-400 line-through'
-              : 'text-gray-800')
-          }
-          inputClassName={TITLE_RENAME_CLASS}
-        />
+    <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
+      <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
+        <span className="mt-1.5">
+          <StageSelect
+            value={task.stage}
+            onChange={(stage) => onSetStage(task.id, stage)}
+          />
+        </span>
+        <div className="min-w-0 flex-1">
+          <EditableText
+            key={task.id}
+            tag="h2"
+            text={task.text}
+            onCommit={(name) => onRename(RowKind.Task, task.id, name)}
+            className={
+              '-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-2xl font-semibold tracking-tight transition hover:bg-cream ' +
+              (isCompleted(task.stage)
+                ? 'text-ink-faint line-through decoration-ink-faint/50'
+                : 'text-ink')
+            }
+            inputClassName={TITLE_RENAME_CLASS}
+          />
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close panel"
+          className={X_BUTTON_CLASS + " mt-0.5 -mr-1.5"}
+        >
+          ✕
+        </button>
       </div>
 
-      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-3">
+      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-1 pb-4">
+      <h3 className={LABEL_CLASS}>Steps</h3>
       <SortableContext
         items={task.steps}
         strategy={verticalListSortingStrategy}
       >
-        <ul className="mt-4 w-full">
+        <ul className="w-full">
           {task.steps.map(stepRow)}
         </ul>
       </SortableContext>
 
-      {task.steps.length === 0 && (
-        <p className="mt-4 text-sm text-gray-400">No steps yet</p>
-      )}
-
-      <AddInput placeholder="+ New step" onAdd={onAddStep} />
-
-      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Today</h3>
+      <AddInput placeholder="+ New step" onAdd={onAddStep} className={task.steps.length > 0 ? "mt-2" : "mt-0"} />
+      <h3 className={LABEL_CLASS + ' mt-7'}>
+        Schedule
+      </h3>
+      <div
+        className={
+          FIELD_CLASS +
+          ' group relative gap-2 pr-2 focus-within:border-clover-400' +
+          (task.due && isOverdue(task.due) ? ' text-coral' : '')
+        }
+      >
+        <input
+          type="date"
+          value={task.due ?? ''}
+          onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
+          className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
+        />
+        {!task.due && (
+          <span className="pointer-events-none absolute left-3.5 text-ink-faint group-focus-within:hidden">No due date</span>
+        )}
+        {task.due && relativeDayLabel(task.due) && (
+          <span className={'shrink-0 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</span>
+        )}
+        {task.due && (
+          <button onClick={() => onSetDue(task.id)} className={X_BUTTON_CLASS}>
+            ×
+          </button>
+        )}
+      </div>
       {task.addedToToday ? (
-        <div className={FIELD_CLASS + ' flex items-center justify-between'}>
+        <div className="mt-2.5 flex h-9 w-fit items-center gap-1 rounded-full border border-clover-200 bg-clover-100 pr-1.5 pl-4 text-sm font-medium text-clover-700">
           <span>☀️ Added to Today</span>
           <button
             onClick={() => onSetToday(task.id, false)}
             aria-label="Remove from Today"
-            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
+            className={X_BUTTON_CLASS + " text-clover-700"}
           >
             ×
           </button>
@@ -144,43 +179,28 @@ export default function TaskDetailPane({
       ) : (
         <button
           onClick={() => onSetToday(task.id, true)}
-          className={FIELD_CLASS + ' text-left'}
+          className="mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
         >
           ☀️ Add to Today
         </button>
       )}
-      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
-      <div
-        className={
-          FIELD_CLASS +
-          ' flex items-center gap-2 focus-within:border-blue-500' +
-          (task.due && isOverdue(task.due) ? ' text-red-600' : '')
-        }
+      <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
+      <select
+        value={task.stage}
+        onChange={(event) => onSetStage(task.id, event.target.value as Stage)}
+        className={FIELD_CLASS + ' field'}
       >
-        <input
-          type="date"
-          value={task.due ?? ''}
-          onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
-          className="min-w-0 flex-1 bg-transparent outline-none"
-        />
-        {task.due && (
-          <button
-            onClick={() => onSetDue(task.id)}
-            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
-          >
-            ×
-          </button>
-        )}
-      </div>
-      {task.due &&
-        relativeDayLabel(task.due) && (
-          <p className={'mt-1 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</p>
-        )}
-      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
+        {STAGES.map((stage) => (
+          <option key={stage} value={stage}>
+            {STAGE_LABELS[stage].emoji} {STAGE_LABELS[stage].label}
+          </option>
+        ))}
+      </select>
+      <h3 className={LABEL_CLASS}>Priority</h3>
       <select
         value={task.priority}
         onChange={(event) => onSetPriority(task.id, event.target.value as Priority)}
-        className={FIELD_CLASS}
+        className={FIELD_CLASS + ' field'}
       >
         {PRIORITIES.map((priority) => (
           <option key={priority} value={priority}>
@@ -188,25 +208,16 @@ export default function TaskDetailPane({
           </option>
         ))}
       </select>
+
       </div>
-      <div className="shrink-0 px-3 pb-3">
-        <hr className="mb-2 border-gray-300" />
-        <div className="flex justify-between">
-          <button
-            onClick={onClose}
-            aria-label="Close panel"
-            className="rounded pr-2 text-2xl leading-none text-gray-400 hover:text-gray-600"
-          >
-            ›
-          </button>
-          <button
+      <div className="shrink-0 border-t border-line px-4 py-2.5">
+      <button
             onClick={onDeleteTask}
-            aria-label="Delete task"
-            className="rounded px-1 leading-none text-gray-400 hover:text-gray-600"
+            className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-[#fbe9e3] hover:text-coral"
           >
-            ✕
+            <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
+            Delete task
           </button>
-        </div>
       </div>
     </aside>
   )

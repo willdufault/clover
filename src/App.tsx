@@ -17,6 +17,7 @@ import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
+import { listColor } from './styles'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
@@ -259,10 +260,7 @@ export default function App() {
         setDragOverListId(null)
       }}
     >
-      <div className="flex h-screen overflow-hidden flex-col font-sans">
-        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
-          <span className="font-semibold text-gray-800">🍀 clover</span>
-        </header>
+      <div className="flex h-screen overflow-hidden flex-col bg-milk font-sans text-ink">
         <div className="flex flex-1 min-h-0">
           <ListSidebar
             lists={lists}
@@ -283,6 +281,8 @@ export default function App() {
             onSort={sortList}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
+            onClearSelection={() => replaceTaskSelection([])}
+            accent={currentList ? listColor(lists.indexOf(currentList)) : 'var(--color-clover-500)'}
             onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
           />
@@ -308,7 +308,7 @@ export default function App() {
       </div>
       <DragOverlay>
         {activeDrag && (
-          <div className="cursor-default select-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
+          <div className="cursor-default select-none rounded-xl border border-clover-200 bg-paper px-3.5 py-2 text-sm text-ink shadow-[0_12px_32px_-8px_rgba(84,66,30,0.25)]">
             {activeDrag.text}
           </div>
         )}

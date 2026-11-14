@@ -7,7 +7,7 @@ const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
+const STAGES = '⚪ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
 const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string) => {
   await user.click(screen.getByLabelText('Sort'))
   await user.click(screen.getByRole('button', { name: criteria }))
@@ -15,7 +15,7 @@ const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today)$/.test(button.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
@@ -73,7 +73,7 @@ test('add a task and set its stage from the row', async () => {
   await user.selectOptions(stage, 'inProgress')
   expect(stage).toHaveDisplayValue('⚡ In progress')
   await user.selectOptions(stage, 'open')
-  expect(stage).toHaveDisplayValue('⬜ Open')
+  expect(stage).toHaveDisplayValue('⚪ Open')
 })
 
 test('open side panel, add and toggle a step', async () => {
@@ -92,11 +92,11 @@ test('open side panel, add and toggle a step', async () => {
 test('step count shows and updates on toggle, hidden with no steps', async () => {
   const { user } = setup()
   const main = screen.getByRole('main')
-  expect(within(main).getByText('0/1')).toBeInTheDocument()
-  expect(within(row('Eggs')).queryByText(/^\d+\/\d+$/)).toBeNull()
+  expect(within(main).getByText('0/1 steps')).toBeInTheDocument()
+  expect(within(row('Eggs')).queryByText(/^\d+\/\d+ steps$/)).toBeNull()
   await user.click(screen.getByText('Milk'))
   await toggle(user, '2% lactose free', aside())
-  expect(within(main).getByText('1/1')).toBeInTheDocument()
+  expect(within(main).getByText('1/1 steps')).toBeInTheDocument()
 })
 
 test('rename, cancel rename and delete a task', async () => {
@@ -138,7 +138,7 @@ test('rename and delete a step', async () => {
 
   await menuAction(user, within(aside()).getByText('Skim'), 'Delete')
   expect(steps()).toEqual([])
-  expect(screen.getByText('No steps yet')).toBeInTheDocument()
+  expect(within(aside()).getByPlaceholderText('+ New step')).toBeInTheDocument()
 })
 
 test('delete a task from the panel footer', async () => {
@@ -365,11 +365,11 @@ describe('due dates', () => {
     setDue(yesterday.toISOString().slice(0, 10))
     expect(side.getByText('Yesterday')).toBeInTheDocument()
     setDue(today())
-    expect(side.getByText('Today', { selector: 'p' })).toBeInTheDocument()
+    expect(side.getByText('Today', { selector: 'span' })).toBeInTheDocument()
     setDue(tomorrow())
     expect(side.getByText('Tomorrow')).toBeInTheDocument()
     setDue('2099-01-01')
-    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/, { selector: 'p' })).toBeNull()
+    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/, { selector: 'span' })).toBeNull()
   })
 
   test('steps show no due subtext', async () => {
@@ -700,11 +700,11 @@ describe('sort', () => {
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6⚌ Groceries3⚌ Work3⚌ Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home$/)
     await menuAction(user, within(main()).getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
   })
 })
 
@@ -727,10 +727,10 @@ describe('multi-select', () => {
     await user.click(within(nav()).getByText(/All/))
     await user.click(row('Milk'))
     await shiftClick(user, 'Update docs')
-    expect(row('Eggs')).toHaveClass('bg-gray-100')
-    expect(row('Reply to emails')).toHaveClass('bg-gray-100')
-    expect(row('Update docs')).toHaveClass('bg-gray-100')
-    expect(row('Review PR')).not.toHaveClass('bg-gray-100')
+    expect(row('Eggs')).toHaveClass('bg-clover-100')
+    expect(row('Reply to emails')).toHaveClass('bg-clover-100')
+    expect(row('Update docs')).toHaveClass('bg-clover-100')
+    expect(row('Review PR')).not.toHaveClass('bg-clover-100')
   })
 
   test('bulk due and priority apply to all and keep selection', async () => {
@@ -743,7 +743,7 @@ describe('multi-select', () => {
     await submenuClick(user, 'Set priority', '🔴 High')
     expect(within(main()).getAllByText('🔴 High')).toHaveLength(2)
     expect(within(main()).getAllByText(/📅/)).toHaveLength(2)
-    expect(row('Milk')).toHaveClass('bg-gray-100')
+    expect(row('Milk')).toHaveClass('bg-clover-100')
   })
 
   test('bulk delete tasks', async () => {
@@ -776,7 +776,7 @@ describe('multi-select', () => {
     await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step' }))
     await user.keyboard('{/Control}')
     expect(steps()).toEqual(['2% lactose free', 'Skim'])
-    expect(rowsIn(aside()).some((r) => r.className.includes('bg-gray-200'))).toBe(false)
+    expect(rowsIn(aside()).some((r) => r.className.includes('bg-clover-100'))).toBe(false)
   })
 
   test('modifier-click on step text selects without renaming', async () => {
@@ -790,8 +790,8 @@ describe('multi-select', () => {
       await user.click(within(aside()).getByText('2% lactose free'))
       await user.keyboard(`{/${key}}`)
       expect(within(aside()).queryAllByRole('textbox')).toHaveLength(boxes)
-      expect(row('Skim', aside())).toHaveClass('bg-gray-200')
-      expect(row('2% lactose free', aside())).toHaveClass('bg-gray-200')
+      expect(row('Skim', aside())).toHaveClass('bg-clover-100')
+      expect(row('2% lactose free', aside())).toHaveClass('bg-clover-100')
       await user.click(row('Skim', aside()))
     }
   })

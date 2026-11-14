@@ -2,7 +2,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { sidebarRowClass } from '../styles'
+import { listColor, sidebarRowClass } from '../styles'
 import { RowKind, type Task, type TaskList } from '../types'
 import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { TaskCountBadge } from './TaskCountBadge'
@@ -29,7 +29,12 @@ export default function ListSidebar({
   onContextMenu: OpenContextMenu
 }) {
   return (
-    <nav className="flex w-64 shrink-0 flex-col gap-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] border-r border-gray-200 bg-gray-100 p-3">
+    <div className="flex w-64 shrink-0 flex-col bg-sprout">
+    <div className="flex items-center gap-2 px-6 pt-7 pb-5">
+      <span className="flex size-8 items-center justify-center rounded-xl bg-paper text-base shadow-[0_2px_8px_-3px_rgba(84,66,30,0.2)]">🍀</span>
+      <span className="text-lg font-semibold tracking-tight text-ink">clover</span>
+    </div>
+    <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
       <TodayRow
         count={tasksInList(tasks, TODAY_LIST_ID).length}
         selected={selectedListId === TODAY_LIST_ID}
@@ -43,9 +48,9 @@ export default function ListSidebar({
         <span>{ALL_LIST_NAME}</span>
         <TaskCountBadge count={tasksInList(tasks, ALL_LIST_ID).length} />
       </div>
-      <hr className="my-1 border-gray-300" />
+      <hr className="mx-3 my-3 border-sprout-deep" />
       <SortableContext items={lists} strategy={verticalListSortingStrategy}>
-        {lists.map((list) => (
+        {lists.map((list, index) => (
           <SortableRow
             key={list.id}
             id={list.id}
@@ -55,11 +60,11 @@ export default function ListSidebar({
             onClick={() => onSelectList(list.id)}
             onContextMenu={onContextMenu(RowKind.List, list.id)}
             className={
-              'border-b border-gray-200 ' +
+              'border-b border-transparent ' +
               sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)
             }
           >
-            <span className="min-w-0 truncate"><span>⚌ </span>{list.name}</span>
+            <span className="flex min-w-0 items-center gap-[5px]"><span className="flex w-4 shrink-0 items-center justify-center"><span className="size-3 rounded-[4px]" style={{ background: listColor(index) }} /></span><span className="truncate">{list.name}</span></span>
             <TaskCountBadge count={tasksInList(tasks, list.id).length} />
           </SortableRow>
         ))}
@@ -67,5 +72,6 @@ export default function ListSidebar({
 
       <AddInput placeholder="+ New list" onAdd={onCreateList} />
     </nav>
+    </div>
   )
 }
