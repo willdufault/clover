@@ -1,0 +1,4 @@
+- fix drag clone (remove or make match original)
+- add actual api backend (create new aws acct)
+- clickin gin the due date field is kind of weird, it selects the mm/dd/yyyy where you click
+- remove any unnecessary ui elements; minimal, only add more if unclear
