@@ -11,3 +11,9 @@ For project details, see @README.md.
 
 - Run `npm run e2e`. Exercise the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors.
 - Screenshot the changed UI and check it.
+
+## PR evidence
+
+- Open the PR first. Then commit its screenshots to the `pr-evidence` branch under `pr-<N>/` and push.
+- In the same commit, delete `pr-<N-10>/` and older.
+- Embed them in the PR body: `![](https://raw.githubusercontent.com/willdufault/clover/pr-evidence/pr-<N>/<name>.png)`.
