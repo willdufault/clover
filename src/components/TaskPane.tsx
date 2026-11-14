@@ -6,11 +6,13 @@ import { formatDueDate } from '../dates'
 import { PRIORITY_LABELS } from '../labels'
 import { isCompleted } from '../stages'
 import { TITLE_RENAME_CLASS, dueDateClass } from '../styles'
+import type { SortCriteria } from '../sort'
 import { RowKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
 import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
+import { SortMenu } from './SortMenu'
 import { StageSelect } from './StageSelect'
 
 export default function TaskPane({
@@ -20,6 +22,7 @@ export default function TaskPane({
   tasks,
   selectedIds,
   onAddTask,
+  onSort,
   onSelectTask,
   onSetStage,
   onContextMenu,
@@ -31,6 +34,7 @@ export default function TaskPane({
   tasks: Task[]
   selectedIds: string[]
   onAddTask: (text: string) => void
+  onSort: (criteria: SortCriteria) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
@@ -38,6 +42,12 @@ export default function TaskPane({
 }) {
   const metaItems = (task: Task) => {
     const items = []
+    if (task.addedToToday)
+      items.push(
+        <span key="today" className="text-xs text-gray-500">
+          ☀️ Today
+        </span>,
+      )
     if (task.steps.length > 0)
       items.push(
         <span key="steps" className="text-xs text-gray-500">
@@ -51,11 +61,11 @@ export default function TaskPane({
           📅 {formatDueDate(task.due)}
         </span>,
       )
-    if (task.priority)
+    if (task.priority !== 'medium')
       items.push(
         <span key="priority" className="text-xs text-gray-500">
           {PRIORITY_LABELS[task.priority].emoji}{' '}
-          {PRIORITY_LABELS[task.priority].label} priority
+          {PRIORITY_LABELS[task.priority].label}
         </span>,
       )
     return items
@@ -110,15 +120,18 @@ export default function TaskPane({
 
   return (
     <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-6">
-      <EditableText
-        key={selectedListId}
-        tag="h1"
-        text={listName ?? ''}
-        editable={renamable}
-        onCommit={(name) => onRename(RowKind.List, selectedListId, name)}
-        className="w-fit max-w-full break-words font-semibold text-gray-800"
-        inputClassName={TITLE_RENAME_CLASS}
-      />
+      <div className="flex items-center justify-between">
+        <EditableText
+          key={selectedListId}
+          tag="h1"
+          text={listName ?? ''}
+          editable={renamable}
+          onCommit={(name) => onRename(RowKind.List, selectedListId, name)}
+          className="w-fit max-w-full break-words font-semibold text-gray-800"
+          inputClassName={TITLE_RENAME_CLASS}
+        />
+        <SortMenu onSort={onSort} />
+      </div>
 
       <AddInput placeholder="+ New task" onAdd={onAddTask} />
 

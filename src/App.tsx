@@ -10,11 +10,12 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { today } from './dates'
 import { applyDrop } from './drop'
 import { SEED_LISTS, SEED_TASKS } from './seed'
-import { isCompleted, moveAfterIncomplete } from './stages'
 import { nextSelection } from './selection'
-import { RowKind, type Stage, type Step, type Task } from './types'
+import { applySort, type SortCriteria } from './sort'
+import { RowKind, type Step, type Task } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
@@ -28,7 +29,9 @@ export default function App() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
   const [lists, setLists] = useState(SEED_LISTS)
-  const [tasks, setTasks] = useState(SEED_TASKS)
+  const [tasks, setTasks] = useState(() =>
+    SEED_TASKS.map((task) => (task.due === today() ? { ...task, addedToToday: true } : task)),
+  )
   const [selectedListId, setSelectedListId] = useState(SEED_LISTS[0].id)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
@@ -104,6 +107,7 @@ export default function App() {
         text,
         steps: [],
         stage: 'open',
+        priority: 'medium',
         listId: currentList?.id,
         addedToToday: selectedListId === TODAY_LIST_ID ? true : undefined,
       },
@@ -127,31 +131,18 @@ export default function App() {
       tasks.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     )
 
-  // Completing or reopening also moves the task after the last incomplete one.
-  const setTaskStage = (id: string, stage: Stage) =>
-    setTasks((tasks) => {
-      const before = tasks.find((task) => task.id === id)!
-      const patched = tasks.map((task) => (task.id === id ? { ...task, stage } : task))
-      return isCompleted(before.stage) === isCompleted(stage)
-        ? patched
-        : moveAfterIncomplete(patched, id, (task) => isCompleted(task.stage))
-    })
-
-  const updateStep = (id: string, patch: Partial<Step>) =>
-    updateDetailSteps((steps) =>
-      steps.map((step) =>
-        step.id === id ? { ...step, ...patch } : step,
-      ),
+  const setToday = (ids: string[], addedToToday: boolean) =>
+    setTasks((tasks) =>
+      tasks.map((task) => (ids.includes(task.id) ? { ...task, addedToToday } : task)),
     )
+
+  const sortList = (criteria: SortCriteria) =>
+    setTasks((tasks) => applySort(tasks, listTasks, criteria))
 
   const toggleStep = (id: string) =>
     updateDetailSteps((steps) =>
-      moveAfterIncomplete(
-        steps.map((step) =>
-          step.id === id ? { ...step, completed: !step.completed } : step,
-        ),
-        id,
-        (step) => step.completed,
+      steps.map((step) =>
+        step.id === id ? { ...step, completed: !step.completed } : step,
       ),
     )
 
@@ -172,12 +163,18 @@ export default function App() {
       else if (kind === RowKind.Task) replaceTaskSelection(ids)
       else if (kind === RowKind.Step) setSelectedStepIds(ids)
       const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
+      const idsTasks = tasks.filter((task) => ids.includes(task.id))
+      const allDone = detailTask?.steps
+        .filter((step) => ids.includes(step.id))
+        .every((step) => step.completed)
       setMenu({
         x: event.clientX,
         y: event.clientY,
         kind,
         ids,
         due: dueTask?.due,
+        allInToday: idsTasks.every((task) => task.addedToToday),
+        allDone,
       })
     }
 
@@ -189,7 +186,9 @@ export default function App() {
     } else if (kind === RowKind.Task) {
       updateTask(id, { text: name })
     } else {
-      updateStep(id, { text: name })
+      updateDetailSteps((steps) =>
+        steps.map((step) => (step.id === id ? { ...step, text: name } : step)),
+      )
     }
   }
 
@@ -281,9 +280,10 @@ export default function App() {
             onRename={renameItem}
             tasks={listTasks}
             onAddTask={addTask}
+            onSort={sortList}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
-            onSetStage={setTaskStage}
+            onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
           />
           {detailTask && (
@@ -297,8 +297,9 @@ export default function App() {
               onToggleStep={toggleStep}
               onDeleteStep={(id) => deleteSteps([id])}
               onSetDue={(id, due) => updateTask(id, { due })}
+              onSetToday={(id, added) => setToday([id], added)}
               onSetPriority={(id, priority) => updateTask(id, { priority })}
-              onSetStage={setTaskStage}
+              onSetStage={(id, stage) => updateTask(id, { stage })}
               onContextMenu={openContextMenu}
               onRename={renameItem}
             />
@@ -323,10 +324,11 @@ export default function App() {
             else deleteSteps(menu.ids)
           }}
           onSetDue={(due) => menu.ids.forEach((id) => updateTask(id, { due }))}
+          onSetToday={(added) => setToday(menu.ids, added)}
           onSetPriority={(priority) =>
             menu.ids.forEach((id) => updateTask(id, { priority }))
           }
-          onSetStage={(stage) => menu.ids.forEach((id) => setTaskStage(id, stage))}
+          onSetStage={(stage) => menu.ids.forEach((id) => updateTask(id, { stage }))}
           onSetStepCompleted={(completed) =>
             detailTask!.steps
               .filter((step) => menu.ids.includes(step.id) && step.completed !== completed)

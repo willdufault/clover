@@ -1,6 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import { RowKind, type Task, type TaskList } from './types'
-import { isCompleted, moveAfterIncomplete } from './stages'
 import { TODAY_LIST_ID, tasksInList } from './smartLists'
 
 const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
@@ -39,7 +38,7 @@ export const applyDrop = (
     if (!task || task.listId === overId) return state
     const moved = { ...task, listId: overId }
     const rest = tasks.filter((other) => other.id !== activeId)
-    return { lists, tasks: isCompleted(moved.stage) ? moveAfterIncomplete([...rest, moved], moved.id, (other) => isCompleted(other.stage)) : [moved, ...rest] }
+    return { lists, tasks: [moved, ...rest] }
   }
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 

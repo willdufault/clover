@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
-import { STAGES, STAGE_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { RowKind, type Priority, type Stage } from '../types'
 
-const MENU_WIDTH = 176
+const MENU_WIDTH = 208
 
 type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
 
@@ -42,7 +42,7 @@ function SubmenuRow({
           ref={panelRef}
           style={{ top: shift }}
           className={
-            'absolute w-44 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
+            'absolute w-52 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
             (flip ? 'right-full' : 'left-full')
           }
         >
@@ -59,6 +59,8 @@ export type ContextMenuState = {
   kind: RowKind
   ids: string[]
   due?: string
+  allInToday?: boolean
+  allDone?: boolean
 }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
@@ -68,6 +70,7 @@ export default function ContextMenu({
   onClose,
   onDelete,
   onSetDue,
+  onSetToday,
   onSetPriority,
   onSetStage,
   onSetStepCompleted,
@@ -76,7 +79,8 @@ export default function ContextMenu({
   onClose: () => void
   onDelete: () => void
   onSetDue: (due?: string) => void
-  onSetPriority: (priority?: Priority) => void
+  onSetToday: (added: boolean) => void
+  onSetPriority: (priority: Priority) => void
   onSetStage: (stage: Stage) => void
   onSetStepCompleted: (completed: boolean) => void
 }) {
@@ -97,16 +101,17 @@ export default function ContextMenu({
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [onClose])
 
-  const stageItem = (stages: Stage[], action: (stage: Stage) => void): MenuItem => ({
-    label: 'Set stage',
-    submenu: stages.map((stage) => ({
-      label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
-      action: () => action(stage),
-    })),
-  })
-
   const taskItems: MenuItem[] = [
-    stageItem(STAGES, onSetStage),
+    menu.allInToday
+      ? { label: '☀️ Remove from Today', action: () => onSetToday(false) }
+      : { label: '☀️ Add to Today', action: () => onSetToday(true) },
+    {
+      label: 'Set stage',
+      submenu: STAGES.map((stage) => ({
+        label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
+        action: () => onSetStage(stage),
+      })),
+    },
     {
       label: 'Set due date',
       submenu: [
@@ -118,11 +123,10 @@ export default function ContextMenu({
     },
     {
       label: 'Set priority',
-      submenu: [
-        { label: 'Low', action: () => onSetPriority('low') },
-        { label: 'Medium', action: () => onSetPriority(undefined) },
-        { label: 'High', action: () => onSetPriority('high') },
-      ],
+      submenu: PRIORITIES.map((priority) => ({
+        label: PRIORITY_LABELS[priority].emoji + ' ' + PRIORITY_LABELS[priority].label,
+        action: () => onSetPriority(priority),
+      })),
     },
   ]
 
@@ -159,7 +163,7 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className="fixed z-50 w-44 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+        className="fixed z-50 w-52 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
@@ -174,7 +178,9 @@ export default function ContextMenu({
         {menu.kind === RowKind.Step && (
           <>
             {renderItems([
-              stageItem(['open', 'done'], (stage) => onSetStepCompleted(stage === 'done')),
+              menu.allDone
+                ? { label: 'Mark as open', action: () => onSetStepCompleted(false) }
+                : { label: 'Mark as done', action: () => onSetStepCompleted(true) },
             ])}
             <hr className="my-1 border-gray-200" />
           </>

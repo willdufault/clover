@@ -8,17 +8,21 @@ const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
 const STAGES = '⬜ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
+const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string) => {
+  await user.click(screen.getByLabelText('Sort'))
+  await user.click(screen.getByRole('button', { name: criteria }))
+}
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🔵).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
-  within(root).queryAllByRole('button').filter((button) => !/^[✕×›]$/.test(button.textContent ?? ''))
+  within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
 const lists = () =>
   within(nav())
     .getAllByRole('button')
-    .map((button) => (button.textContent ?? '').replace(/\d+$/, ''))
+    .map((button) => (button.textContent ?? '').replace(/\d+$/, '').replace(/^⚌ /, ''))
     .filter((text) => !text.startsWith('+'))
 const row = (name: string, root: HTMLElement = main()) =>
   rowsIn(root).find((rowElement) => rowName(rowElement) === name)!
@@ -30,7 +34,7 @@ const removeDue = () => within(aside()).getByText('×')
 type User = ReturnType<typeof userEvent.setup>
 const submenuClick = async (user: User, parent: string, leaf: string) => {
   await user.hover(screen.getByText(parent))
-  fireEvent.click(screen.getByText(leaf))
+  fireEvent.click(screen.getByText(leaf, { selector: 'button' }))
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
 const menuAction = async (user: User, element: HTMLElement, action: 'Delete') => {
@@ -64,7 +68,7 @@ test('add a task and set its stage from the row', async () => {
   const stage = stageSelect('Bread')
   await user.selectOptions(stage, 'done')
   expect(stage).toHaveDisplayValue('✅ Done')
-  expect(tasks()).toEqual(['Milk', 'Eggs', 'Bread'])
+  expect(tasks()).toEqual(['Bread', 'Milk', 'Eggs'])
 
   await user.selectOptions(stage, 'inProgress')
   expect(stage).toHaveDisplayValue('⚡ In progress')
@@ -361,11 +365,11 @@ describe('due dates', () => {
     setDue(yesterday.toISOString().slice(0, 10))
     expect(side.getByText('Yesterday')).toBeInTheDocument()
     setDue(today())
-    expect(side.getByText('Today')).toBeInTheDocument()
+    expect(side.getByText('Today', { selector: 'p' })).toBeInTheDocument()
     setDue(tomorrow())
     expect(side.getByText('Tomorrow')).toBeInTheDocument()
     setDue('2099-01-01')
-    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/)).toBeNull()
+    expect(side.queryByText(/^(Yesterday|Today|Tomorrow)$/, { selector: 'p' })).toBeNull()
   })
 
   test('steps show no due subtext', async () => {
@@ -413,58 +417,48 @@ describe('due dates', () => {
 describe('priority', () => {
   test('sidebar select sets priority, row shows it, medium clears it', async () => {
     const { user } = setup()
-    await pick(user, 'Medium', '🔴 High')
-    expect(within(main()).getByText('🔴 High priority')).toBeInTheDocument()
-    await pick(user, '🔴 High', '🔵 Low')
-    expect(within(main()).getByText('🔵 Low priority')).toBeInTheDocument()
-    await pick(user, '🔵 Low', 'Medium')
-    expect(screen.queryByText(/priority$/)).toBeNull()
+    await pick(user, '🟡 Medium', '🔴 High')
+    expect(within(main()).getByText('🔴 High')).toBeInTheDocument()
+    await pick(user, '🔴 High', '🟢 Low')
+    expect(within(main()).getByText('🟢 Low')).toBeInTheDocument()
+    await pick(user, '🟢 Low', '🟡 Medium')
+    expect(within(main()).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 
   test('context menu sets and clears priority', async () => {
     const { user } = setup()
     await rightClick(user, within(main()).getByText('Milk'))
-    await submenuClick(user, 'Set priority', 'High')
-    expect(screen.getByText('🔴 High priority')).toBeInTheDocument()
+    await submenuClick(user, 'Set priority', '🔴 High')
+    expect(within(main()).getByText('🔴 High')).toBeInTheDocument()
     await rightClick(user, within(main()).getByText('Milk'))
     await user.hover(screen.getByText('Set priority'))
-    fireEvent.click(screen.getAllByText('Medium').at(-1)!)
-    expect(screen.queryByText(/priority$/)).toBeNull()
+    fireEvent.click(screen.getByText('🟡 Medium', { selector: 'button' }))
+    expect(within(main()).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 
   test('steps show no priority', async () => {
     const { user } = setup()
-    await pick(user, 'Medium', '🔴 High')
-    expect(within(row('2% lactose free', aside())).queryByText(/priority$/)).toBeNull()
+    await pick(user, '🟡 Medium', '🔴 High')
+    expect(within(row('2% lactose free', aside())).queryByText(/^(🔴|🟢) /)).toBeNull()
   })
 })
 
 describe('stage', () => {
-  test('closing a task moves it right after the last open task', async () => {
-    const { user } = setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Review PR'), 'done')
-    await user.selectOptions(stageSelect('Reply to emails'), 'cancelled')
-    expect(tasks()).toEqual(['Update docs', 'Reply to emails', 'Review PR'])
-  })
-
-  test('reopening a task moves it to the bottom of the open section', async () => {
+  test('closing and reopening a task keeps position', async () => {
     const { user } = setup()
     await user.click(within(nav()).getByText('Work'))
     await user.selectOptions(stageSelect('Reply to emails'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'done')
-    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
     await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
-    expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
   })
 
-  test('switching from done to cancelled keeps position', async () => {
+  test('toggling a step keeps position', async () => {
     const { user } = setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'done')
-    await user.selectOptions(stageSelect('Update docs'), 'cancelled')
-    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'Oat')
+    await toggle(user, '2% lactose free', aside())
+    expect(steps()).toEqual(['2% lactose free', 'Oat'])
   })
 
   test('switching between open stages keeps position', async () => {
@@ -475,13 +469,6 @@ describe('stage', () => {
     expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
   })
 
-
-  test('closing a task in All moves it after the last open task across lists', async () => {
-    const { user } = setup()
-    await user.click(within(nav()).getByText('📋 All'))
-    await user.selectOptions(stageSelect('Milk'), 'done')
-    expect(tasks()).toEqual(['Eggs', 'Reply to emails', 'Update docs', 'Review PR', 'Milk'])
-  })
 
   test('steps have no stage select', async () => {
     const { user } = setup()
@@ -495,7 +482,7 @@ describe('task fields', () => {
     await user.click(within(main()).getByText('Milk'))
     setDue('2000-01-01')
     await user.selectOptions(stageSelect('Milk'), 'inProgress')
-    await user.selectOptions(within(aside()).getByDisplayValue('Medium'), '🔴 High')
+    await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
   }
 
   test('remove due date button is hidden without a due date and clears it', async () => {
@@ -511,7 +498,7 @@ describe('task fields', () => {
   test('row subtext order is count, due, priority', async () => {
     const { user } = setup()
     await setAll(user)
-    expect(row('Milk')).toHaveTextContent(/0\/1.*📅 Sat Jan 1.*🔴 High priority/)
+    expect(row('Milk')).toHaveTextContent(/0\/1.*📅 Sat Jan 1.*🔴 High/)
   })
 
   test('fields survive rename', async () => {
@@ -522,7 +509,7 @@ describe('task fields', () => {
     const oat = within(row('Oat'))
     expect(oat.getByText(/^📅 /)).toBeInTheDocument()
     expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
-    expect(oat.getByText('🔴 High priority')).toBeInTheDocument()
+    expect(oat.getByText('🔴 High')).toBeInTheDocument()
   })
 
   test('sidebar shows the selected task own values', async () => {
@@ -530,7 +517,7 @@ describe('task fields', () => {
     await setAll(user)
     await user.click(within(main()).getByText('Eggs'))
     expect(dueInput()).toHaveValue('')
-    expect(within(aside()).getByDisplayValue('Medium')).toBeInTheDocument()
+    expect(within(aside()).getByDisplayValue('🟡 Medium')).toBeInTheDocument()
   })
 
   // Stage select options share the menu's labels, so take the last match (the menu renders last).
@@ -539,19 +526,38 @@ describe('task fields', () => {
     fireEvent.click(screen.getAllByText(label).at(-1)!)
   }
 
-  test('step context menu has Set stage and Delete', async () => {
+  test('step context menu has Mark as done and Delete', async () => {
     const { user } = setup()
     await user.click(within(main()).getByText('Milk'))
     await rightClick(user, screen.getByText('2% lactose free'))
     expect(screen.queryByText('Rename')).toBeNull()
-    expect(screen.getByText('Set stage')).toBeInTheDocument()
-    expect(screen.getByText('Delete')).toBeInTheDocument()
+    expect(screen.queryByText('Set stage')).toBeNull()
     expect(screen.queryByText('Set due date')).toBeNull()
     expect(screen.queryByText('Set priority')).toBeNull()
-    await user.hover(screen.getByText('Set stage'))
-    expect(screen.queryByText('⚡ In progress', { selector: 'button' })).toBeNull()
-    expect(screen.getByText('⬜ Open', { selector: 'button' })).toBeInTheDocument()
-    expect(screen.getByText('✅ Done', { selector: 'button' })).toBeInTheDocument()
+    expect(screen.queryByText('Mark as open')).toBeNull()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
+    await user.click(screen.getByText('Mark as done'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
+    await rightClick(user, screen.getByText('2% lactose free'))
+    expect(screen.queryByText('Mark as done')).toBeNull()
+    await user.click(screen.getByText('Mark as open'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).not.toBeChecked()
+  })
+
+  test('step menu shows Mark as done unless every selected step is done', async () => {
+    const { user } = setup()
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'Oat')
+    await toggle(user, 'Oat', aside())
+    await user.click(row('2% lactose free', aside()))
+    await user.keyboard('{Control>}')
+    await user.click(row('Oat', aside()))
+    await user.keyboard('{/Control}')
+    await rightClick(user, row('Oat', aside()))
+    await user.click(screen.getByText('Mark as done'))
+    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
+    await rightClick(user, row('Oat', aside()))
+    expect(screen.getByText('Mark as open')).toBeInTheDocument()
   })
 
   test('task context menu sets stage on all selected tasks', async () => {
@@ -567,24 +573,6 @@ describe('task fields', () => {
     await pickStage(user, '⏳ Waiting')
     expect(stageSelect('Milk')).toHaveDisplayValue('⏳ Waiting')
     expect(stageSelect('Eggs')).toHaveDisplayValue('⏳ Waiting')
-  })
-
-  test('step context menu sets done, and is a no-op when unchanged', async () => {
-    const { user } = setup()
-    await user.click(within(main()).getByText('Milk'))
-    const checkbox = () => within(row('2% lactose free', aside())).getByRole('checkbox')
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '⬜ Open')
-    expect(checkbox()).not.toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '✅ Done')
-    expect(checkbox()).toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '✅ Done')
-    expect(checkbox()).toBeChecked()
-    await rightClick(user, screen.getByText('2% lactose free'))
-    await pickStage(user, '⬜ Open')
-    expect(checkbox()).not.toBeChecked()
   })
 
   test('step toggle and delete leave a same-named task unchanged', async () => {
@@ -613,32 +601,110 @@ test('adding in Today creates a task visible in Today and All', async () => {
   expect(screen.queryByText('Now')).not.toBeInTheDocument()
 })
 
-test('Today shows overdue and due-today tasks but not others', async () => {
+test('Today shows only tasks added to Today, not overdue or due-today ones', async () => {
   const { user } = setup()
-  const due = async (name: string, value: string) => {
-    await user.click(screen.getByText(name))
-    setDue(value)
-  }
-  await due('Milk', '2000-01-01')
-  await due('Eggs', tomorrow())
+  await user.click(screen.getByText('Milk'))
+  setDue('2000-01-01')
+  await user.click(screen.getByText('Eggs'))
+  setDue(today())
   await user.click(within(nav()).getByText('Work'))
-  await due('Review PR', today())
+  await user.click(screen.getByText('Reply to emails'))
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('☀️ Today'))
-  const view = within(main())
-  expect(view.getByText('Milk')).toBeInTheDocument()
-  expect(view.getByText('Review PR')).toBeInTheDocument()
-  expect(view.queryByText('Eggs')).toBeNull()
-  expect(view.queryByText('Update docs')).toBeNull()
+  expect(tasks()).toEqual(['Reply to emails'])
+})
+
+test('task added to Today shows "☀️ Today" first in its subtext', async () => {
+  const { user } = setup()
+  await user.click(within(nav()).getByText('Work'))
+  await user.click(screen.getByText('Reply to emails'))
+  setDue(today())
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
+  expect(row('Reply to emails').textContent).toMatch(/☀️ Today.*📅/)
+})
+
+describe('Add to Today', () => {
+  test('context menu adds and removes', async () => {
+    const { user } = setup()
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await user.click(within(nav()).getByText('☀️ Today'))
+    expect(tasks()).toEqual(['Milk'])
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getByText('☀️ Remove from Today'))
+    expect(tasks()).toEqual([])
+  })
+
+  test('mixed selection offers Add, all-in-Today offers Remove', async () => {
+    const { user } = setup()
+    await rightClick(user, row('Milk'))
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await user.click(row('Milk'))
+    await user.keyboard('{Control>}')
+    await user.click(row('Eggs'))
+    await user.keyboard('{/Control}')
+    await rightClick(user, row('Eggs'))
+    expect(screen.queryByText('☀️ Remove from Today')).toBeNull()
+    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+    await rightClick(user, row('Eggs'))
+    expect(screen.getByText('☀️ Remove from Today')).toBeInTheDocument()
+    await user.click(screen.getByText('☀️ Remove from Today'))
+    await user.click(within(nav()).getByText('☀️ Today'))
+    expect(tasks()).toEqual([])
+  })
+
+  test('detail pane adds and removes with ×', async () => {
+    const { user } = setup()
+    await user.click(row('Milk'))
+    await user.click(within(aside()).getByText('☀️ Add to Today'))
+    expect(within(aside()).getByText('☀️ Added to Today')).toBeInTheDocument()
+    expect(nav()).toHaveTextContent(/^☀️ Today1/)
+    await user.click(within(aside()).getByLabelText('Remove from Today'))
+    expect(within(aside()).queryByText('☀️ Added to Today')).toBeNull()
+    expect(nav()).toHaveTextContent(/^☀️ Today📋/)
+  })
+})
+
+describe('sort', () => {
+  test('sorts the visible tasks by each criterion', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await user.selectOptions(stageSelect('Review PR'), 'inProgress')
+    await sortBy(user, 'Stage')
+    expect(tasks()).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
+
+    await user.click(row('Update docs'))
+    setDue('2026-05-01')
+    await user.click(row('Reply to emails'))
+    setDue('2026-01-01')
+    await sortBy(user, 'Due date')
+    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
+
+    await user.click(row('Review PR'))
+    await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
+    await sortBy(user, 'Priority')
+    expect(tasks()).toEqual(['Review PR', 'Reply to emails', 'Update docs'])
+  })
+
+  test('sorting a list leaves other lists in place', async () => {
+    const { user } = setup()
+    await user.click(within(nav()).getByText('Work'))
+    await user.selectOptions(stageSelect('Reply to emails'), 'done')
+    await sortBy(user, 'Stage')
+    await user.click(within(nav()).getByText('📋 All'))
+    expect(tasks()).toEqual(['Milk', 'Eggs', 'Update docs', 'Review PR', 'Reply to emails'])
+  })
 })
 
 describe('sidebar counts', () => {
   test('shown, hidden at 0, and updated on add/delete', async () => {
     const { user } = setup()
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
     await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6Groceries3Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All6⚌ Groceries3⚌ Work3⚌ Home$/)
     await menuAction(user, within(main()).getByText('Bread'), 'Delete')
-    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5Groceries2Work3Home$/)
+    expect(nav()).toHaveTextContent(/^☀️ Today📋 All5⚌ Groceries2⚌ Work3⚌ Home$/)
   })
 })
 
@@ -674,8 +740,8 @@ describe('multi-select', () => {
     expect(screen.queryByText('Rename')).toBeNull()
     await submenuClick(user, 'Set due date', 'Today')
     await rightClick(user, row('Eggs'))
-    await submenuClick(user, 'Set priority', 'High')
-    expect(within(main()).getAllByText('🔴 High priority')).toHaveLength(2)
+    await submenuClick(user, 'Set priority', '🔴 High')
+    expect(within(main()).getAllByText('🔴 High')).toHaveLength(2)
     expect(within(main()).getAllByText(/📅/)).toHaveLength(2)
     expect(row('Milk')).toHaveClass('bg-gray-100')
   })
@@ -787,13 +853,13 @@ test('Escape in the add-step input or with the context menu open keeps the panel
 test('a task that left the view is not deleted with the selection', async () => {
   const { user } = setup()
   await user.click(screen.getByText('Milk'))
-  setDue('2000-01-01')
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('Work'))
   await user.click(screen.getByText('Review PR'))
-  setDue(today())
+  await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('☀️ Today'))
   await user.click(within(main()).getByText('Milk'))
-  await user.click(removeDue())
+  await user.click(within(aside()).getByLabelText('Remove from Today'))
   expect(tasks()).toEqual(['Review PR'])
   await user.keyboard('{Control>}')
   await user.click(within(main()).getByText('Review PR'))

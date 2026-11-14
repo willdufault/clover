@@ -12,6 +12,9 @@ export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
 export const STAGES = Object.keys(STAGE_LABELS) as Stage[]
 
 export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }> = {
-  low: { emoji: '🔵', label: 'Low' },
   high: { emoji: '🔴', label: 'High' },
+  medium: { emoji: '🟡', label: 'Medium' },
+  low: { emoji: '🟢', label: 'Low' },
 }
+
+export const PRIORITIES = Object.keys(PRIORITY_LABELS) as Priority[]

@@ -3,7 +3,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITY_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS } from '../labels'
+import { isCompleted } from '../stages'
 import { FIELD_CLASS, TITLE_RENAME_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
@@ -23,6 +24,7 @@ export default function TaskDetailPane({
   onToggleStep,
   onDeleteStep,
   onSetDue,
+  onSetToday,
   onSetPriority,
   onSetStage,
   onContextMenu,
@@ -37,7 +39,8 @@ export default function TaskDetailPane({
   onToggleStep: (id: string) => void
   onDeleteStep: (id: string) => void
   onSetDue: (id: string, due?: string) => void
-  onSetPriority: (id: string, priority?: Priority) => void
+  onSetToday: (id: string, added: boolean) => void
+  onSetPriority: (id: string, priority: Priority) => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
@@ -90,8 +93,7 @@ export default function TaskDetailPane({
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-gray-200 bg-gray-100">
-      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] p-3">
-      <div className="flex items-center gap-3">
+      <div className="flex select-none items-center gap-3 m-3 mb-0 rounded-md bg-white px-4 py-3">
         <StageSelect
           value={task.stage}
           onChange={(stage) => onSetStage(task.id, stage)}
@@ -101,11 +103,17 @@ export default function TaskDetailPane({
           tag="h2"
           text={task.text}
           onCommit={(name) => onRename(RowKind.Task, task.id, name)}
-          className="w-fit max-w-full break-words font-semibold text-gray-800"
+          className={
+            'w-fit max-w-full break-words font-semibold ' +
+            (isCompleted(task.stage)
+              ? 'text-gray-400 line-through'
+              : 'text-gray-800')
+          }
           inputClassName={TITLE_RENAME_CLASS}
         />
       </div>
 
+      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-3">
       <SortableContext
         items={task.steps}
         strategy={verticalListSortingStrategy}
@@ -121,15 +129,39 @@ export default function TaskDetailPane({
 
       <AddInput placeholder="+ New step" onAdd={onAddStep} />
 
+      <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Today</h3>
+      {task.addedToToday ? (
+        <div className={FIELD_CLASS + ' flex items-center justify-between'}>
+          <span>☀️ Added to Today</span>
+          <button
+            onClick={() => onSetToday(task.id, false)}
+            aria-label="Remove from Today"
+            className="flex h-4 w-4 items-center justify-center self-center text-sm leading-none text-gray-400 hover:text-red-600"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onSetToday(task.id, true)}
+          className={FIELD_CLASS + ' text-left'}
+        >
+          ☀️ Add to Today
+        </button>
+      )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Due date</h3>
-      <div className="flex items-center gap-2">
+      <div
+        className={
+          FIELD_CLASS +
+          ' flex items-center gap-2 focus-within:border-blue-500' +
+          (task.due && isOverdue(task.due) ? ' text-red-600' : '')
+        }
+      >
         <input
           type="date"
           value={task.due ?? ''}
           onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
-          className={
-            FIELD_CLASS + (task.due && isOverdue(task.due) ? ' text-red-600' : '')
-          }
+          className="min-w-0 flex-1 bg-transparent outline-none"
         />
         {task.due && (
           <button
@@ -146,22 +178,15 @@ export default function TaskDetailPane({
         )}
       <h3 className="mt-4 mb-1 text-xs font-medium text-gray-500">Priority</h3>
       <select
-        value={task.priority ?? ''}
-        onChange={(event) =>
-          onSetPriority(
-            task.id,
-            (event.target.value || undefined) as Priority | undefined,
-          )
-        }
+        value={task.priority}
+        onChange={(event) => onSetPriority(task.id, event.target.value as Priority)}
         className={FIELD_CLASS}
       >
-        <option value="low">
-          {PRIORITY_LABELS.low.emoji} {PRIORITY_LABELS.low.label}
-        </option>
-        <option value="">Medium</option>
-        <option value="high">
-          {PRIORITY_LABELS.high.emoji} {PRIORITY_LABELS.high.label}
-        </option>
+        {PRIORITIES.map((priority) => (
+          <option key={priority} value={priority}>
+            {PRIORITY_LABELS[priority].emoji} {PRIORITY_LABELS[priority].label}
+          </option>
+        ))}
       </select>
       </div>
       <div className="shrink-0 px-3 pb-3">
