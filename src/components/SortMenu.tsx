@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SortCriteria } from '../sort'
-import { MENU_CLASS, MENU_ITEM_CLASS } from '../styles'
+import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
 
 const OPTIONS: [SortCriteria, string][] = [
   ['stage', 'Stage'],
@@ -22,8 +22,8 @@ export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void 
       {open && (
         <>
           <div className="fixed inset-0" onClick={() => setOpen(false)} />
-          <div className={"absolute left-0 z-50 mt-2 w-44 " + MENU_CLASS}>
-            <p className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.07em] text-ink-soft uppercase">Sort by</p>
+          <div className={'absolute left-0 z-50 mt-2 w-44 ' + MENU_CLASS}>
+            <p className={MENU_LABEL_CLASS}>Sort by</p>
             {OPTIONS.map(([criteria, label]) => (
               <button
                 key={criteria}

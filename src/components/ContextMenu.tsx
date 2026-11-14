@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
-import { MENU_CLASS, MENU_ITEM_CLASS } from '../styles'
+import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
 import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 208
@@ -34,7 +34,7 @@ function SubmenuRow({
       }}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className={"flex justify-between text-ink " + MENU_ITEM_CLASS}>
+      <button className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}>
         <span>{item.label}</span>
         <svg viewBox="0 0 16 16" className="size-3.5 self-center text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4" /></svg>
       </button>
@@ -164,14 +164,14 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className={"fixed z-50 w-52 " + MENU_CLASS}
+        className={'fixed z-50 w-52 ' + MENU_CLASS}
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
         }}
       >
         {menu.ids.length > 1 && (
-          <p className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.07em] text-ink-soft uppercase">
+          <p className={MENU_LABEL_CLASS}>
             {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}
           </p>
         )}

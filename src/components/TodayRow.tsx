@@ -19,7 +19,7 @@ export function TodayRow({
     <div
       ref={setNodeRef}
       onClick={onClick}
-      className={'border-b border-transparent ' + sidebarRowClass(selected, dragOver)}
+      className={sidebarRowClass(selected, dragOver)}
     >
       <span>{TODAY_LIST_NAME}</span>
       <TaskCountBadge count={count} />

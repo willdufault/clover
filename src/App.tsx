@@ -259,7 +259,7 @@ export default function App() {
         setDragOverListId(null)
       }}
     >
-      <div className="flex h-screen overflow-hidden flex-col bg-milk font-sans text-ink">
+      <div className="flex h-screen overflow-hidden flex-col font-sans">
         <div className="flex flex-1 min-h-0">
           <ListSidebar
             lists={lists}
@@ -306,7 +306,7 @@ export default function App() {
       </div>
       <DragOverlay>
         {activeDrag && (
-          <div className="cursor-default select-none rounded-xl border border-clover-200 bg-paper px-3.5 py-2 text-sm text-ink shadow-[0_12px_32px_-8px_rgba(84,66,30,0.25)]">
+          <div className="cursor-default select-none rounded-xl border border-clover-200 bg-paper px-3.5 py-2 text-sm text-ink shadow-pop">
             {activeDrag.text}
           </div>
         )}

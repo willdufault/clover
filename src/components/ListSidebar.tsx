@@ -30,10 +30,10 @@ export default function ListSidebar({
 }) {
   return (
     <div className="flex w-64 shrink-0 flex-col bg-sprout">
-    <div className="flex items-center gap-2 px-6 pt-7 pb-5">
-      <span className="flex size-8 items-center justify-center rounded-xl bg-paper text-base shadow-[0_2px_8px_-3px_rgba(84,66,30,0.2)]">🍀</span>
-      <span className="text-lg font-semibold tracking-tight text-ink">clover</span>
-    </div>
+      <div className="flex items-center gap-2 px-6 pt-7 pb-5">
+        <span className="flex size-8 items-center justify-center rounded-xl bg-paper text-base shadow-soft">🍀</span>
+        <span className="text-lg font-semibold tracking-tight text-ink">clover</span>
+      </div>
     <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
       <TodayRow
         count={tasksInList(tasks, TODAY_LIST_ID).length}
@@ -59,10 +59,7 @@ export default function ListSidebar({
             tag="div"
             onClick={() => onSelectList(list.id)}
             onContextMenu={onContextMenu(RowKind.List, list.id)}
-            className={
-              'border-b border-transparent ' +
-              sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)
-            }
+            className={sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)}
           >
             <span className="min-w-0 truncate"><span>{list.emoji ?? '📝'} </span>{list.name}</span>
             <TaskCountBadge count={tasksInList(tasks, list.id).length} />

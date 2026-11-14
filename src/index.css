@@ -19,8 +19,10 @@
   --color-clover-200: #c7e2b3;
   --color-clover-400: #86c06a;
   --color-clover-500: #5e9f45;
-  --color-clover-600: #4c8537;
   --color-clover-700: #3a6a2a;
+
+  --shadow-soft: 0 2px 8px -3px rgba(84, 66, 30, 0.2);
+  --shadow-pop: 0 12px 32px -8px rgba(84, 66, 30, 0.25);
 }
 
 body {
@@ -47,7 +49,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.45;
   cursor: pointer;
 }
-
 
 .check {
   appearance: none;
@@ -79,9 +80,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .pane-in { animation: none; }
 }
 
-button:focus-visible,
-select:focus-visible + *,
-[role="button"]:focus-visible {
+button:focus-visible {
   outline: 2px solid var(--color-clover-500);
   outline-offset: 2px;
 }

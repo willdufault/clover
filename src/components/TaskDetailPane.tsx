@@ -44,7 +44,6 @@ export default function TaskDetailPane({
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
 }) {
-
   const stepRow = (step: Step) => (
     <SortableRow
       key={step.id}
@@ -98,7 +97,7 @@ export default function TaskDetailPane({
         <button
           onClick={onClose}
           aria-label="Close panel"
-          className={X_BUTTON_CLASS + " mt-0.5 -mr-1.5"}
+          className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
         >
           ✕
         </button>
@@ -132,16 +131,17 @@ export default function TaskDetailPane({
           onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
           className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
         />
-        {!task.due && (
+        {task.due ? (
+          <>
+            {relativeDayLabel(task.due) && (
+              <span className={'shrink-0 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</span>
+            )}
+            <button onClick={() => onSetDue(task.id)} className={X_BUTTON_CLASS + ' text-ink-soft'}>
+              ×
+            </button>
+          </>
+        ) : (
           <span className="pointer-events-none absolute left-3.5 text-ink-faint group-focus-within:hidden">No due date</span>
-        )}
-        {task.due && relativeDayLabel(task.due) && (
-          <span className={'shrink-0 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</span>
-        )}
-        {task.due && (
-          <button onClick={() => onSetDue(task.id)} className={X_BUTTON_CLASS}>
-            ×
-          </button>
         )}
       </div>
       {task.addedToToday ? (
@@ -150,7 +150,7 @@ export default function TaskDetailPane({
           <button
             onClick={() => onSetToday(task.id, false)}
             aria-label="Remove from Today"
-            className={X_BUTTON_CLASS + " text-clover-700"}
+            className={X_BUTTON_CLASS + ' text-clover-700'}
           >
             ×
           </button>
@@ -187,16 +187,15 @@ export default function TaskDetailPane({
           </option>
         ))}
       </select>
-
       </div>
       <div className="shrink-0 border-t border-line px-4 py-2.5">
-      <button
-            onClick={onDeleteTask}
-            className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-[#fbe9e3] hover:text-coral"
-          >
-            <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
-            Delete task
-          </button>
+        <button
+          onClick={onDeleteTask}
+          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-[#fbe9e3]"
+        >
+          <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
+          Delete task
+        </button>
       </div>
     </aside>
   )

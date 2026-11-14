@@ -817,7 +817,7 @@ test('+ New step adds below existing steps and keeps focus for the next', async 
   expect(input).toHaveFocus()
 })
 
-test('+ New list keeps focus for the next list; lists have dividers', async () => {
+test('+ New list keeps focus for the next list', async () => {
   const { user } = setup()
   await newList(user, 'A')
   const input = screen.getByPlaceholderText('+ New list')
@@ -825,7 +825,6 @@ test('+ New list keeps focus for the next list; lists have dividers', async () =
   await user.keyboard('B{Enter}C{Enter}{Enter}')
   expect(lists()).toEqual(['Groceries', 'Work', 'Home', 'A', 'B', 'C'])
   expect(input).toHaveFocus()
-  expect(screen.getByText('Work').closest('div')).toHaveClass('border-b')
 })
 
 test('sidebar has no hr above + New list', () => {
