@@ -141,7 +141,7 @@ export default function TaskPane({
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
         {tasks.length > 0 && (
-          <ul className="mt-5 w-full overflow-hidden rounded-[22px] border border-line bg-paper shadow-[0_8px_24px_-14px_rgba(84,66,30,0.25)]">{tasks.map(taskRow)}</ul>
+          <ul className="mt-5 w-full overflow-hidden rounded-xl border border-line bg-paper shadow-[0_8px_24px_-14px_rgba(84,66,30,0.25)]">{tasks.map(taskRow)}</ul>
         )}
       </SortableContext>
 
@@ -150,7 +150,7 @@ export default function TaskPane({
       )}
 
       {tasks.length === 0 && (
-        <p className="mt-6 rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">No tasks yet. Add one above.</p>
+        <p className="mt-6 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">No tasks yet. Add one above.</p>
       )}
       </div>
     </main>

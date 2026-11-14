@@ -30,45 +30,47 @@ export default function ListSidebar({
 }) {
   return (
     <div className="flex w-64 shrink-0 flex-col bg-sprout">
-      <div className="flex items-center gap-2 px-6 pt-7 pb-5">
-        <span className="flex size-8 items-center justify-center rounded-xl bg-paper text-base shadow-soft">🍀</span>
-        <span className="text-lg font-semibold tracking-tight text-ink">clover</span>
+      <div className="overflow-hidden [scrollbar-gutter:stable] px-3 pt-6 pb-4">
+        <div className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2 text-lg font-semibold tracking-tight text-ink shadow-soft">
+          <span>🍀</span>
+          <span>clover</span>
+        </div>
       </div>
-    <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
-      <TodayRow
-        count={tasksInList(tasks, TODAY_LIST_ID).length}
-        selected={selectedListId === TODAY_LIST_ID}
-        dragOver={dragOverListId === TODAY_LIST_ID}
-        onClick={() => onSelectList(TODAY_LIST_ID)}
-      />
-      <div
-        onClick={() => onSelectList(ALL_LIST_ID)}
-        className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
-      >
-        <span>{ALL_LIST_NAME}</span>
-        <TaskCountBadge count={tasksInList(tasks, ALL_LIST_ID).length} />
-      </div>
-      <hr className="mx-3 my-3 border-sprout-deep" />
-      <SortableContext items={lists} strategy={verticalListSortingStrategy}>
-        {lists.map((list) => (
-          <SortableRow
-            key={list.id}
-            id={list.id}
-            kind={RowKind.List}
-            text={list.name}
-            tag="div"
-            onClick={() => onSelectList(list.id)}
-            onContextMenu={onContextMenu(RowKind.List, list.id)}
-            className={sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)}
-          >
-            <span className="min-w-0 truncate"><span>{list.emoji ?? '📝'} </span>{list.name}</span>
-            <TaskCountBadge count={tasksInList(tasks, list.id).length} />
-          </SortableRow>
-        ))}
-      </SortableContext>
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
+        <TodayRow
+          count={tasksInList(tasks, TODAY_LIST_ID).length}
+          selected={selectedListId === TODAY_LIST_ID}
+          dragOver={dragOverListId === TODAY_LIST_ID}
+          onClick={() => onSelectList(TODAY_LIST_ID)}
+        />
+        <div
+          onClick={() => onSelectList(ALL_LIST_ID)}
+          className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
+        >
+          <span>{ALL_LIST_NAME}</span>
+          <TaskCountBadge count={tasksInList(tasks, ALL_LIST_ID).length} />
+        </div>
+        <hr className="mx-3 my-3 border-sprout-deep" />
+        <SortableContext items={lists} strategy={verticalListSortingStrategy}>
+          {lists.map((list) => (
+            <SortableRow
+              key={list.id}
+              id={list.id}
+              kind={RowKind.List}
+              text={list.name}
+              tag="div"
+              onClick={() => onSelectList(list.id)}
+              onContextMenu={onContextMenu(RowKind.List, list.id)}
+              className={sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)}
+            >
+              <span className="min-w-0 truncate"><span>{list.emoji ?? '📝'} </span>{list.name}</span>
+              <TaskCountBadge count={tasksInList(tasks, list.id).length} />
+            </SortableRow>
+          ))}
+        </SortableContext>
 
-      <AddInput placeholder="+ New list" onAdd={onCreateList} className="mt-4" />
-    </nav>
+        <AddInput placeholder="+ New list" onAdd={onCreateList} className="mt-4" />
+      </nav>
     </div>
   )
 }
