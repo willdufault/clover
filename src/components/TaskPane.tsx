@@ -25,7 +25,6 @@ export default function TaskPane({
   onSort,
   onSelectTask,
   onClearSelection,
-  accent,
   onSetStage,
   onContextMenu,
   onRename,
@@ -39,7 +38,6 @@ export default function TaskPane({
   onSort: (criteria: SortCriteria) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
   onClearSelection: () => void
-  accent: string
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
@@ -140,7 +138,7 @@ export default function TaskPane({
           {tasks.length > 0 && (
             <span className="mr-2 flex items-center gap-2.5 text-sm font-medium text-ink-soft">
               <span className="h-2 w-24 overflow-hidden rounded-full" style={{ background: '#ebe1c4' }}>
-                <span className="block h-full rounded-full" style={{ width: `${(doneCount / tasks.length) * 100}%`, background: accent }} />
+                <span className="block h-full rounded-full bg-clover-500" style={{ width: `${(doneCount / tasks.length) * 100}%` }} />
               </span>
               {doneCount} of {tasks.length} done
             </span>

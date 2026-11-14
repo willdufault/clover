@@ -17,7 +17,6 @@ import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
-import { listColor } from './styles'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
@@ -282,7 +281,6 @@ export default function App() {
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
             onClearSelection={() => replaceTaskSelection([])}
-            accent={currentList ? listColor(lists.indexOf(currentList)) : 'var(--color-clover-500)'}
             onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
           />

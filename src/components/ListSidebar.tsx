@@ -2,7 +2,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { listColor, sidebarRowClass } from '../styles'
+import { sidebarRowClass } from '../styles'
 import { RowKind, type Task, type TaskList } from '../types'
 import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { TaskCountBadge } from './TaskCountBadge'
@@ -50,7 +50,7 @@ export default function ListSidebar({
       </div>
       <hr className="mx-3 my-3 border-sprout-deep" />
       <SortableContext items={lists} strategy={verticalListSortingStrategy}>
-        {lists.map((list, index) => (
+        {lists.map((list) => (
           <SortableRow
             key={list.id}
             id={list.id}
@@ -64,7 +64,7 @@ export default function ListSidebar({
               sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)
             }
           >
-            <span className="flex min-w-0 items-center gap-[5px]"><span className="flex w-4 shrink-0 items-center justify-center"><span className="size-3 rounded-[4px]" style={{ background: listColor(index) }} /></span><span className="truncate">{list.name}</span></span>
+            <span className="min-w-0 truncate"><span>{list.emoji ?? '📝'} </span>{list.name}</span>
             <TaskCountBadge count={tasksInList(tasks, list.id).length} />
           </SortableRow>
         ))}

@@ -27,10 +27,6 @@ export const sidebarRowClass = (selected: boolean, dragOver: boolean) => {
 export const dueDateClass = (due: string) =>
   'text-[13.5px] ' + (isOverdue(due) ? 'text-coral' : 'text-ink-soft')
 
-export const LIST_DOT_COLORS = ['#8fc575', '#f2b48c', '#b9a6e0', '#e8cf6a', '#8cc3dd', '#e99aa8']
-
 
 export const X_BUTTON_CLASS =
   'flex size-7 shrink-0 items-center justify-center rounded-full text-sm leading-none text-ink-soft transition hover:bg-black/5 hover:text-ink'
-
-export const listColor = (index: number) => LIST_DOT_COLORS[index % LIST_DOT_COLORS.length]
