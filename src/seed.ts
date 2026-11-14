@@ -1,9 +1,9 @@
 import type { Task, TaskList } from './types'
 
 export const SEED_LISTS: TaskList[] = [
-  { id: 'groceries', name: 'Groceries' },
-  { id: 'work', name: 'Work' },
-  { id: 'home', name: 'Home' },
+  { id: 'groceries', name: 'Groceries', emoji: '🛒' },
+  { id: 'work', name: 'Work', emoji: '💼' },
+  { id: 'home', name: 'Home', emoji: '🏠' },
 ]
 
 export const SEED_TASKS: Task[] = [

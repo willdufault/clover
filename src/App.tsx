@@ -260,9 +260,6 @@ export default function App() {
       }}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
-        <header className="flex h-12 shrink-0 items-center bg-gray-200 px-4">
-          <span className="font-semibold text-gray-800">🍀 clover</span>
-        </header>
         <div className="flex flex-1 min-h-0">
           <ListSidebar
             lists={lists}
@@ -283,6 +280,7 @@ export default function App() {
             onSort={sortList}
             selectedIds={selectedTaskIds}
             onSelectTask={selectTask}
+            onClearSelection={() => replaceTaskSelection([])}
             onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
           />
@@ -308,7 +306,7 @@ export default function App() {
       </div>
       <DragOverlay>
         {activeDrag && (
-          <div className="cursor-default select-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-lg">
+          <div className="cursor-default select-none rounded-xl border border-clover-200 bg-paper px-3.5 py-2 text-sm text-ink shadow-pop">
             {activeDrag.text}
           </div>
         )}

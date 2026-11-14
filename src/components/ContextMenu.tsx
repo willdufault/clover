@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
+import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
 import { RowKind, type Priority, type Stage } from '../types'
 
 const MENU_WIDTH = 208
@@ -33,16 +34,16 @@ function SubmenuRow({
       }}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className="flex w-full cursor-default justify-between px-3 py-1.5 text-left text-gray-700 hover:bg-gray-100">
+      <button className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}>
         <span>{item.label}</span>
-        <span>›</span>
+        <svg viewBox="0 0 16 16" className="size-3.5 self-center text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4" /></svg>
       </button>
       {open && (
         <div
           ref={panelRef}
           style={{ top: shift }}
           className={
-            'absolute w-52 rounded-md border border-gray-300 bg-white py-1 shadow-lg ' +
+            'absolute -mt-1 w-52 ' + MENU_CLASS + ' ' +
             (flip ? 'right-full' : 'left-full')
           }
         >
@@ -142,8 +143,8 @@ export default function ContextMenu({
             onClose()
           }}
           className={
-            'block w-full cursor-default px-3 py-1.5 text-left hover:bg-gray-100 ' +
-            (item.danger ? 'text-red-600' : 'text-gray-700')
+            'block ' + MENU_ITEM_CLASS + ' ' +
+            (item.danger ? 'text-coral' : 'text-ink')
           }
         >
           {item.label}
@@ -163,16 +164,21 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className="fixed z-50 w-52 rounded-md border border-gray-300 bg-white py-1 text-sm shadow-lg"
+        className={'fixed z-50 w-52 ' + MENU_CLASS}
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
         }}
       >
+        {menu.ids.length > 1 && (
+          <p className={MENU_LABEL_CLASS}>
+            {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}
+          </p>
+        )}
         {menu.kind === RowKind.Task && (
           <>
             {renderItems(taskItems)}
-            <hr className="my-1 border-gray-200" />
+            <hr className="mx-2 my-1 border-line" />
           </>
         )}
         {menu.kind === RowKind.Step && (
@@ -182,7 +188,7 @@ export default function ContextMenu({
                 ? { label: 'Mark as open', action: () => onSetStepCompleted(false) }
                 : { label: 'Mark as done', action: () => onSetStepCompleted(true) },
             ])}
-            <hr className="my-1 border-gray-200" />
+            <hr className="mx-2 my-1 border-line" />
           </>
         )}
         {renderItems([{ label: 'Delete', action: onDelete, danger: true }])}
