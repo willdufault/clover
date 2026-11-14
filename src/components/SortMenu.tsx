@@ -23,7 +23,7 @@ export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void 
         <>
           <div className="fixed inset-0" onClick={() => setOpen(false)} />
           <div className={"absolute left-0 z-50 mt-2 w-44 " + MENU_CLASS}>
-            <p className="px-3 pt-1.5 pb-1 text-xs font-medium text-ink-soft">Sort by</p>
+            <p className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.07em] text-ink-soft uppercase">Sort by</p>
             {OPTIONS.map(([criteria, label]) => (
               <button
                 key={criteria}

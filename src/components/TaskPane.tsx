@@ -125,7 +125,7 @@ export default function TaskPane({
 
   return (
     <main className="relative min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-8 pt-14 pb-10">
-      <svg viewBox="0 0 100 100" aria-hidden="true" className="pointer-events-none absolute right-10 bottom-8 size-44 text-clover-200/60">
+      <svg viewBox="0 0 100 100" aria-hidden="true" className="pointer-events-none fixed right-10 bottom-8 size-44 text-clover-200/60">
         <g fill="currentColor">
           <path d="M50 48C44 34 30 30 26 40s8 18 24 8Z" />
           <path d="M52 50c14-6 18-20 8-24s-18 8-8 24Z" />
@@ -179,7 +179,7 @@ export default function TaskPane({
       </SortableContext>
 
       {tasks.length > 1 && (
-        <p className="mt-2.5 px-5 text-[13px] text-ink-soft">Drag to reorder. Right-click a task for more actions.</p>
+        <p className="mt-2.5 pl-[15px] text-[13px] text-ink-soft">Drag to reorder. Right-click a task for more actions.</p>
       )}
 
       {tasks.length === 0 && (

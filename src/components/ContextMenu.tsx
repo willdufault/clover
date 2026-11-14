@@ -171,7 +171,7 @@ export default function ContextMenu({
         }}
       >
         {menu.ids.length > 1 && (
-          <p className="px-3 pt-1.5 pb-1 text-xs font-medium text-ink-soft">
+          <p className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.07em] text-ink-soft uppercase">
             {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}
           </p>
         )}
