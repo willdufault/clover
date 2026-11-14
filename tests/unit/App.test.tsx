@@ -7,7 +7,7 @@ const setup = () => ({ user: userEvent.setup(), ...render(<App />) })
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGES = '⚪ Open⚡ In progress⏳ Waiting✅ Done❌️ Cancelled'
+const STAGES = '⚪⚡⏳✅❌️'
 const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string) => {
   await user.click(screen.getByLabelText('Sort'))
   await user.click(screen.getByRole('button', { name: criteria }))
@@ -67,13 +67,13 @@ test('add a task and set its stage from the row', async () => {
 
   const stage = stageSelect('Bread')
   await user.selectOptions(stage, 'done')
-  expect(stage).toHaveDisplayValue('✅ Done')
+  expect(stage).toHaveDisplayValue('✅')
   expect(tasks()).toEqual(['Bread', 'Milk', 'Eggs'])
 
   await user.selectOptions(stage, 'inProgress')
-  expect(stage).toHaveDisplayValue('⚡ In progress')
+  expect(stage).toHaveDisplayValue('⚡')
   await user.selectOptions(stage, 'open')
-  expect(stage).toHaveDisplayValue('⚪ Open')
+  expect(stage).toHaveDisplayValue('⚪')
 })
 
 test('open side panel, add and toggle a step', async () => {
@@ -190,7 +190,7 @@ test('an edit made in a list is reflected in All', async () => {
   await user.selectOptions(stageSelect('Eggs'), 'done')
   await user.click(within(nav()).getByText('📋 All'))
   expect(screen.getByText('Oat milk')).toBeInTheDocument()
-  expect(stageSelect('Eggs')).toHaveDisplayValue('✅ Done')
+  expect(stageSelect('Eggs')).toHaveDisplayValue('✅')
 })
 
 test('deleting a list keeps its tasks in All', async () => {
@@ -508,7 +508,7 @@ describe('task fields', () => {
     await rename(user, within(aside()).getByRole('heading', { name: 'Milk' }), 'Oat')
     const oat = within(row('Oat'))
     expect(oat.getByText(/^📅 /)).toBeInTheDocument()
-    expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡ In progress')
+    expect(oat.getByRole('combobox')).toHaveDisplayValue('⚡')
     expect(oat.getByText('🔴 High')).toBeInTheDocument()
   })
 
@@ -564,15 +564,15 @@ describe('task fields', () => {
     const { user } = setup()
     await rightClick(user, within(main()).getByText('Milk'))
     await pickStage(user, '⚡ In progress')
-    expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⚡')
     await user.click(within(main()).getByText('Milk'))
     await user.keyboard('{Shift>}')
     await user.click(within(main()).getByText('Eggs'))
     await user.keyboard('{/Shift}')
     await rightClick(user, within(main()).getByText('Eggs'))
     await pickStage(user, '⏳ Waiting')
-    expect(stageSelect('Milk')).toHaveDisplayValue('⏳ Waiting')
-    expect(stageSelect('Eggs')).toHaveDisplayValue('⏳ Waiting')
+    expect(stageSelect('Milk')).toHaveDisplayValue('⏳')
+    expect(stageSelect('Eggs')).toHaveDisplayValue('⏳')
   })
 
   test('step toggle and delete leave a same-named task unchanged', async () => {
@@ -801,9 +801,9 @@ test('panel title stage select changes the task stage', async () => {
   const { user } = setup()
   await user.click(within(main()).getByText('Milk'))
   const select = within(aside()).getAllByRole('combobox')[0]
-  await user.selectOptions(select, '⚡ In progress')
-  expect(select).toHaveDisplayValue('⚡ In progress')
-  expect(stageSelect('Milk')).toHaveDisplayValue('⚡ In progress')
+  await user.selectOptions(select, 'inProgress')
+  expect(select).toHaveDisplayValue('⚡')
+  expect(stageSelect('Milk')).toHaveDisplayValue('⚡')
 })
 
 test('+ New step adds below existing steps and keeps focus for the next', async () => {
