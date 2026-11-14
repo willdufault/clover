@@ -13,7 +13,7 @@ const sortBy = async (user: ReturnType<typeof userEvent.setup>, criteria: string
   await user.click(screen.getByRole('button', { name: criteria }))
 }
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/^(⚪|✅)/, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)

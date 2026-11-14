@@ -11,7 +11,7 @@ import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
-import { StageSelect, StepToggle } from './StageSelect'
+import { StageSelect } from './StageSelect'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export default function TaskDetailPane({
@@ -60,7 +60,13 @@ export default function TaskDetailPane({
         (selectedIds.includes(step.id) ? ' ' + SELECTED_ROW_CLASS : ' hover:bg-milk')
       }
     >
-      <StepToggle done={step.completed} onToggle={() => onToggleStep(step.id)} />
+      <input
+        type="checkbox"
+        checked={step.completed}
+        {...ignoreRowEvents}
+        onChange={() => onToggleStep(step.id)}
+        className="check"
+      />
       <EditableText
         tag="span"
         text={step.text}

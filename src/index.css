@@ -49,6 +49,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 
+.check {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border: 2px solid var(--color-clover-400);
+  border-radius: 9999px;
+  background: var(--color-paper);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.check:checked {
+  border-color: var(--color-clover-500);
+  background: var(--color-clover-500) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5 7 11l5-6'/%3E%3C/svg%3E") center / 0.75rem no-repeat;
+}
 
 @keyframes pane-in {
   from { opacity: 0; transform: translateX(12px); }
