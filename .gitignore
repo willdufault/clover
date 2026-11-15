@@ -25,3 +25,8 @@ dist-ssr
 
 test-results/
 playwright-report/
+
+# Terraform
+.terraform/
+infra/build/
+*.tfstate*
