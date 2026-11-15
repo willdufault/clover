@@ -15,17 +15,19 @@ A small todo app: lists, tasks, steps, due dates, priority, stage, and drag and 
 ## Structure
 
 ```
-src/
-  main.tsx, App.tsx        entry point and root component
-  types.ts, seed.ts        types and seed data
-  styles.ts, index.css     styles
-  smartLists, stages,      logic modules
-  drop, dates, labels,
-  selection
-  components/              UI (ListSidebar, TaskPane, TaskDetailPane, ...)
-tests/unit/                unit tests (vitest, jsdom)
-tests/e2e/                 browser tests (Playwright)
-public/                    static assets
+frontend/                  web app
+  src/
+    main.tsx, App.tsx      entry point and root component
+    types.ts, seed.ts      types and seed data
+    styles.ts, index.css   styles
+    smartLists, stages,    logic modules
+    drop, dates, labels,
+    selection
+    components/            UI (ListSidebar, TaskPane, TaskDetailPane, ...)
+  tests/unit/              unit tests (vitest, jsdom)
+  tests/e2e/               browser tests (Playwright)
+  public/                  static assets
+infra/                     Terraform (AWS backend, see ARCHITECTURE.md)
 ```
 
 ## Prerequisites
@@ -35,10 +37,13 @@ Node.js and npm.
 ## Installation
 
 ```sh
+cd frontend
 npm install
 ```
 
 ## Run
+
+From `frontend/`:
 
 ```sh
 npm run dev    # start dev server
