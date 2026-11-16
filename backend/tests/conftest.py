@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+from botocore.exceptions import ClientError
 
 os.environ.setdefault("TABLE_NAME", "test")
 os.environ.setdefault("TABLE_REGION", "us-east-1")
@@ -16,6 +17,15 @@ class FakeTable:
 
     def put_item(self, Item):
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
+
+    def update_item(self, Key, ExpressionAttributeNames, ExpressionAttributeValues, ReturnValues, **_):
+        item = self.items.get((Key["PK"], Key["SK"]))
+        if item is None:
+            error = {"Error": {"Code": "ConditionalCheckFailedException"}}
+            raise ClientError(error, "UpdateItem")
+        for name, field in ExpressionAttributeNames.items():
+            item[field] = ExpressionAttributeValues[":" + name[1:]]
+        return {"Attributes": dict(item)}
 
     def get_item(self, Key):
         item = self.items.get((Key["PK"], Key["SK"]))

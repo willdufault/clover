@@ -1,3 +1,8 @@
+import pytest
+
+import common
+
+
 def test_create_defaults(call):
     status, task = call("POST /tasks", {"title": "T"})
     assert status == 201
@@ -84,3 +89,22 @@ def test_delete_cascades(call):
     assert call("DELETE /tasks/{id}", id=task["id"]) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [other], "steps": [step]}
     assert call("DELETE /tasks/{id}", id=task["id"])[0] == 404
+
+
+def test_update_only_writes_changed_fields(call, table):
+    task = call("POST /tasks", {"title": "T"})[1]
+    stale = common.get("user-1", "TASK", task["id"])
+    call("PATCH /tasks/{id}", {"stage": "waiting"}, id=task["id"])
+    common.update(stale, {"due": "2030-01-02"})
+    task = call("GET /data")[1]["tasks"][0]
+    assert task["stage"] == "waiting"
+    assert task["due"] == "2030-01-02"
+
+
+def test_update_deleted_task_is_404(call):
+    task = call("POST /tasks", {"title": "T"})[1]
+    stale = common.get("user-1", "TASK", task["id"])
+    call("DELETE /tasks/{id}", id=task["id"])
+    with pytest.raises(common.ApiError):
+        common.update(stale, {"due": "2030-01-02"})
+    assert call("GET /data")[1]["tasks"] == []

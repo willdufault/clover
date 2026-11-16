@@ -6,6 +6,7 @@ from datetime import date
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 table = boto3.resource("dynamodb", region_name=os.environ["TABLE_REGION"]).Table(
     os.environ["TABLE_NAME"]
@@ -155,9 +156,22 @@ def create(user_id, kind, data):
 
 
 def update(item, data):
-    item.update(data)
-    table.put_item(Item=item)
-    return response(200, to_api(item))
+    if not data:
+        return response(200, to_api(item))
+    try:
+        res = table.update_item(
+            Key={"PK": item["PK"], "SK": item["SK"]},
+            UpdateExpression="SET " + ", ".join(f"#{k} = :{k}" for k in data),
+            ExpressionAttributeNames={f"#{k}": k for k in data},
+            ExpressionAttributeValues={f":{k}": v for k, v in data.items()},
+            ConditionExpression="attribute_exists(PK)",
+            ReturnValues="ALL_NEW",
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            raise ApiError(404, "not found")
+        raise
+    return response(200, to_api(res["Attributes"]))
 
 
 def delete(items):
