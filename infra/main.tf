@@ -22,6 +22,8 @@ provider "aws" {
   region = "us-east-1"
 }
 
+data "aws_region" "current" {}
+
 resource "aws_dynamodb_table" "tasks" {
   name         = "clover-tasks"
   billing_mode = "PAY_PER_REQUEST"
@@ -72,6 +74,18 @@ data "archive_file" "api" {
   type        = "zip"
   source_dir  = "${path.module}/../backend"
   output_path = "${path.module}/build/api.zip"
+  excludes = [
+    ".venv",
+    ".venv/**",
+    "tests",
+    "tests/**",
+    ".pytest_cache",
+    ".pytest_cache/**",
+    "**/__pycache__",
+    "**/__pycache__/**",
+    "pyproject.toml",
+    "uv.lock",
+  ]
 }
 
 resource "aws_iam_role" "api" {
@@ -116,13 +130,14 @@ resource "aws_lambda_function" "api" {
   runtime          = "python3.14"
   architectures    = ["arm64"]
   timeout          = 10
-  handler          = "app.handler"
+  handler          = "index.handler"
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.tasks.name
+      TABLE_NAME   = aws_dynamodb_table.tasks.name
+      TABLE_REGION = data.aws_region.current.region
     }
   }
 }

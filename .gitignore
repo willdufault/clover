@@ -30,3 +30,8 @@ playwright-report/
 .terraform/
 infra/build/
 *.tfstate*
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/

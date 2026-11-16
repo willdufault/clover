@@ -27,6 +27,7 @@ frontend/                  web app
   tests/unit/              unit tests (vitest, jsdom)
   tests/e2e/               browser tests (Playwright)
   public/                  static assets
+backend/                   Python Lambda API (see ARCHITECTURE.md)
 infra/                     Terraform (AWS backend, see ARCHITECTURE.md)
 ```
 
