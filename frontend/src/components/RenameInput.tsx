@@ -3,12 +3,14 @@ import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function RenameInput({
   draft,
+  maxLength,
   onChange,
   onCommit,
   onCancel,
   className,
 }: {
   draft: string
+  maxLength: number
   onChange: (draft: string) => void
   onCommit: () => void
   onCancel: () => void
@@ -27,6 +29,7 @@ export function RenameInput({
       autoFocus
       onFocus={(event) => event.target.select()}
       value={draft}
+      maxLength={maxLength}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === 'Enter') {

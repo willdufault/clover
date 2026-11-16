@@ -4,6 +4,7 @@ import { RenameInput } from './RenameInput'
 export function EditableText({
   tag: Tag,
   text,
+  maxLength,
   editable = true,
   selectOnModifierClick = false,
   className,
@@ -12,6 +13,7 @@ export function EditableText({
 }: {
   tag: 'h1' | 'h2' | 'span'
   text: string
+  maxLength: number
   editable?: boolean
   selectOnModifierClick?: boolean
   className: string
@@ -29,6 +31,7 @@ export function EditableText({
     return (
       <RenameInput
         draft={draft}
+        maxLength={maxLength}
         onChange={setDraft}
         onCommit={commit}
         onCancel={() => setDraft(null)}

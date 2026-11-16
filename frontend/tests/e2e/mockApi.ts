@@ -1,9 +1,9 @@
 import type { Page } from '@playwright/test'
-import { createFakeBackend } from '../fakeBackend'
+import { createFakeBackend, seed } from '../fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
-export const mockApi = async (page: Page) => {
-  const backend = createFakeBackend()
+export const mockApi = async (page: Page, data = seed()) => {
+  const backend = createFakeBackend(data)
   const payload = btoa(JSON.stringify({ exp: 9999999999 }))
   await page.addInitScript((token) => localStorage.setItem('idToken', token), `x.${payload}.y`)
   await page.route(

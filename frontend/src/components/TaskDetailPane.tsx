@@ -8,6 +8,7 @@ import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateCl
 import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
+import { TITLE_MAX } from '../limits'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { TaskSummary } from './TaskSummary'
@@ -68,6 +69,7 @@ export default function TaskDetailPane({
       <EditableText
         tag="span"
         text={step.title}
+        maxLength={TITLE_MAX}
         selectOnModifierClick
         onCommit={(name) => onRename(RowKind.Step, step.id, name)}
         className={
@@ -114,7 +116,7 @@ export default function TaskDetailPane({
         </ul>
       </SortableContext>
 
-      <AddInput placeholder="+ New step" onAdd={onAddStep} className={task.steps.length > 0 ? 'mt-2' : undefined} />
+      <AddInput placeholder="+ New step" maxLength={TITLE_MAX} onAdd={onAddStep} className={task.steps.length > 0 ? 'mt-2' : undefined} />
       <h3 className={LABEL_CLASS + ' mt-7'}>
         Schedule
       </h3>

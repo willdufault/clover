@@ -2,6 +2,7 @@ import { isCompleted } from '../stages'
 import { TITLE_RENAME_CLASS } from '../styles'
 import { RowKind, type Stage, type Task } from '../types'
 import { EditableText } from './EditableText'
+import { TITLE_MAX } from '../limits'
 import { StageSelect } from './StageSelect'
 
 // Stage dropdown + title, shared by the task row and the detail pane header.
@@ -36,6 +37,7 @@ export function TaskSummary({
         <EditableText
           tag={heading ? 'h2' : 'span'}
           text={task.title}
+          maxLength={TITLE_MAX}
           editable={heading}
           onCommit={(name) => onRename?.(RowKind.Task, task.id, name)}
           className={titleClass}

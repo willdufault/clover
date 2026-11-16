@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { api, logout } from './api'
 import { applyDrop } from './drop'
+import { LISTS_PER_USER, STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST, TASKS_PER_USER } from './limits'
 import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList } from './types'
@@ -88,6 +89,16 @@ export default function App() {
     }
   }
 
+  // Shows the error and returns true if adding one more would exceed the limit.
+  const atLimit = (count: number, limit: number, message: string) => {
+    if (count < limit) return false
+    setError(`${message} (${limit})`)
+    return true
+  }
+
+  const listFull = (listId: string) =>
+    atLimit(tasks.filter((task) => task.listId === listId).length, TASKS_PER_LIST, 'List task limit reached')
+
   useEffect(() => {
     run(async () => {
       const data: { lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] } = await api('GET', '/data')
@@ -124,8 +135,10 @@ export default function App() {
       ),
     )
 
-  const addTask = (title: string) =>
-    run(async () => {
+  const addTask = (title: string) => {
+    if (atLimit(tasks.length, TASKS_PER_USER, 'Task limit reached')) return
+    if (currentList && listFull(currentList.id)) return
+    return run(async () => {
       const task = await api('POST', '/tasks', {
         title,
         listId: currentList?.id ?? null,
@@ -133,14 +146,19 @@ export default function App() {
       })
       setTasks((tasks) => [{ ...task, steps: [] }, ...tasks])
     })
+  }
 
-  const addStep = (title: string) =>
-    run(async () => {
+  const addStep = (title: string) => {
+    const stepCount = tasks.reduce((sum, task) => sum + task.steps.length, 0)
+    if (atLimit(stepCount, STEPS_PER_USER, 'Step limit reached')) return
+    if (atLimit(detailTask!.steps.length, STEPS_PER_TASK, 'Task step limit reached')) return
+    return run(async () => {
       const step: Step = await api('POST', '/steps', { taskId: detailTaskId, title })
       setTasks((tasks) =>
         tasks.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
     })
+  }
 
   const deleteTasks = (ids: string[]) =>
     run(async () => {
@@ -214,12 +232,14 @@ export default function App() {
       }
     })
 
-  const createList = (name: string) =>
-    run(async () => {
+  const createList = (name: string) => {
+    if (atLimit(lists.length, LISTS_PER_USER, 'List limit reached')) return
+    return run(async () => {
       const newList: TaskList = await api('POST', '/lists', { name })
       setLists((lists) => [...lists, newList])
       selectList(newList.id)
     })
+  }
 
   // The server also deletes the list's tasks and their steps.
   const deleteList = (id: string) =>
@@ -261,6 +281,8 @@ export default function App() {
     }
     if (activeDrag?.kind === RowKind.Task && lists.some((list) => list.id === overId)) {
       replaceTaskSelection([])
+      const task = tasks.find((task) => task.id === active.id)
+      if (task?.listId === overId || listFull(overId)) return
       updateTask(String(active.id), { listId: overId })
       return
     }

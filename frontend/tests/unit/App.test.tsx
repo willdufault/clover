@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { today, tomorrow } from '../../src/dates'
-import { createFakeBackend } from '../fakeBackend'
+import { createFakeBackend, seed, task } from '../fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
 beforeEach(() => {
@@ -921,4 +921,80 @@ test('changes are saved to the server', async () => {
   expect(backend.data.tasks.find((task) => task.id === 'g1')).toMatchObject({ addedToToday: true, stage: 'done' })
   expect(backend.data.tasks.find((task) => task.id === 'g2')).toBeUndefined()
   expect(backend.data.steps.map((step) => step.title)).toEqual(['2% lactose free', 'Organic'])
+})
+
+describe('limits', () => {
+  const many = <T,>(n: number, make: (i: number) => T) => Array.from({ length: n }, (_, i) => make(i))
+  const expectBlocked = async (message: string, kind: 'lists' | 'tasks' | 'steps', count: number) => {
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(backend.data[kind]).toHaveLength(count)
+  }
+
+  test('list limit blocks creating a list', async () => {
+    const data = seed()
+    data.lists.push(...many(7, (i) => ({ id: `l${i}`, name: `L${i}` })))
+    backend = createFakeBackend(data)
+    const { user } = await setup()
+    await newList(user, 'Eleventh')
+    await expectBlocked('List limit reached (10)', 'lists', 10)
+  })
+
+  test('task limit blocks creating a task', async () => {
+    const data = seed()
+    data.tasks.push(...many(95, (i) => task(`t${i}`, `T${i}`, null)))
+    backend = createFakeBackend(data)
+    const { user } = await setup()
+    await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
+    await expectBlocked('Task limit reached (100)', 'tasks', 100)
+  })
+
+  test('tasks-per-list limit blocks creating a task in a full list', async () => {
+    const data = seed()
+    data.tasks.push(...many(18, (i) => task(`t${i}`, `T${i}`, 'groceries')))
+    backend = createFakeBackend(data)
+    const { user } = await setup()
+    await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
+    await expectBlocked('List task limit reached (20)', 'tasks', 23)
+  })
+
+  test('step limit counts steps across all tasks', async () => {
+    const data = seed()
+    data.steps.push(...many(99, (i) => ({ id: `s${i}`, taskId: `w${(i % 3) + 1}`, title: `S${i}`, completed: false })))
+    backend = createFakeBackend(data)
+    const { user } = await setup()
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'One more')
+    await expectBlocked('Step limit reached (100)', 'steps', 100)
+  })
+
+  test('steps-per-task limit blocks adding a step to a full task', async () => {
+    const data = seed()
+    data.steps.push(...many(9, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })))
+    backend = createFakeBackend(data)
+    const { user } = await setup()
+    await user.click(within(main()).getByText('Milk'))
+    await newStep(user, 'One more')
+    await expectBlocked('Task step limit reached (10)', 'steps', 10)
+  })
+
+  test('under the limit, no error and the item is created', async () => {
+    const { user } = await setup()
+    await newList(user, 'Fourth')
+    expect(backend.data.lists).toHaveLength(4)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  test('text inputs cap length', async () => {
+    const { user } = await setup()
+    expect(screen.getByPlaceholderText('+ New list')).toHaveAttribute('maxLength', '50')
+    expect(screen.getByPlaceholderText('+ New task')).toHaveAttribute('maxLength', '100')
+    await user.click(within(main()).getByText('Milk'))
+    expect(within(aside()).getByPlaceholderText('+ New step')).toHaveAttribute('maxLength', '100')
+    await user.click(within(main()).getByRole('heading', { name: 'Groceries' }))
+    expect(main().querySelector('textarea')).toHaveAttribute('maxLength', '50')
+    await user.click(within(aside()).getByRole('heading', { name: 'Milk' }))
+    expect(aside().querySelector('textarea')).toHaveAttribute('maxLength', '100')
+    await user.click(within(aside()).getByText('2% lactose free'))
+    expect(aside().querySelector('textarea')).toHaveAttribute('maxLength', '100')
+  })
 })

@@ -9,6 +9,7 @@ import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } 
 import type { SortCriteria } from '../sort'
 import { RowKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
+import { LIST_NAME_MAX, TITLE_MAX } from '../limits'
 import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -108,6 +109,7 @@ export default function TaskPane({
         key={selectedListId}
         tag="h1"
         text={listName ?? ''}
+        maxLength={LIST_NAME_MAX}
         editable={renamable}
         onCommit={(name) => onRename(RowKind.List, selectedListId, name)}
         className={'-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' + (renamable ? ' transition hover:bg-cream' : '')}
@@ -137,7 +139,7 @@ export default function TaskPane({
         <SortMenu onSort={onSort} />
       </div>
 
-      <AddInput placeholder="+ New task" onAdd={onAddTask} className="mt-6" />
+      <AddInput placeholder="+ New task" maxLength={TITLE_MAX} onAdd={onAddTask} className="mt-6" />
 
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
         {tasks.length > 0 && (

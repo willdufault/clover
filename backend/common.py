@@ -14,6 +14,8 @@ table = boto3.resource("dynamodb", region_name=os.environ["TABLE_REGION"]).Table
 USER_LIMITS = {"LIST": 10, "TASK": 100, "STEP": 100}
 TASKS_PER_LIST = 20
 STEPS_PER_TASK = 10
+LIST_NAME_MAX = 50
+TITLE_MAX = 100
 
 
 class ApiError(Exception):
@@ -85,9 +87,9 @@ def optional_date(v):
 
 
 # field -> (check, default)
-LIST_FIELDS = {"name": (text(50), REQUIRED)}
+LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED)}
 TASK_FIELDS = {
-    "title": (text(100), REQUIRED),
+    "title": (text(TITLE_MAX), REQUIRED),
     "stage": (one_of("open", "inProgress", "waiting", "done", "cancelled"), "open"),
     "due": (optional_date, None),
     "priority": (one_of("low", "medium", "high"), "medium"),
@@ -96,7 +98,7 @@ TASK_FIELDS = {
 }
 STEP_FIELDS = {
     "taskId": (is_str, REQUIRED),
-    "title": (text(100), REQUIRED),
+    "title": (text(TITLE_MAX), REQUIRED),
     "completed": (is_bool, False),
 }
 STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}

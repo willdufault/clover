@@ -7,6 +7,7 @@ import { RowKind, type Task, type TaskList } from '../types'
 import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { TaskCountBadge } from './TaskCountBadge'
 import { AddInput } from './AddInput'
+import { LIST_NAME_MAX } from '../limits'
 import { SortableRow } from './SortableRow'
 import { TodayRow } from './TodayRow'
 import type { OpenContextMenu } from './ContextMenu'
@@ -68,7 +69,7 @@ export default function ListSidebar({
           ))}
         </SortableContext>
 
-        <AddInput placeholder="+ New list" onAdd={onCreateList} className="mt-4" />
+        <AddInput placeholder="+ New list" maxLength={LIST_NAME_MAX} onAdd={onCreateList} className="mt-4" />
       </nav>
       <button onClick={onLogout} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
         Log out

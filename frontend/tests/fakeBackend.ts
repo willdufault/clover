@@ -8,7 +8,7 @@ const DEFAULTS: Record<Kind, Record<string, unknown>> = {
   steps: { completed: false },
 }
 
-const task = (id: string, title: string, listId: string) => ({ ...DEFAULTS.tasks, id, title, listId })
+export const task = (id: string, title: string, listId: string | null) => ({ ...DEFAULTS.tasks, id, title, listId })
 
 export const seed = () => ({
   lists: [
