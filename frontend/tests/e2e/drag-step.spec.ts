@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { mockApi } from './mockApi'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors: string[] = []
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
   page.on('pageerror', (e) => errors.push(e.message))
+  await mockApi(page)
   await page.goto('/')
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).first().click()
   const input = page.getByPlaceholder('+ New step')

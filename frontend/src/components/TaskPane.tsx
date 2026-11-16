@@ -84,7 +84,7 @@ export default function TaskPane({
         key={task.id}
         id={task.id}
         kind={RowKind.Task}
-        text={task.text}
+        text={task.title}
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}

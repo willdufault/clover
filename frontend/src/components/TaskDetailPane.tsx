@@ -49,7 +49,7 @@ export default function TaskDetailPane({
       key={step.id}
       id={step.id}
       kind={RowKind.Step}
-      text={step.text}
+      text={step.title}
       tag="li"
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
@@ -67,7 +67,7 @@ export default function TaskDetailPane({
       />
       <EditableText
         tag="span"
-        text={step.text}
+        text={step.title}
         selectOnModifierClick
         onCommit={(name) => onRename(RowKind.Step, step.id, name)}
         className={

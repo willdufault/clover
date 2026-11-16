@@ -18,6 +18,7 @@ export default function ListSidebar({
   dragOverListId,
   onSelectList,
   onCreateList,
+  onLogout,
   onContextMenu,
 }: {
   lists: TaskList[]
@@ -26,6 +27,7 @@ export default function ListSidebar({
   dragOverListId: string | null
   onSelectList: (id: string) => void
   onCreateList: (name: string) => void
+  onLogout: () => void
   onContextMenu: OpenContextMenu
 }) {
   return (
@@ -60,7 +62,7 @@ export default function ListSidebar({
               onContextMenu={onContextMenu(RowKind.List, list.id)}
               className={sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)}
             >
-              <span className="min-w-0 truncate"><span>{list.emoji ?? '📝'} </span>{list.name}</span>
+              <span className="min-w-0 truncate">{list.name}</span>
               <TaskCountBadge count={tasksInList(tasks, list.id).length} />
             </SortableRow>
           ))}
@@ -68,6 +70,9 @@ export default function ListSidebar({
 
         <AddInput placeholder="+ New list" onAdd={onCreateList} className="mt-4" />
       </nav>
+      <button onClick={onLogout} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
+        Log out
+      </button>
     </div>
   )
 }

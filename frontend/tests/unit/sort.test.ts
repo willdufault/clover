@@ -3,7 +3,10 @@ import type { Task } from '../../src/types'
 
 const makeTask = (id: string, patch: Partial<Task> = {}): Task => ({
   id,
-  text: id,
+  title: id,
+  due: null,
+  listId: null,
+  addedToToday: false,
   steps: [],
   stage: 'open',
   priority: 'medium',

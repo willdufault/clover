@@ -35,7 +35,7 @@ export function TaskSummary({
       <div className="flex min-w-0 flex-1 flex-col">
         <EditableText
           tag={heading ? 'h2' : 'span'}
-          text={task.text}
+          text={task.title}
           editable={heading}
           onCommit={(name) => onRename?.(RowKind.Task, task.id, name)}
           className={titleClass}
