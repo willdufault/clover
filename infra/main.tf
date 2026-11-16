@@ -68,6 +68,13 @@ resource "aws_cognito_user_pool_client" "web" {
   prevent_user_existence_errors        = "ENABLED"
   callback_urls                        = [var.app_url]
   logout_urls                          = [var.app_url]
+  id_token_validity                    = 12
+  access_token_validity                = 12
+
+  token_validity_units {
+    id_token     = "hours"
+    access_token = "hours"
+  }
 }
 
 data "archive_file" "api" {
