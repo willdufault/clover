@@ -35,21 +35,51 @@ def response(status, body=None):
     }
 
 
-def parse_body(event):
+def parse_json(event):
     raw = event.get("body") or "{}"
     if event.get("isBase64Encoded"):
         raw = base64.b64decode(raw)
     try:
-        body = json.loads(raw)
+        return json.loads(raw)
     except ValueError:
         raise ApiError(400, "invalid JSON")
+
+
+def parse_body(event):
+    body = parse_json(event)
     if not isinstance(body, dict):
         raise ApiError(400, "body must be an object")
     return body
 
 
-def path_id(event):
-    return event["pathParameters"]["id"]
+MAX_BATCH = 100
+
+
+def check_ids(ids):
+    if not (
+        isinstance(ids, list)
+        and 1 <= len(ids) <= MAX_BATCH
+        and all(isinstance(i, str) for i in ids)
+        and len(set(ids)) == len(ids)
+    ):
+        raise ApiError(400, f"ids must be 1-{MAX_BATCH} unique strings")
+
+
+def parse_ids(event):
+    ids = parse_body(event).get("ids")
+    check_ids(ids)
+    return ids
+
+
+def parse_patches(event, fields):
+    body = parse_json(event)
+    if not isinstance(body, list) or not all(isinstance(p, dict) for p in body):
+        raise ApiError(400, "body must be an array of objects")
+    check_ids([p.get("id") for p in body])
+    return [
+        (p["id"], validate(fields, {k: v for k, v in p.items() if k != "id"}, partial=True))
+        for p in body
+    ]
 
 
 # Validation
@@ -142,11 +172,11 @@ def load_all(user_id):
     return table.query(KeyConditionExpression=Key("PK").eq(user_id))["Items"]
 
 
-def get(user_id, kind, item_id):
-    item = table.get_item(Key=key(user_id, kind, item_id)).get("Item")
-    if item is None:
+def by_id(items, kind, ids):
+    found = {to_api(i)["id"]: i for i in items if kind_of(i) == kind}
+    if any(i not in found for i in ids):
         raise ApiError(404, "not found")
-    return item
+    return {i: found[i] for i in ids}
 
 
 def create(user_id, kind, data):
@@ -155,23 +185,32 @@ def create(user_id, kind, data):
     return response(201, to_api(item))
 
 
-def update(item, data):
-    if not data:
-        return response(200, to_api(item))
-    try:
-        res = table.update_item(
-            Key={"PK": item["PK"], "SK": item["SK"]},
-            UpdateExpression="SET " + ", ".join(f"#{k} = :{k}" for k in data),
-            ExpressionAttributeNames={f"#{k}": k for k in data},
-            ExpressionAttributeValues={f":{k}": v for k, v in data.items()},
-            ConditionExpression="attribute_exists(PK)",
-            ReturnValues="ALL_NEW",
-        )
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-            raise ApiError(404, "not found")
-        raise
-    return response(200, to_api(res["Attributes"]))
+def update_many(user_id, kind, patches, items):
+    by_id(items, kind, [i for i, _ in patches])
+    writes = [
+        {
+            "Update": {
+                "TableName": table.name,
+                "Key": key(user_id, kind, item_id),
+                "UpdateExpression": "SET " + ", ".join(f"#{k} = :{k}" for k in data),
+                "ExpressionAttributeNames": {f"#{k}": k for k in data},
+                "ExpressionAttributeValues": {f":{k}": v for k, v in data.items()},
+                "ConditionExpression": "attribute_exists(PK)",
+            }
+        }
+        for item_id, data in patches
+        if data
+    ]
+    if writes:
+        try:
+            table.meta.client.transact_write_items(TransactItems=writes)
+        except ClientError as e:
+            reasons = e.response.get("CancellationReasons", [])
+            if any(r.get("Code") == "ConditionalCheckFailed" for r in reasons):
+                raise ApiError(404, "not found")
+            raise
+    updated = by_id(load_all(user_id), kind, [i for i, _ in patches])
+    return response(200, [to_api(updated[i]) for i, _ in patches])
 
 
 def delete(items):

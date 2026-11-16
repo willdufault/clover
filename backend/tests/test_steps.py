@@ -36,17 +36,21 @@ def test_user_limit(call):
 
 def test_update(call, task):
     step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
-    assert call("PATCH /steps/{id}", {"completed": True}, id=step["id"]) == (
+    other = call("POST /steps", {"title": "O", "taskId": task["id"]})[1]
+    body = [{"id": step["id"], "completed": True}, {"id": other["id"], "title": "O2"}]
+    assert call("PATCH /steps", body) == (
         200,
-        {**step, "completed": True},
+        [{**step, "completed": True}, {**other, "title": "O2"}],
     )
-    assert call("PATCH /steps/{id}", {"taskId": "x"}, id=step["id"])[0] == 400
-    assert call("PATCH /steps/{id}", {"completed": 1}, id=step["id"])[0] == 400
-    assert call("PATCH /steps/{id}", {"title": "S"}, id="missing")[0] == 404
+    assert call("PATCH /steps", [{"id": step["id"], "taskId": "x"}])[0] == 400
+    assert call("PATCH /steps", [{"id": step["id"], "completed": 1}])[0] == 400
+    assert call("PATCH /steps", [{"id": "missing", "title": "S"}])[0] == 404
 
 
 def test_delete(call, task):
-    step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
-    assert call("DELETE /steps/{id}", id=step["id"]) == (204, None)
-    assert call("GET /data")[1]["steps"] == []
-    assert call("DELETE /steps/{id}", id=step["id"])[0] == 404
+    a = call("POST /steps", {"title": "A", "taskId": task["id"]})[1]
+    b = call("POST /steps", {"title": "B", "taskId": task["id"]})[1]
+    c = call("POST /steps", {"title": "C", "taskId": task["id"]})[1]
+    assert call("DELETE /steps", {"ids": [a["id"], b["id"]]}) == (204, None)
+    assert call("GET /data")[1]["steps"] == [c]
+    assert call("DELETE /steps", {"ids": [a["id"]]})[0] == 404

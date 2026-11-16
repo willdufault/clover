@@ -1,5 +1,6 @@
 import json
 import os
+from types import SimpleNamespace
 
 import pytest
 from botocore.exceptions import ClientError
@@ -12,24 +13,27 @@ import index  # noqa: E402
 
 
 class FakeTable:
+    name = "test"
+
     def __init__(self):
         self.items = {}
+        self.meta = SimpleNamespace(client=self)
 
     def put_item(self, Item):
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
 
-    def update_item(self, Key, ExpressionAttributeNames, ExpressionAttributeValues, ReturnValues, **_):
-        item = self.items.get((Key["PK"], Key["SK"]))
-        if item is None:
-            error = {"Error": {"Code": "ConditionalCheckFailedException"}}
-            raise ClientError(error, "UpdateItem")
-        for name, field in ExpressionAttributeNames.items():
-            item[field] = ExpressionAttributeValues[":" + name[1:]]
-        return {"Attributes": dict(item)}
-
-    def get_item(self, Key):
-        item = self.items.get((Key["PK"], Key["SK"]))
-        return {"Item": dict(item)} if item else {}
+    def transact_write_items(self, TransactItems):
+        updates = [t["Update"] for t in TransactItems]
+        keys = [(u["Key"]["PK"], u["Key"]["SK"]) for u in updates]
+        if not all(k in self.items for k in keys):
+            reasons = [
+                {"Code": "None" if k in self.items else "ConditionalCheckFailed"} for k in keys
+            ]
+            error = {"Error": {"Code": "TransactionCanceledException"}, "CancellationReasons": reasons}
+            raise ClientError(error, "TransactWriteItems")
+        for k, u in zip(keys, updates):
+            for name, field in u["ExpressionAttributeNames"].items():
+                self.items[k][field] = u["ExpressionAttributeValues"][":" + name[1:]]
 
     def delete_item(self, Key):
         self.items.pop((Key["PK"], Key["SK"]), None)
@@ -57,15 +61,13 @@ def table(monkeypatch):
 
 @pytest.fixture
 def call(table):
-    def call(route_key, body=None, id=None, user="user-1"):
+    def call(route_key, body=None, user="user-1"):
         event = {
             "routeKey": route_key,
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": user}}}},
         }
         if body is not None:
             event["body"] = json.dumps(body)
-        if id is not None:
-            event["pathParameters"] = {"id": id}
         res = index.handler(event, None)
         return res["statusCode"], json.loads(res["body"]) if "body" in res else None
 

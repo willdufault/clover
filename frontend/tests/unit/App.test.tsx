@@ -5,9 +5,12 @@ import { today, tomorrow } from '../../src/dates'
 import { createFakeBackend, seed, task } from '../fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
+let requests: string[]
 beforeEach(() => {
   backend = createFakeBackend()
+  requests = []
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+    requests.push(`${init.method} ${new URL(url).pathname}`)
     const { status, body } = backend.handle(init.method!, url, init.body ? JSON.parse(init.body as string) : undefined)
     return { status, ok: status < 400, json: async () => body }
   })
@@ -787,6 +790,27 @@ describe('multi-select', () => {
     await user.pointer({ keys: '[MouseRight]', target: row('Eggs') })
     await user.click(screen.getByText('Delete'))
     expect(tasks()).toEqual([])
+  })
+
+  test('a bulk action sends a single request', async () => {
+    const { user } = await setup()
+    await selectTwo(user)
+    requests = []
+    await rightClick(user, row('Milk'))
+    await submenuClick(user, 'Set priority', '🔴 High')
+    expect(requests).toEqual(['PATCH /tasks'])
+    expect(backend.data.tasks.filter((task) => task.priority === 'high').map((task) => task.id)).toEqual(['g1', 'g2'])
+  })
+
+  test('a failing bulk patch leaves every item unchanged and shows the banner', async () => {
+    const { user } = await setup()
+    await selectTwo(user)
+    backend.data.tasks = backend.data.tasks.filter((task) => task.id !== 'g2')
+    await rightClick(user, row('Milk'))
+    await submenuClick(user, 'Set priority', '🔴 High')
+    expect(screen.getByRole('alert')).toHaveTextContent('not found')
+    expect(within(main()).queryByText('🔴 High')).toBeNull()
+    expect(backend.data.tasks.find((task) => task.id === 'g1')).toMatchObject({ priority: 'medium' })
   })
 
   test('bulk delete steps', async () => {

@@ -15,14 +15,14 @@ from handlers import (
 ROUTES = {
     "GET /data": get_data.handle,
     "POST /lists": create_list.handle,
-    "PATCH /lists/{id}": update_list.handle,
-    "DELETE /lists/{id}": delete_list.handle,
+    "PATCH /lists": update_list.handle,
+    "DELETE /lists": delete_list.handle,
     "POST /tasks": create_task.handle,
-    "PATCH /tasks/{id}": update_task.handle,
-    "DELETE /tasks/{id}": delete_task.handle,
+    "PATCH /tasks": update_task.handle,
+    "DELETE /tasks": delete_task.handle,
     "POST /steps": create_step.handle,
-    "PATCH /steps/{id}": update_step.handle,
-    "DELETE /steps/{id}": delete_step.handle,
+    "PATCH /steps": update_step.handle,
+    "DELETE /steps": delete_step.handle,
 }
 
 

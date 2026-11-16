@@ -123,17 +123,21 @@ export default function App() {
     }
   }, [])
 
-  const replaceTask = (task: Omit<Task, 'steps'>) =>
-    setTasks((tasks) => tasks.map((other) => (other.id === task.id ? { ...other, ...task } : other)))
+  // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
+  const patchTasks = async (patches: Partial<Task>[]) => {
+    const updated: Omit<Task, 'steps'>[] = await api('PATCH', '/tasks', patches)
+    setTasks((tasks) => tasks.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
+  }
 
-  const replaceStep = (step: Step) =>
+  const patchSteps = async (patches: Partial<Step>[]) => {
+    const updated: Step[] = await api('PATCH', '/steps', patches)
     setTasks((tasks) =>
-      tasks.map((task) =>
-        task.id === step.taskId
-          ? { ...task, steps: task.steps.map((other) => (other.id === step.id ? step : other)) }
-          : task,
-      ),
+      tasks.map((task) => ({
+        ...task,
+        steps: task.steps.map((step) => updated.find((other) => other.id === step.id) ?? step),
+      })),
     )
+  }
 
   const addTask = (title: string) => {
     if (atLimit(tasks.length, TASKS_PER_USER, 'Task limit reached')) return
@@ -162,16 +166,14 @@ export default function App() {
 
   const deleteTasks = (ids: string[]) =>
     run(async () => {
-      for (const id of ids) {
-        await api('DELETE', `/tasks/${id}`)
-        setTasks((tasks) => tasks.filter((task) => task.id !== id))
-      }
+      await api('DELETE', '/tasks', { ids })
+      setTasks((tasks) => tasks.filter((task) => !ids.includes(task.id)))
       replaceTaskSelection([])
     })
 
   const updateTasks = (ids: string[], patch: Partial<Omit<Task, 'id' | 'steps'>>) =>
     run(async () => {
-      for (const id of ids) replaceTask(await api('PATCH', `/tasks/${id}`, patch))
+      await patchTasks(ids.map((id) => ({ id, ...patch })))
     })
 
   const updateTask = (id: string, patch: Partial<Omit<Task, 'id' | 'steps'>>) => updateTasks([id], patch)
@@ -181,17 +183,15 @@ export default function App() {
 
   const setStepsCompleted = (ids: string[], completed: boolean) =>
     run(async () => {
-      for (const id of ids) replaceStep(await api('PATCH', `/steps/${id}`, { completed }))
+      if (ids.length) await patchSteps(ids.map((id) => ({ id, completed })))
     })
 
   const deleteSteps = (ids: string[]) =>
     run(async () => {
-      for (const id of ids) {
-        await api('DELETE', `/steps/${id}`)
-        setTasks((tasks) =>
-          tasks.map((task) => ({ ...task, steps: task.steps.filter((step) => step.id !== id) })),
-        )
-      }
+      await api('DELETE', '/steps', { ids })
+      setTasks((tasks) =>
+        tasks.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })),
+      )
       setSelectedStepIds([])
     })
 
@@ -223,12 +223,12 @@ export default function App() {
   const renameItem = (kind: RowKind, id: string, name: string) =>
     run(async () => {
       if (kind === RowKind.List) {
-        const updated: TaskList = await api('PATCH', `/lists/${id}`, { name })
+        const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
         setLists((lists) => lists.map((list) => (list.id === id ? updated : list)))
       } else if (kind === RowKind.Task) {
-        replaceTask(await api('PATCH', `/tasks/${id}`, { title: name }))
+        await patchTasks([{ id, title: name }])
       } else {
-        replaceStep(await api('PATCH', `/steps/${id}`, { title: name }))
+        await patchSteps([{ id, title: name }])
       }
     })
 
@@ -244,7 +244,7 @@ export default function App() {
   // The server also deletes the list's tasks and their steps.
   const deleteList = (id: string) =>
     run(async () => {
-      await api('DELETE', `/lists/${id}`)
+      await api('DELETE', '/lists', { ids: [id] })
       const remaining = lists.filter((list) => list.id !== id)
       const index = lists.findIndex((list) => list.id === id)
       setLists(remaining)

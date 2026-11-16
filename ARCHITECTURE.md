@@ -18,7 +18,7 @@ Move Clover from local-only state to a full-stack AWS app. A single prod environ
 - List: `name` (any emoji is just part of the name).
 - Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = unassigned).
 - Step: `taskId`, `title`, `completed` (default false). `taskId` can't be changed.
-- Limits (enforced on create, and on task update when `listId` changes):
+- Limits (enforced on create, and on task update when `listId` changes, checked against the whole batch):
   - Per user: 10 lists, 100 tasks, 100 steps.
   - Per parent: 20 tasks per list, 10 steps per task.
   - Unassigned tasks count only toward the user cap.
@@ -33,10 +33,10 @@ All JSON. Items are returned as `{id, ...fields}`.
 |---|---|
 | `GET /data` | `get_data`: one Query on `PK=userId`, returns `{"lists": [...], "tasks": [...], "steps": [...]}` |
 | `POST /lists`, `/tasks`, `/steps` | `create_*` (checks limits), 201 with the item |
-| `PATCH /lists/{id}`, `/tasks/{id}`, `/steps/{id}` | `update_*` (partial; checks limits when `listId` changes), 200 with the item |
-| `DELETE /lists/{id}`, `/tasks/{id}`, `/steps/{id}` | `delete_*` (list → its tasks and their steps; task → its steps; batched), 204 |
+| `PATCH /lists`, `/tasks`, `/steps` | `update_*`: body `[{"id": ..., ...fields}]` (1–100, unique ids, partial fields). All-or-nothing via one `TransactWriteItems` that SETs only the given fields (condition `attribute_exists(PK)`); id-only patches aren't written. 200 with the full updated items in request order |
+| `DELETE /lists`, `/tasks`, `/steps` | `delete_*`: body `{"ids": [...]}` (1–100, unique). Cascades (list → its tasks and their steps; task → its steps) via batch writes (not transactional), 204 |
 
-Errors: `{"error": "..."}` with 400 (bad JSON, unknown/invalid/missing field), 404 (route, item, or referenced `listId`/`taskId` not found), 409 (limit reached).
+Errors: `{"error": "..."}` with 400 (bad JSON, bad batch shape or duplicate ids, unknown/invalid/missing field), 404 (route, any item, or referenced `listId`/`taskId` not found; nothing is written), 409 (limit reached, e.g. a batch move overflowing a list).
 
 ## Lambda (`backend/`, Python 3.14 stdlib + boto3, managed with uv)
 - `index.py`: `handler` routes on `event["routeKey"]`, reads `userId` from JWT claims `sub`.
@@ -48,7 +48,7 @@ Errors: `{"error": "..."}` with 400 (bad JSON, unknown/invalid/missing field), 4
 - Auth: redirect to hosted UI, PKCE code exchange, token storage, attach `Authorization` header.
 - API client: fetch `GET /data` once, then group by `listId`/`taskId`; sort in the UI.
 - Replace local state mutations with API calls. Not optimistic: await each call, then apply the server's response to state (creates use the server-assigned id). On error, leave state unchanged and show the error.
-- Drag-and-drop reordering is local-only (not persisted); moving a task to another list is a `PATCH` of `listId`.
+- Drag-and-drop reordering is local-only (not persisted); moving a task to another list is a `PATCH /tasks` of `listId`.
 
 ## Verification
 - `terraform plan/apply`; `uv run pytest`; e2e: login → CRUD → reload persists.

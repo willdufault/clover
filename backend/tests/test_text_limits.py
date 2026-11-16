@@ -4,6 +4,6 @@ def test_text_limits(call):
     step = call("POST /steps", {"title": "x" * 100, "taskId": task["id"]})[1]
     assert all("id" in item for item in (lst, task, step))
 
-    assert call("PATCH /lists/{id}", {"name": "x" * 51}, id=lst["id"])[0] == 400
-    assert call("PATCH /tasks/{id}", {"title": "x" * 101}, id=task["id"])[0] == 400
-    assert call("PATCH /steps/{id}", {"title": "x" * 101}, id=step["id"])[0] == 400
+    assert call("PATCH /lists", [{"id": lst["id"], "name": "x" * 51}])[0] == 400
+    assert call("PATCH /tasks", [{"id": task["id"], "title": "x" * 101}])[0] == 400
+    assert call("PATCH /steps", [{"id": step["id"], "title": "x" * 101}])[0] == 400

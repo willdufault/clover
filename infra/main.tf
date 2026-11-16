@@ -158,14 +158,14 @@ locals {
   routes = toset([
     "GET /data",
     "POST /lists",
-    "PATCH /lists/{id}",
-    "DELETE /lists/{id}",
+    "PATCH /lists",
+    "DELETE /lists",
     "POST /tasks",
-    "PATCH /tasks/{id}",
-    "DELETE /tasks/{id}",
+    "PATCH /tasks",
+    "DELETE /tasks",
     "POST /steps",
-    "PATCH /steps/{id}",
-    "DELETE /steps/{id}",
+    "PATCH /steps",
+    "DELETE /steps",
   ])
 }
 

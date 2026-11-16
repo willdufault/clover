@@ -2,10 +2,19 @@ import common
 
 
 def handle(event, user_id):
-    data = common.validate(common.TASK_FIELDS, common.parse_body(event), partial=True)
-    item = common.get(user_id, "TASK", common.path_id(event))
-    list_id = data.get("listId")
-    if list_id is not None and list_id != item["listId"]:
-        items = common.load_all(user_id)
-        common.check_parent(items, "LIST", list_id, "listId", common.TASKS_PER_LIST)
-    return common.update(item, data)
+    patches = common.parse_patches(event, common.TASK_FIELDS)
+    items = common.load_all(user_id)
+    tasks = common.by_id(items, "TASK", [i for i, _ in patches])
+    list_of = {common.to_api(i)["id"]: i["listId"] for i in items if common.kind_of(i) == "TASK"}
+    targets = set()
+    for task_id, data in patches:
+        list_id = data.get("listId", list_of[task_id])
+        if list_id is not None and list_id != tasks[task_id]["listId"]:
+            targets.add(list_id)
+        list_of[task_id] = list_id
+    for list_id in targets:
+        if not any(i["SK"] == f"LIST#{list_id}" for i in items):
+            raise common.ApiError(404, "listId not found")
+        if list(list_of.values()).count(list_id) > common.TASKS_PER_LIST:
+            raise common.ApiError(409, "list is full")
+    return common.update_many(user_id, "TASK", patches, items)

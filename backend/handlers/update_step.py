@@ -2,6 +2,5 @@ import common
 
 
 def handle(event, user_id):
-    data = common.validate(common.STEP_EDITABLE, common.parse_body(event), partial=True)
-    item = common.get(user_id, "STEP", common.path_id(event))
-    return common.update(item, data)
+    patches = common.parse_patches(event, common.STEP_EDITABLE)
+    return common.update_many(user_id, "STEP", patches, common.load_all(user_id))

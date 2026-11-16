@@ -59,3 +59,33 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   expect(backend.data.tasks.some((t) => t.title === 'Dune Messiah')).toBe(false)
   expect(errors).toEqual([])
 })
+
+test('bulk priority and delete each send one request', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', (e) => errors.push(e.message))
+  const backend = await mockApi(page)
+  const writes: string[] = []
+  page.on('request', (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`))
+  await page.goto('/')
+
+  const main = page.locator('main')
+  const milk = main.locator('[data-kind="task"]', { hasText: 'Milk' })
+  const eggs = main.locator('[data-kind="task"]', { hasText: 'Eggs' })
+  await milk.click()
+  await eggs.click({ modifiers: ['ControlOrMeta'] })
+  await eggs.click({ button: 'right' })
+  await page.getByText('Set priority').hover()
+  await page.getByRole('button', { name: '🔴 High' }).click()
+  await expect(main.getByText('🔴 High')).toHaveCount(2)
+  await page.screenshot({ path: 'test-results/bulk.png' })
+  expect(backend.data.tasks.filter((t) => t.priority === 'high').map((t) => t.id)).toEqual(['g1', 'g2'])
+
+  await eggs.click({ button: 'right' })
+  await page.getByText('Delete', { exact: true }).click()
+  await expect(main.locator('[data-kind="task"]')).toHaveCount(0)
+  expect(backend.data.tasks.map((t) => t.id)).toEqual(['w1', 'w2', 'w3'])
+  expect(backend.data.steps).toEqual([])
+  expect(writes).toEqual(['PATCH /tasks', 'DELETE /tasks'])
+  expect(errors).toEqual([])
+})

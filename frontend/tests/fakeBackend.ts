@@ -29,28 +29,31 @@ export const seed = () => ({
 export const createFakeBackend = (data = seed()) => {
   let nextId = 1
   // Responses are copies, like JSON over the wire.
-  const handle = (method: string, url: string, body?: Record<string, unknown>) => {
+  const handle = (method: string, url: string, body?: unknown) => {
     const { status, body: response } = route(method, url, body)
     return { status, body: response && structuredClone(response) }
   }
-  const route = (method: string, url: string, body?: Record<string, unknown>): { status: number; body?: object } => {
-    const [, kind, id] = new URL(url).pathname.split('/') as [string, Kind | 'data', string?]
+  const route = (method: string, url: string, body?: unknown): { status: number; body?: object } => {
+    const kind = new URL(url).pathname.split('/')[1] as Kind | 'data'
     if (kind === 'data') return { status: 200, body: data }
     const items = data[kind]
     if (method === 'POST') {
-      const item = { id: `new-${nextId++}`, ...DEFAULTS[kind], ...body }
+      const item = { id: `new-${nextId++}`, ...DEFAULTS[kind], ...(body as object) }
       items.push(item)
       return { status: 201, body: item }
     }
-    const item = items.find((other) => other.id === id)
-    if (!item) return { status: 404, body: { error: 'not found' } }
+    // PATCH and DELETE are batch and all-or-nothing.
+    const batch = method === 'PATCH' ? body : (body as { ids?: unknown } | undefined)?.ids
+    if (!Array.isArray(batch) || batch.length < 1 || batch.length > 100) return { status: 400, body: { error: 'bad request' } }
+    const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch
+    if (ids.some((id) => typeof id !== 'string')) return { status: 400, body: { error: 'bad request' } }
+    if (ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'not found' } }
     if (method === 'PATCH') {
-      Object.assign(item, body)
-      return { status: 200, body: item }
+      return { status: 200, body: batch.map((patch) => Object.assign(items.find((item) => item.id === patch.id)!, patch)) }
     }
-    data[kind] = items.filter((other) => other !== item)
-    if (kind === 'lists') data.tasks = data.tasks.filter((other) => other.listId !== id)
-    const taskIds = new Set(data.tasks.map((other) => other.id))
+    data[kind] = items.filter((item) => !ids.includes(item.id))
+    if (kind === 'lists') data.tasks = data.tasks.filter((task) => !ids.includes(task.listId))
+    const taskIds = new Set(data.tasks.map((task) => task.id))
     data.steps = data.steps.filter((step) => taskIds.has(step.taskId as string))
     return { status: 204 }
   }
