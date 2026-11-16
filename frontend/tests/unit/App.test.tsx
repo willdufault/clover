@@ -72,6 +72,7 @@ const toggle = (user: User, name: string, root: HTMLElement = main()) =>
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 const setDue = async (value: string) => {
   fireEvent.change(dueInput(), { target: { value } })
+  fireEvent.blur(dueInput())
   await flush()
 }
 const pick = async (user: User, from: string, to: string) => {
@@ -360,6 +361,19 @@ describe('changes only affect the touched item', () => {
 })
 
 describe('due dates', () => {
+  it('saves the due date only when the edit ends', async () => {
+    const { user } = await setup()
+    await user.click(within(main()).getByText('Milk'))
+    const id = backend.data.tasks.find((t) => t.title === 'Milk')!.id
+    act(() => dueInput().focus())
+    fireEvent.change(dueInput(), { target: { value: '2030-01-02' } })
+    await flush()
+    expect(backend.data.tasks.find((t) => t.id === id)!.due).toBeNull()
+    fireEvent.keyDown(dueInput(), { key: 'Enter' })
+    await flush()
+    expect(backend.data.tasks.find((t) => t.id === id)!.due).toBe('2030-01-02')
+  })
+
   const openMilk = (user: User) => user.click(within(main()).getByText('Milk'))
   const dueLabel = dueInput
 

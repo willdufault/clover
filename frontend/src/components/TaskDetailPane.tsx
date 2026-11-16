@@ -129,8 +129,13 @@ export default function TaskDetailPane({
       >
         <input
           type="date"
-          value={task.due ?? ''}
-          onChange={(event) => onSetDue(task.id, event.target.value || undefined)}
+          // Uncontrolled so typing doesn't save each partial date; saves once on blur or Enter.
+          key={task.id + (task.due ?? '')}
+          defaultValue={task.due ?? ''}
+          onBlur={(event) => {
+            if (event.target.value !== (task.due ?? '')) onSetDue(task.id, event.target.value || undefined)
+          }}
+          onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
         />
         {task.due ? (
