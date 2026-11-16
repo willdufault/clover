@@ -4,7 +4,7 @@ import { createFakeBackend } from '../fakeBackend'
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page) => {
   const backend = createFakeBackend()
-  const payload = Buffer.from(JSON.stringify({ exp: 9999999999 })).toString('base64')
+  const payload = btoa(JSON.stringify({ exp: 9999999999 }))
   await page.addInitScript((token) => localStorage.setItem('idToken', token), `x.${payload}.y`)
   await page.route(
     (url) => url.hostname.endsWith('.amazonaws.com'),
