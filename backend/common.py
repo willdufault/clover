@@ -118,8 +118,8 @@ def optional_date(v):
     if v is None:
         return True
     try:
-        date.fromisoformat(v)
-        return True
+        # Only YYYY-MM-DD; fromisoformat also accepts forms like 20240101.
+        return date.fromisoformat(v).isoformat() == v
     except (TypeError, ValueError):
         return False
 

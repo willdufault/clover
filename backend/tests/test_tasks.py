@@ -39,6 +39,8 @@ def test_create_validation(call):
     assert call("POST /tasks", {"title": "T", "stage": "nope"})[0] == 400
     assert call("POST /tasks", {"title": "T", "priority": "urgent"})[0] == 400
     assert call("POST /tasks", {"title": "T", "due": "tomorrow"})[0] == 400
+    assert call("POST /tasks", {"title": "T", "due": "20240101"})[0] == 400
+    assert call("POST /tasks", {"title": "T", "due": "2024-W01-1"})[0] == 400
     assert call("POST /tasks", {"title": "T", "addedToToday": "yes"})[0] == 400
     assert call("POST /tasks", {"title": "T", "listId": "missing"})[0] == 404
 
