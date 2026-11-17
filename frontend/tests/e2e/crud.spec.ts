@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { seed } from '../fakeBackend'
-import { mockApi } from './mockApi'
+import { captureErrors, mockApi } from './mockApi'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
-  const errors: string[] = []
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
-  page.on('pageerror', (e) => errors.push(e.message))
+  const errors = captureErrors(page)
   const backend = await mockApi(page)
   await page.goto('/')
 
@@ -62,9 +60,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
 })
 
 test('bulk priority and delete each send one request', async ({ page }) => {
-  const errors: string[] = []
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
-  page.on('pageerror', (e) => errors.push(e.message))
+  const errors = captureErrors(page)
   const backend = await mockApi(page)
   const writes: string[] = []
   page.on('request', (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`))
@@ -92,9 +88,7 @@ test('bulk priority and delete each send one request', async ({ page }) => {
 })
 
 test('a partly cleared due date is not saved, and a failed save shows the saved date', async ({ page }) => {
-  const errors: string[] = []
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
-  page.on('pageerror', (e) => errors.push(e.message))
+  const errors = captureErrors(page)
   const data = seed()
   data.tasks.find((t) => t.id === 'g1')!.due = '2030-01-02'
   const backend = await mockApi(page, data)

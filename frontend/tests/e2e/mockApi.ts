@@ -18,3 +18,10 @@ export const mockApi = async (page: Page, data = seed()) => {
   )
   return backend
 }
+
+export const captureErrors = (page: Page) => {
+  const errors: string[] = []
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', (e) => errors.push(e.message))
+  return errors
+}
