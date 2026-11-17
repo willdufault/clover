@@ -186,7 +186,11 @@ describe('task fields', () => {
     await user.click(screen.getByText('Mark as done'))
     expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
     await rightClick(user, row('Oat', aside()))
-    expect(screen.getByText('Mark as open')).toBeInTheDocument()
+    await user.click(screen.getByText('Mark as open'))
+    for (const name of ['2% lactose free', 'Oat']) expect(within(row(name, aside())).getByRole('checkbox')).not.toBeChecked()
+    await rightClick(user, row('Oat', aside()))
+    await user.click(screen.getByText('Delete', { exact: true }))
+    expect(backend.data.steps).toEqual([])
   })
 })
 

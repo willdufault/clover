@@ -35,6 +35,15 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await page.keyboard.press('Enter')
   await expect(task).toContainText('Dune Messiah')
 
+  const patches: string[] = []
+  page.on('request', (r) => r.method() === 'PATCH' && patches.push(r.postData() ?? ''))
+  await aside.getByRole('heading', { name: 'Dune Messiah' }).click()
+  await page.keyboard.type('Nope')
+  await page.keyboard.press('Escape')
+  await expect(aside.getByRole('heading', { name: 'Dune Messiah' })).toBeVisible()
+  await expect(task).toContainText('Dune Messiah')
+  expect(patches.filter((b) => b.includes('Nope'))).toEqual([])
+
   // Focus stays in the input, so the next steps are typed straight in.
   await page.getByPlaceholder('+ New step').fill('Chapter 1')
   await page.getByPlaceholder('+ New step').press('Enter')
@@ -151,6 +160,11 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await expect(page.locator('aside')).toHaveCount(0)
   await expect(navRow('📋 All')).toHaveText('📋 All6')
   expect(backend.data.tasks.some((t) => t.title === 'Call mom')).toBe(false)
+  await rows.filter({ hasText: 'Review PR' }).click()
+  await page.locator('aside').getByRole('button', { name: 'Delete task' }).click()
+  await expect(rows.filter({ hasText: 'Review PR' })).toHaveCount(0)
+  await expect(page.locator('aside')).toHaveCount(0)
+  expect(backend.data.tasks.some((t) => t.title === 'Review PR')).toBe(false)
 
   // The done task moves from first to last.
   await expect(rows.first()).toContainText('Water plants')
