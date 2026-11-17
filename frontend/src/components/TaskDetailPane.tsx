@@ -3,7 +3,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
+import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
 import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
@@ -89,7 +89,7 @@ export default function TaskDetailPane({
   return (
     <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
       <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
-        <TaskSummary key={task.id} task={task} heading onSetStage={(_id, stage) => onUpdate({ stage })} onRename={onRename} />
+        <TaskSummary key={task.id} task={task} heading onSetStage={(stage) => onUpdate({ stage })} onRename={onRename} />
         <button
           onClick={onClose}
           aria-label="Close panel"
@@ -177,7 +177,7 @@ export default function TaskDetailPane({
       >
         {STAGES.map((stage) => (
           <option key={stage} value={stage}>
-            {STAGE_LABELS[stage].emoji} {STAGE_LABELS[stage].label}
+            {labelText(STAGE_LABELS[stage])}
           </option>
         ))}
       </select>
@@ -189,7 +189,7 @@ export default function TaskDetailPane({
       >
         {PRIORITIES.map((priority) => (
           <option key={priority} value={priority}>
-            {PRIORITY_LABELS[priority].emoji} {PRIORITY_LABELS[priority].label}
+            {labelText(PRIORITY_LABELS[priority])}
           </option>
         ))}
       </select>

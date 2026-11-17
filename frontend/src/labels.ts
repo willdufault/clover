@@ -18,3 +18,5 @@ export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }>
 }
 
 export const PRIORITIES = Object.keys(PRIORITY_LABELS) as Priority[]
+
+export const labelText = ({ emoji, label }: { emoji: string; label: string }) => `${emoji} ${label}`

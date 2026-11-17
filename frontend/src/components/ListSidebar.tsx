@@ -1,15 +1,15 @@
+import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { sidebarRowClass } from '../styles'
 import { RowKind, type Task, type TaskList } from '../types'
-import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, tasksInList } from '../smartLists'
+import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, TODAY_LIST_NAME, tasksInList } from '../smartLists'
 import { TaskCountBadge } from './TaskCountBadge'
 import { AddInput } from './AddInput'
 import { LIST_NAME_MAX } from '../limits'
 import { SortableRow } from './SortableRow'
-import { TodayRow } from './TodayRow'
 import type { OpenContextMenu } from './ContextMenu'
 
 export default function ListSidebar({
@@ -31,18 +31,21 @@ export default function ListSidebar({
   onLogout: () => void
   onContextMenu: OpenContextMenu
 }) {
+  const { setNodeRef: setTodayRef } = useDroppable({ id: TODAY_LIST_ID })
   return (
     <div className="flex w-64 shrink-0 flex-col bg-sprout">
       <div className="overflow-hidden [scrollbar-gutter:stable] px-3 pt-6 pb-4">
         <div className="px-3 py-2 text-lg font-semibold tracking-tight text-ink">🍀 clover</div>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
-        <TodayRow
-          count={tasksInList(tasks, TODAY_LIST_ID).length}
-          selected={selectedListId === TODAY_LIST_ID}
-          dragOver={dragOverListId === TODAY_LIST_ID}
+        <div
+          ref={setTodayRef}
           onClick={() => onSelectList(TODAY_LIST_ID)}
-        />
+          className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
+        >
+          <span>{TODAY_LIST_NAME}</span>
+          <TaskCountBadge count={tasksInList(tasks, TODAY_LIST_ID).length} />
+        </div>
         <div
           onClick={() => onSelectList(ALL_LIST_ID)}
           className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}

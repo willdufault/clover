@@ -6,7 +6,7 @@ export function SortableRow({
   id,
   kind,
   text,
-  tag,
+  tag: Tag,
   className,
   onClick,
   onContextMenu,
@@ -16,7 +16,7 @@ export function SortableRow({
   kind: RowKind
   text: string
   tag: 'li' | 'div'
-  className?: string
+  className: string
   onClick?: (event: React.MouseEvent) => void
   onContextMenu?: (event: React.MouseEvent) => void
   children: React.ReactNode
@@ -29,7 +29,6 @@ export function SortableRow({
     transition,
     isDragging,
   } = useSortable({ id, data: { kind, text } })
-  const Tag = tag
   return (
     <Tag
       ref={setNodeRef}

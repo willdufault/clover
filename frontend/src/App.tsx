@@ -266,9 +266,13 @@ export default function App() {
     setDragOverListId(taskDropTarget(over))
   }
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const endDrag = () => {
     setActiveDrag(null)
     setDragOverListId(null)
+  }
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    endDrag()
     if (!over) return
     const overId = String(over.id)
     const target = taskDropTarget(over)
@@ -304,10 +308,7 @@ export default function App() {
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => {
-        setActiveDrag(null)
-        setDragOverListId(null)
-      }}
+      onDragCancel={endDrag}
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
         {error && (

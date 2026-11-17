@@ -16,7 +16,7 @@ export function TaskSummary({
 }: {
   task: Task
   heading?: boolean
-  onSetStage: (id: string, stage: Stage) => void
+  onSetStage: (stage: Stage) => void
   onRename?: (kind: RowKind, id: string, text: string) => void
   children?: React.ReactNode
 }) {
@@ -31,7 +31,7 @@ export function TaskSummary({
   return (
     <div className={'flex min-w-0 flex-1 gap-3.5 ' + (heading ? 'items-start' : 'items-center')}>
       <span className={heading ? 'mt-1.5 flex' : 'flex'}>
-        <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
+        <StageSelect value={task.stage} onChange={onSetStage} />
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <EditableText

@@ -3,7 +3,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { formatDueDate } from '../dates'
-import { PRIORITY_LABELS } from '../labels'
+import { PRIORITY_LABELS, labelText } from '../labels'
 import { isCompleted } from '../stages'
 import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } from '../styles'
 import type { SortCriteria } from '../sort'
@@ -67,8 +67,7 @@ export default function TaskPane({
     if (task.priority !== 'medium')
       items.push(
         <span key="priority">
-          {PRIORITY_LABELS[task.priority].emoji}{' '}
-          {PRIORITY_LABELS[task.priority].label}
+          {labelText(PRIORITY_LABELS[task.priority])}
         </span>,
       )
     return items
@@ -95,7 +94,7 @@ export default function TaskPane({
       >
         {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
         <svg viewBox="0 0 16 16" className="absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-faint opacity-0 transition group-hover:opacity-100" fill="currentColor" aria-hidden="true"><circle cx="6" cy="4" r="1.2" /><circle cx="10" cy="4" r="1.2" /><circle cx="6" cy="8" r="1.2" /><circle cx="10" cy="8" r="1.2" /><circle cx="6" cy="12" r="1.2" /><circle cx="10" cy="12" r="1.2" /></svg>
-        <TaskSummary task={task} onSetStage={onSetStage}>
+        <TaskSummary task={task} onSetStage={(stage) => onSetStage(task.id, stage)}>
           {meta.length > 0 && <div className="mt-1 flex gap-3 text-[13.5px] text-ink-soft">{meta}</div>}
         </TaskSummary>
       </SortableRow>
