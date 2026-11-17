@@ -1,0 +1,9 @@
+{
+  "listsPerUser": 10,
+  "tasksPerUser": 100,
+  "stepsPerUser": 100,
+  "tasksPerList": 20,
+  "stepsPerTask": 10,
+  "listNameMax": 50,
+  "titleMax": 100
+}

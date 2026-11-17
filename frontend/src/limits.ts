@@ -1,8 +1,10 @@
-// Keep in sync with backend/common.py
-export const LISTS_PER_USER = 10
-export const TASKS_PER_USER = 100
-export const STEPS_PER_USER = 100
-export const TASKS_PER_LIST = 20
-export const STEPS_PER_TASK = 10
-export const LIST_NAME_MAX = 50
-export const TITLE_MAX = 100
+import limits from '../../backend/limits.json'
+
+// Shared with the backend.
+export const LISTS_PER_USER = limits.listsPerUser
+export const TASKS_PER_USER = limits.tasksPerUser
+export const STEPS_PER_USER = limits.stepsPerUser
+export const TASKS_PER_LIST = limits.tasksPerList
+export const STEPS_PER_TASK = limits.stepsPerTask
+export const LIST_NAME_MAX = limits.listNameMax
+export const TITLE_MAX = limits.titleMax

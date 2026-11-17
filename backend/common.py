@@ -10,11 +10,18 @@ from botocore.exceptions import ClientError
 
 table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 
-USER_LIMITS = {"LIST": 10, "TASK": 100, "STEP": 100}
-TASKS_PER_LIST = 20
-STEPS_PER_TASK = 10
-LIST_NAME_MAX = 50
-TITLE_MAX = 100
+# Shared with the frontend.
+with open(os.path.join(os.path.dirname(__file__), "limits.json")) as f:
+    LIMITS = json.load(f)
+USER_LIMITS = {
+    "LIST": LIMITS["listsPerUser"],
+    "TASK": LIMITS["tasksPerUser"],
+    "STEP": LIMITS["stepsPerUser"],
+}
+TASKS_PER_LIST = LIMITS["tasksPerList"]
+STEPS_PER_TASK = LIMITS["stepsPerTask"]
+LIST_NAME_MAX = LIMITS["listNameMax"]
+TITLE_MAX = LIMITS["titleMax"]
 
 
 class ApiError(Exception):
