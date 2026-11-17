@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import random
 import time
 import uuid
 from datetime import date
@@ -191,7 +192,9 @@ def create(user_id, kind, data):
     return response(201, to_api(item))
 
 
-# AWS SDKs don't retry transaction conflicts, so retry with exponential backoff.
+# Overlapping writes to the same item (e.g. two quick edits to one task) cancel
+# the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
+# with exponential backoff, plus jitter so colliding requests don't retry in sync.
 def transact(writes, attempts=4):
     for attempt in range(attempts):
         try:
@@ -202,7 +205,7 @@ def transact(writes, attempts=4):
                 raise ApiError(404, "Not found.")
             if "TransactionConflict" not in reasons or attempt == attempts - 1:
                 raise
-            time.sleep(0.05 * 2**attempt)
+            time.sleep(0.05 * 2**attempt + random.uniform(0, 0.05))
 
 
 def update_many(user_id, kind, patches, items):

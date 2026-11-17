@@ -195,4 +195,6 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
         500,
         {"error": "Internal server error."},
     )
-    assert sleeps == [0.05, 0.1, 0.2]
+    assert len(sleeps) == 3
+    for base, slept in zip([0.05, 0.1, 0.2], sleeps):
+        assert base <= slept <= base + 0.05
