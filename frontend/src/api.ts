@@ -42,6 +42,7 @@ export const handleRedirect = async () => {
       code_verifier: localStorage.getItem('verifier') ?? '',
     }),
   })
+  localStorage.removeItem('verifier')
   if (response.ok) localStorage.setItem('idToken', (await response.json()).id_token)
 }
 
@@ -68,10 +69,10 @@ export const api = async (method: string, path: string, body?: object) => {
   })
   if (response.status === 401) {
     await login()
-    throw new Error('Session expired')
+    throw new Error('Session expired.')
   }
   if (response.status === 204) return null
   const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`)
+  if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status}).`)
   return data
 }

@@ -3,7 +3,7 @@ output "api_url" {
 }
 
 output "cognito_url" {
-  value = "https://${aws_cognito_user_pool_domain.users.domain}.auth.us-east-1.amazoncognito.com"
+  value = "https://${aws_cognito_user_pool_domain.users.domain}.auth.${var.region}.amazoncognito.com"
 }
 
 output "client_id" {

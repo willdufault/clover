@@ -44,10 +44,10 @@ export const createFakeBackend = (data = seed()) => {
     }
     // PATCH and DELETE are batch and all-or-nothing.
     const batch = method === 'PATCH' ? body : (body as { ids?: unknown } | undefined)?.ids
-    if (!Array.isArray(batch) || batch.length < 1 || batch.length > 100) return { status: 400, body: { error: 'bad request' } }
+    if (!Array.isArray(batch) || batch.length < 1 || batch.length > 100) return { status: 400, body: { error: 'Bad request.' } }
     const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch
-    if (ids.some((id) => typeof id !== 'string')) return { status: 400, body: { error: 'bad request' } }
-    if (ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'not found' } }
+    if (ids.some((id) => typeof id !== 'string')) return { status: 400, body: { error: 'Bad request.' } }
+    if (ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'Not found.' } }
     if (method === 'PATCH') {
       return { status: 200, body: batch.map((patch) => Object.assign(items.find((item) => item.id === patch.id)!, patch)) }
     }

@@ -41,6 +41,7 @@ Errors (`{"error": "..."}`; nothing is written):
 - 400: bad JSON, bad body shape, bad/duplicate ids, unknown, invalid or missing field.
 - 404: unknown route, any id not found, referenced `listId`/`taskId` not found.
 - 409: limit reached (including a PATCH batch moving too many tasks into a list).
+- 500: unexpected error (`Internal server error.`).
 
 ## Limits
 

@@ -92,7 +92,7 @@ export default function App() {
   // Shows the error and returns true if adding one more would exceed the limit.
   const atLimit = (count: number, limit: number, message: string) => {
     if (count < limit) return false
-    setError(`${message} (${limit})`)
+    setError(`${message} (${limit}).`)
     return true
   }
 

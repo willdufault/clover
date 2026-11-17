@@ -44,7 +44,7 @@ uv run pytest   # tests
 
 ## Infra
 
-Run from `infra/`. Region is `us-east-1`. State lives in S3 (bucket `wduf-clover-terraform-state`, created by hand, native lockfile).
+Run from `infra/`. State lives in S3 (bucket `wduf-clover-terraform-state` in `us-east-1`, created by hand, native lockfile).
 
 ```sh
 terraform init
@@ -54,6 +54,6 @@ terraform plan
 terraform apply
 ```
 
-Variables: `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`, used for Cognito callback/logout and CORS).
+Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`, used for Cognito callback/logout and CORS).
 
 Outputs: `api_url`, `cognito_url`, `client_id`, `user_pool_id`.

@@ -40,13 +40,13 @@ def parse_json(event):
     try:
         return json.loads(raw)
     except ValueError:
-        raise ApiError(400, "invalid JSON")
+        raise ApiError(400, "Invalid JSON.")
 
 
 def parse_body(event):
     body = parse_json(event)
     if not isinstance(body, dict):
-        raise ApiError(400, "body must be an object")
+        raise ApiError(400, "Body must be an object.")
     return body
 
 
@@ -60,7 +60,7 @@ def check_ids(ids):
         and all(isinstance(i, str) for i in ids)
         and len(set(ids)) == len(ids)
     ):
-        raise ApiError(400, f"ids must be 1-{MAX_BATCH} unique strings")
+        raise ApiError(400, f"IDs must be 1-{MAX_BATCH} unique strings.")
 
 
 def parse_ids(event):
@@ -72,7 +72,7 @@ def parse_ids(event):
 def parse_patches(event, fields):
     body = parse_json(event)
     if not isinstance(body, list) or not all(isinstance(p, dict) for p in body):
-        raise ApiError(400, "body must be an array of objects")
+        raise ApiError(400, "Body must be an array of objects.")
     check_ids([p.get("id") for p in body])
     return [
         (p["id"], validate(fields, {k: v for k, v in p.items() if k != "id"}, partial=True))
@@ -136,16 +136,16 @@ STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 def validate(fields, body, partial=False):
     for name in body:
         if name not in fields:
-            raise ApiError(400, f"unknown field: {name}")
+            raise ApiError(400, f"Unknown field: {name}.")
     data = {}
     for name, (check, default) in fields.items():
         if name in body:
             if not check(body[name]):
-                raise ApiError(400, f"invalid {name}")
+                raise ApiError(400, f"Invalid {name}.")
             data[name] = body[name]
         elif not partial:
             if default is REQUIRED:
-                raise ApiError(400, f"missing {name}")
+                raise ApiError(400, f"Missing {name}.")
             data[name] = default
     return data
 
@@ -173,7 +173,7 @@ def load_all(user_id):
 def by_id(items, kind, ids):
     found = {to_api(i)["id"]: i for i in items if kind_of(i) == kind}
     if any(i not in found for i in ids):
-        raise ApiError(404, "not found")
+        raise ApiError(404, "Not found.")
     return {i: found[i] for i in ids}
 
 
@@ -205,7 +205,7 @@ def update_many(user_id, kind, patches, items):
         except ClientError as e:
             reasons = e.response.get("CancellationReasons", [])
             if any(r.get("Code") == "ConditionalCheckFailed" for r in reasons):
-                raise ApiError(404, "not found")
+                raise ApiError(404, "Not found.")
             raise
     updated = by_id(load_all(user_id), kind, [i for i, _ in patches])
     return response(200, [to_api(updated[i]) for i, _ in patches])
@@ -223,12 +223,12 @@ def delete(items):
 
 def check_user_limit(items, kind):
     if sum(kind_of(i) == kind for i in items) >= USER_LIMITS[kind]:
-        raise ApiError(409, f"{kind.lower()} limit reached")
+        raise ApiError(409, f"{kind.capitalize()} limit reached.")
 
 
 def check_parent(items, parent_kind, parent_id, child_field, limit):
     sk = f"{parent_kind}#{parent_id}"
     if not any(i["SK"] == sk for i in items):
-        raise ApiError(404, f"{child_field} not found")
+        raise ApiError(404, f"{parent_kind.capitalize()} not found.")
     if sum(i.get(child_field) == parent_id for i in items) >= limit:
-        raise ApiError(409, f"{parent_kind.lower()} is full")
+        raise ApiError(409, f"{parent_kind.capitalize()} is full.")

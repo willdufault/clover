@@ -80,11 +80,11 @@ def test_update_move_checks_list(call):
     task = call("POST /tasks", {"title": "T"})[1]
     assert call("PATCH /tasks", [{"id": task["id"], "listId": "missing"}]) == (
         404,
-        {"error": "listId not found"},
+        {"error": "List not found."},
     )
     assert call("PATCH /tasks", [{"id": task["id"], "listId": full["id"]}]) == (
         409,
-        {"error": "list is full"},
+        {"error": "List is full."},
     )
     other = call("POST /lists", {"name": "Other"})[1]
     status, moved = call("PATCH /tasks", [{"id": task["id"], "listId": other["id"]}])

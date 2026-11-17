@@ -808,7 +808,7 @@ describe('multi-select', () => {
     backend.data.tasks = backend.data.tasks.filter((task) => task.id !== 'g2')
     await rightClick(user, row('Milk'))
     await submenuClick(user, 'Set priority', '🔴 High')
-    expect(screen.getByRole('alert')).toHaveTextContent('not found')
+    expect(screen.getByRole('alert')).toHaveTextContent('Not found.')
     expect(within(main()).queryByText('🔴 High')).toBeNull()
     expect(backend.data.tasks.find((task) => task.id === 'g1')).toMatchObject({ priority: 'medium' })
   })
@@ -940,9 +940,9 @@ test('leading and trailing spaces are not stored', async () => {
 test('a server error shows a dismissible banner and leaves state unchanged', async () => {
   const { user } = await setup()
   const handle = backend.handle
-  backend.handle = () => ({ status: 409, body: { error: 'task limit reached' } })
+  backend.handle = () => ({ status: 409, body: { error: 'Task limit reached.' } })
   await user.type(screen.getByPlaceholderText(/new task/i), 'Bread{Enter}')
-  expect(screen.getByRole('alert')).toHaveTextContent('task limit reached')
+  expect(screen.getByRole('alert')).toHaveTextContent('Task limit reached.')
   expect(tasks()).toEqual(['Milk', 'Eggs'])
   backend.handle = handle
   await user.click(screen.getByLabelText('Dismiss error'))

@@ -1,3 +1,5 @@
+import traceback
+
 import common
 from handlers import (
     create_list,
@@ -29,9 +31,12 @@ ROUTES = {
 def handler(event, context):
     route = ROUTES.get(event["routeKey"])
     if route is None:
-        return common.response(404, {"error": "route not found"})
+        return common.response(404, {"error": "Route not found."})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
         return route(event, user_id)
     except common.ApiError as e:
         return common.response(e.status, {"error": e.message})
+    except Exception:
+        traceback.print_exc()
+        return common.response(500, {"error": "Internal server error."})
