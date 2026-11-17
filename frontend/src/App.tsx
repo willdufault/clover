@@ -9,13 +9,14 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type Over,
 } from '@dnd-kit/core'
 import { api, logout } from './api'
 import { applyDrop } from './drop'
 import { LISTS_PER_USER, STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST, TASKS_PER_USER } from './limits'
 import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
-import { RowKind, type Step, type Task, type TaskList } from './types'
+import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
@@ -171,12 +172,9 @@ export default function App() {
       replaceTaskSelection([])
     })
 
-  const updateTasks = (ids: string[], patch: Partial<Omit<Task, 'id' | 'steps'>>) =>
-    run(async () => {
-      await patchTasks(ids.map((id) => ({ id, ...patch })))
-    })
+  const updateTasks = (ids: string[], patch: TaskPatch) => run(() => patchTasks(ids.map((id) => ({ id, ...patch }))))
 
-  const updateTask = (id: string, patch: Partial<Omit<Task, 'id' | 'steps'>>) => updateTasks([id], patch)
+  const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
   const sortList = (criteria: SortCriteria) =>
     setTasks((tasks) => applySort(tasks, listTasks, criteria))
@@ -204,7 +202,6 @@ export default function App() {
       if (kind !== RowKind.List && selected.includes(id)) ids = selected
       else if (kind === RowKind.Task) replaceTaskSelection(ids)
       else if (kind === RowKind.Step) setSelectedStepIds(ids)
-      const dueTask = tasks.find((task) => ids.includes(task.id) && task.due)
       const idsTasks = tasks.filter((task) => ids.includes(task.id))
       const allDone = detailTask?.steps
         .filter((step) => ids.includes(step.id))
@@ -214,7 +211,7 @@ export default function App() {
         y: event.clientY,
         kind,
         ids,
-        due: dueTask?.due ?? undefined,
+        hasDue: idsTasks.some((t) => t.due),
         allInToday: idsTasks.every((task) => task.addedToToday),
         allDone,
       })
@@ -258,15 +255,15 @@ export default function App() {
     setActiveDrag(active.data.current as DragInfo)
   }
 
+  // The list id or TODAY_LIST_ID when a task is dragged over a list or Today; otherwise null.
+  const taskDropTarget = (over: Over | null) => {
+    if (!over || activeDrag?.kind !== RowKind.Task) return null
+    const id = String(over.id)
+    return id === TODAY_LIST_ID || lists.some((list) => list.id === id) ? id : null
+  }
+
   const handleDragOver = ({ over }: DragOverEvent) => {
-    const listIds = lists.map((list) => list.id)
-    setDragOverListId(
-      over &&
-        activeDrag?.kind === RowKind.Task &&
-        [...listIds, TODAY_LIST_ID].includes(String(over.id))
-        ? String(over.id)
-        : null,
-    )
+    setDragOverListId(taskDropTarget(over))
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -274,16 +271,17 @@ export default function App() {
     setDragOverListId(null)
     if (!over) return
     const overId = String(over.id)
-    if (activeDrag?.kind === RowKind.Task && overId === TODAY_LIST_ID) {
+    const target = taskDropTarget(over)
+    if (target === TODAY_LIST_ID) {
       replaceTaskSelection([])
       updateTask(String(active.id), { addedToToday: true })
       return
     }
-    if (activeDrag?.kind === RowKind.Task && lists.some((list) => list.id === overId)) {
+    if (target) {
       replaceTaskSelection([])
       const task = tasks.find((task) => task.id === active.id)
-      if (task?.listId === overId || listFull(overId)) return
-      updateTask(String(active.id), { listId: overId })
+      if (task?.listId === target || listFull(target)) return
+      updateTask(String(active.id), { listId: target })
       return
     }
     const nextState = applyDrop({ lists, tasks }, {
@@ -292,7 +290,6 @@ export default function App() {
       activeId: String(active.id),
       overId,
     })
-    if (nextState.lists === lists && nextState.tasks === tasks) return
     setLists(nextState.lists)
     setTasks(nextState.tasks)
   }
@@ -314,7 +311,7 @@ export default function App() {
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
         {error && (
-          <div role="alert" className="flex items-center justify-between gap-3 bg-[#fbe9e3] px-4 py-2 text-sm text-coral">
+          <div role="alert" className="flex items-center justify-between gap-3 bg-coral-50 px-4 py-2 text-sm text-coral">
             <span>{error}</span>
             <button onClick={() => setError(null)} aria-label="Dismiss error">×</button>
           </div>
@@ -352,14 +349,9 @@ export default function App() {
               onClose={() => replaceTaskSelection([])}
               onDeleteTask={() => deleteTasks([detailTask.id])}
               onAddStep={addStep}
-              onToggleStep={(id) =>
-                setStepsCompleted([id], !detailTask.steps.find((step) => step.id === id)!.completed)
-              }
+              onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
               onDeleteStep={(id) => deleteSteps([id])}
-              onSetDue={(id, due) => updateTask(id, { due: due ?? null })}
-              onSetToday={(id, added) => updateTask(id, { addedToToday: added })}
-              onSetPriority={(id, priority) => updateTask(id, { priority })}
-              onSetStage={(id, stage) => updateTask(id, { stage })}
+              onUpdate={(patch) => updateTask(detailTask.id, patch)}
               onContextMenu={openContextMenu}
               onRename={renameItem}
             />
@@ -383,10 +375,7 @@ export default function App() {
             else if (menu.kind === RowKind.Task) deleteTasks(menu.ids)
             else deleteSteps(menu.ids)
           }}
-          onSetDue={(due) => updateTasks(menu.ids, { due: due ?? null })}
-          onSetToday={(added) => updateTasks(menu.ids, { addedToToday: added })}
-          onSetPriority={(priority) => updateTasks(menu.ids, { priority })}
-          onSetStage={(stage) => updateTasks(menu.ids, { stage })}
+          onUpdate={(patch) => updateTasks(menu.ids, patch)}
           onSetStepCompleted={(completed) =>
             setStepsCompleted(
               detailTask!.steps

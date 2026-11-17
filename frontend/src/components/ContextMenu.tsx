@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
-import { RowKind, type Priority, type Stage } from '../types'
+import { RowKind, type TaskPatch } from '../types'
 
 const MENU_WIDTH = 208
 
@@ -59,7 +59,7 @@ export type ContextMenuState = {
   y: number
   kind: RowKind
   ids: string[]
-  due?: string
+  hasDue?: boolean
   allInToday?: boolean
   allDone?: boolean
 }
@@ -70,19 +70,13 @@ export default function ContextMenu({
   menu,
   onClose,
   onDelete,
-  onSetDue,
-  onSetToday,
-  onSetPriority,
-  onSetStage,
+  onUpdate,
   onSetStepCompleted,
 }: {
   menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
-  onSetDue: (due?: string) => void
-  onSetToday: (added: boolean) => void
-  onSetPriority: (priority: Priority) => void
-  onSetStage: (stage: Stage) => void
+  onUpdate: (patch: TaskPatch) => void
   onSetStepCompleted: (completed: boolean) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -104,29 +98,29 @@ export default function ContextMenu({
 
   const taskItems: MenuItem[] = [
     menu.allInToday
-      ? { label: '☀️ Remove from Today', action: () => onSetToday(false) }
-      : { label: '☀️ Add to Today', action: () => onSetToday(true) },
+      ? { label: '☀️ Remove from Today', action: () => onUpdate({ addedToToday: false }) }
+      : { label: '☀️ Add to Today', action: () => onUpdate({ addedToToday: true }) },
     {
       label: 'Set stage',
       submenu: STAGES.map((stage) => ({
         label: STAGE_LABELS[stage].emoji + ' ' + STAGE_LABELS[stage].label,
-        action: () => onSetStage(stage),
+        action: () => onUpdate({ stage }),
       })),
     },
     {
       label: 'Set due date',
       submenu: [
-        { label: 'Today', action: () => onSetDue(today()) },
-        { label: 'Tomorrow', action: () => onSetDue(tomorrow()) },
-        { label: 'Next week', action: () => onSetDue(nextMonday()) },
-        ...(menu.due ? [{ label: 'Remove', action: () => onSetDue(), danger: true }] : []),
+        { label: 'Today', action: () => onUpdate({ due: today() }) },
+        { label: 'Tomorrow', action: () => onUpdate({ due: tomorrow() }) },
+        { label: 'Next week', action: () => onUpdate({ due: nextMonday() }) },
+        ...(menu.hasDue ? [{ label: 'Remove', action: () => onUpdate({ due: null }), danger: true }] : []),
       ],
     },
     {
       label: 'Set priority',
       submenu: PRIORITIES.map((priority) => ({
         label: PRIORITY_LABELS[priority].emoji + ' ' + PRIORITY_LABELS[priority].label,
-        action: () => onSetPriority(priority),
+        action: () => onUpdate({ priority }),
       })),
     },
   ]

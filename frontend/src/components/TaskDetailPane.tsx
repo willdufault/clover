@@ -5,7 +5,7 @@ import {
 import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS } from '../labels'
 import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
-import { RowKind, type Priority, type Stage, type Step, type Task } from '../types'
+import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
 import { TITLE_MAX } from '../limits'
@@ -23,10 +23,7 @@ export default function TaskDetailPane({
   onAddStep,
   onToggleStep,
   onDeleteStep,
-  onSetDue,
-  onSetToday,
-  onSetPriority,
-  onSetStage,
+  onUpdate,
   onContextMenu,
   onRename,
 }: {
@@ -36,12 +33,9 @@ export default function TaskDetailPane({
   onClose: () => void
   onDeleteTask: () => void
   onAddStep: (text: string) => void
-  onToggleStep: (id: string) => void
+  onToggleStep: (id: string, completed: boolean) => void
   onDeleteStep: (id: string) => void
-  onSetDue: (id: string, due?: string) => void
-  onSetToday: (id: string, added: boolean) => void
-  onSetPriority: (id: string, priority: Priority) => void
-  onSetStage: (id: string, stage: Stage) => void
+  onUpdate: (patch: TaskPatch) => void
   onContextMenu: OpenContextMenu
   onRename: (kind: RowKind, id: string, text: string) => void
 }) {
@@ -63,7 +57,7 @@ export default function TaskDetailPane({
         type="checkbox"
         checked={step.completed}
         {...ignoreRowEvents}
-        onChange={() => onToggleStep(step.id)}
+        onChange={() => onToggleStep(step.id, !step.completed)}
         className="check"
       />
       <EditableText
@@ -95,7 +89,7 @@ export default function TaskDetailPane({
   return (
     <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
       <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
-        <TaskSummary key={task.id} task={task} heading onSetStage={onSetStage} onRename={onRename} />
+        <TaskSummary key={task.id} task={task} heading onSetStage={(_id, stage) => onUpdate({ stage })} onRename={onRename} />
         <button
           onClick={onClose}
           aria-label="Close panel"
@@ -138,7 +132,7 @@ export default function TaskDetailPane({
             const partial = event.target.validity.badInput
             // Show the saved date until the save succeeds; then the key changes and the input remounts.
             event.target.value = task.due ?? ''
-            if (!partial && value !== (task.due ?? '')) onSetDue(task.id, value || undefined)
+            if (!partial && value !== (task.due ?? '')) onUpdate({ due: value || null })
           }}
           onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
@@ -148,7 +142,7 @@ export default function TaskDetailPane({
             {relativeDayLabel(task.due) && (
               <span className={'shrink-0 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</span>
             )}
-            <button onClick={() => onSetDue(task.id)} className={X_BUTTON_CLASS + ' text-ink-soft'}>
+            <button onClick={() => onUpdate({ due: null })} className={X_BUTTON_CLASS + ' text-ink-soft'}>
               ×
             </button>
           </>
@@ -160,7 +154,7 @@ export default function TaskDetailPane({
         <div className="mt-2.5 flex h-9 w-fit items-center gap-1 rounded-full border border-clover-200 bg-clover-100 pr-1.5 pl-4 text-sm font-medium text-clover-700">
           <span>☀️ Added to Today</span>
           <button
-            onClick={() => onSetToday(task.id, false)}
+            onClick={() => onUpdate({ addedToToday: false })}
             aria-label="Remove from Today"
             className={X_BUTTON_CLASS + ' text-clover-700'}
           >
@@ -169,7 +163,7 @@ export default function TaskDetailPane({
         </div>
       ) : (
         <button
-          onClick={() => onSetToday(task.id, true)}
+          onClick={() => onUpdate({ addedToToday: true })}
           className="mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
         >
           ☀️ Add to Today
@@ -178,7 +172,7 @@ export default function TaskDetailPane({
       <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
       <select
         value={task.stage}
-        onChange={(event) => onSetStage(task.id, event.target.value as Stage)}
+        onChange={(event) => onUpdate({ stage: event.target.value as Stage })}
         className={FIELD_CLASS + ' field'}
       >
         {STAGES.map((stage) => (
@@ -190,7 +184,7 @@ export default function TaskDetailPane({
       <h3 className={LABEL_CLASS}>Priority</h3>
       <select
         value={task.priority}
-        onChange={(event) => onSetPriority(task.id, event.target.value as Priority)}
+        onChange={(event) => onUpdate({ priority: event.target.value as Priority })}
         className={FIELD_CLASS + ' field'}
       >
         {PRIORITIES.map((priority) => (
@@ -203,7 +197,7 @@ export default function TaskDetailPane({
       <div className="shrink-0 border-t border-line px-4 py-2.5">
         <button
           onClick={onDeleteTask}
-          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-[#fbe9e3]"
+          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-coral-50"
         >
           <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
           Delete task
