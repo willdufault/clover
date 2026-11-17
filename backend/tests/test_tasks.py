@@ -1,4 +1,5 @@
 import pytest
+from botocore.exceptions import ClientError
 
 import common
 
@@ -155,3 +156,43 @@ def test_update_deleted_task_is_404(call):
         common.update_many("user-1", "TASK", patches, stale)
     assert e.value.status == 404
     assert call("GET /data")[1]["tasks"] == [a]
+
+
+def conflict():
+    error = {
+        "Error": {"Code": "TransactionCanceledException"},
+        "CancellationReasons": [{"Code": "TransactionConflict"}],
+    }
+    return ClientError(error, "TransactWriteItems")
+
+
+def test_transaction_conflict_is_retried(call, table, monkeypatch):
+    monkeypatch.setattr(common.time, "sleep", lambda s: None)
+    task = call("POST /tasks", {"title": "T"})[1]
+    real = table.transact_write_items
+    failures = [conflict()]
+
+    def flaky(TransactItems):
+        if failures:
+            raise failures.pop()
+        return real(TransactItems)
+
+    table.transact_write_items = flaky
+    status, body = call("PATCH /tasks", [{"id": task["id"], "stage": "done"}])
+    assert status == 200 and body[0]["stage"] == "done"
+
+
+def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(common.time, "sleep", sleeps.append)
+    task = call("POST /tasks", {"title": "T"})[1]
+
+    def always(TransactItems):
+        raise conflict()
+
+    table.transact_write_items = always
+    assert call("PATCH /tasks", [{"id": task["id"], "stage": "done"}]) == (
+        500,
+        {"error": "Internal server error."},
+    )
+    assert sleeps == [0.05, 0.1, 0.2]

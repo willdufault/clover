@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import time
 import uuid
 from datetime import date
 
@@ -190,6 +191,20 @@ def create(user_id, kind, data):
     return response(201, to_api(item))
 
 
+# AWS SDKs don't retry transaction conflicts, so retry with exponential backoff.
+def transact(writes, attempts=4):
+    for attempt in range(attempts):
+        try:
+            return table.meta.client.transact_write_items(TransactItems=writes)
+        except ClientError as e:
+            reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
+            if "ConditionalCheckFailed" in reasons:
+                raise ApiError(404, "Not found.")
+            if "TransactionConflict" not in reasons or attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * 2**attempt)
+
+
 def update_many(user_id, kind, patches, items):
     by_id(items, kind, [i for i, _ in patches])
     writes = [
@@ -207,13 +222,7 @@ def update_many(user_id, kind, patches, items):
         if data
     ]
     if writes:
-        try:
-            table.meta.client.transact_write_items(TransactItems=writes)
-        except ClientError as e:
-            reasons = e.response.get("CancellationReasons", [])
-            if any(r.get("Code") == "ConditionalCheckFailed" for r in reasons):
-                raise ApiError(404, "Not found.")
-            raise
+        transact(writes)
     updated = by_id(load_all(user_id), kind, [i for i, _ in patches])
     return response(200, [to_api(updated[i]) for i, _ in patches])
 
