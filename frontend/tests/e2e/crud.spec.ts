@@ -1,9 +1,7 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { today } from '../../src/dates'
 import { seed, task as makeTask } from '../fakeBackend'
-import { captureErrors, mockApi } from './mockApi'
-
-const todayBadge = (page: Page) => page.locator('nav > div').first()
+import { captureErrors, mockApi, navRow } from './mockApi'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
   const errors = captureErrors(page)
@@ -66,9 +64,9 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
 
   await aside.locator('select').first().selectOption('inProgress')
   await aside.locator('input[type="date"]').fill('2030-01-02')
-  await expect(todayBadge(page)).toHaveText('☀️ Today')
+  await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today')
   await aside.getByText('☀️ Add to Today').click()
-  await expect(todayBadge(page)).toHaveText('☀️ Today1')
+  await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today1')
   await aside.locator('select').last().selectOption('high')
   await expect(task).toContainText('☀️ Today')
   await expect(task).toContainText('📅 Wed Jan 2')
@@ -95,7 +93,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await expect(task).not.toContainText('📅')
   await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Dune Messiah')!.due).toBeNull()
   await aside.getByRole('button', { name: 'Remove from Today' }).click()
-  await expect(todayBadge(page)).toHaveText('☀️ Today')
+  await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today')
   await expect(task).not.toContainText('☀️ Today')
   await page.keyboard.press('Escape')
   await expect(aside).toHaveCount(0)
@@ -116,34 +114,32 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   const backend = await mockApi(page)
   await page.goto('/')
 
-  const nav = page.locator('nav')
   const main = page.locator('main')
   const rows = main.locator('[data-kind="task"]')
-  const navRow = (name: string) => nav.locator(':scope > div', { hasText: name })
-  await expect(navRow('📋 All')).toHaveText('📋 All5')
-  await expect(navRow('Groceries')).toHaveText('Groceries2')
-  await expect(navRow('Home')).toHaveText('Home')
+  await expect(navRow(page, '📋 All')).toHaveText('📋 All5')
+  await expect(navRow(page, 'Groceries')).toHaveText('Groceries2')
+  await expect(navRow(page, 'Home')).toHaveText('Home')
 
-  await navRow('📋 All').click()
+  await navRow(page, '📋 All').click()
   await page.getByPlaceholder('+ New task').fill('Call mom')
   await page.getByPlaceholder('+ New task').press('Enter')
   await expect(rows.first()).toContainText('Call mom')
-  await expect(navRow('📋 All')).toHaveText('📋 All6')
+  await expect(navRow(page, '📋 All')).toHaveText('📋 All6')
   expect(backend.data.tasks.find((t) => t.title === 'Call mom')).toMatchObject({ listId: null, addedToToday: false })
   for (const list of ['Groceries', 'Work', 'Home']) {
-    await navRow(list).click()
+    await navRow(page, list).click()
     await expect(main.getByRole('heading', { name: list })).toBeVisible()
     await expect(main.getByText('Call mom')).toHaveCount(0)
   }
 
-  await navRow('☀️ Today').click()
+  await navRow(page, '☀️ Today').click()
   await page.getByPlaceholder('+ New task').fill('Water plants')
   await page.getByPlaceholder('+ New task').press('Enter')
   await expect(rows).toHaveCount(1)
   await expect(rows.first()).toContainText('Water plants')
-  await expect(navRow('☀️ Today')).toHaveText('☀️ Today1')
-  await expect(navRow('📋 All')).toHaveText('📋 All7')
-  await navRow('📋 All').click()
+  await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today1')
+  await expect(navRow(page, '📋 All')).toHaveText('📋 All7')
+  await navRow(page, '📋 All').click()
   const water = rows.filter({ hasText: 'Water plants' })
   await expect(water).toBeVisible()
 
@@ -158,7 +154,7 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await page.getByText('Delete', { exact: true }).click()
   await expect(call).toHaveCount(0)
   await expect(page.locator('aside')).toHaveCount(0)
-  await expect(navRow('📋 All')).toHaveText('📋 All6')
+  await expect(navRow(page, '📋 All')).toHaveText('📋 All6')
   expect(backend.data.tasks.some((t) => t.title === 'Call mom')).toBe(false)
   await rows.filter({ hasText: 'Review PR' }).click()
   await page.locator('aside').getByRole('button', { name: 'Delete task' }).click()
@@ -222,7 +218,7 @@ test('bulk range select, menu actions and delete each send one request', async (
   await eggs.click({ button: 'right' })
   await page.getByRole('button', { name: '☀️ Add to Today' }).click()
   await expect(main.getByText('☀️ Today')).toHaveCount(3)
-  await expect(todayBadge(page)).toHaveText('☀️ Today3')
+  await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today3')
   expect(groceries().map((t) => t.addedToToday)).toEqual([true, true, true])
   await expect(main.getByText('3 selected')).toBeVisible()
   await page.screenshot({ path: 'test-results/bulk.png' })

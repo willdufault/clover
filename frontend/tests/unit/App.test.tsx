@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
+import { SELECTED_ROW_CLASS } from '../../src/styles'
 import { STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST } from '../../src/limits'
 import { createFakeBackend, seed, task } from '../fakeBackend'
 
@@ -23,9 +24,9 @@ const setup = async () => {
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGES = Object.values(STAGE_LABELS).map((s) => s.emoji).join('')
+const STAGE_EMOJIS = Object.values(STAGE_LABELS).map((s) => s.emoji).join('')
 const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
+  (rowElement.textContent ?? '').replace(STAGE_EMOJIS, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
   within(root).queryAllByRole('button').filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
@@ -48,7 +49,7 @@ const submenuClick = async (user: User, parent: string, leaf: string) => {
   await flush()
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
-const menuAction = async (user: User, element: HTMLElement) => {
+const deleteViaMenu = async (user: User, element: HTMLElement) => {
   await rightClick(user, element)
   await user.click(screen.getByText('Delete'))
 }
@@ -84,7 +85,7 @@ test('opening the context menu cancels an in-progress rename', async () => {
 test('deleting every list falls back to the All view with no tasks', async () => {
   const { user } = await setup()
   for (const name of ['Groceries', 'Work', 'Home']) {
-    await menuAction(user, within(nav()).getByText(name))
+    await deleteViaMenu(user, within(nav()).getByText(name))
   }
   expect(screen.getByRole('heading', { name: '📋 All' })).toBeInTheDocument()
   expect(tasks()).toHaveLength(0)
@@ -95,7 +96,7 @@ test('deleting a list that is not selected keeps the current list and the open p
   const { user } = await setup()
   await user.click(within(main()).getByText('Milk'))
   // Home's neighbour is Work, so a wrong fallback would switch away from Groceries.
-  await menuAction(user, within(nav()).getByText('Home'))
+  await deleteViaMenu(user, within(nav()).getByText('Home'))
   expect(within(nav()).queryByText('Home')).toBeNull()
   expect(screen.getByRole('heading', { name: 'Groceries' })).toBeInTheDocument()
   expect(within(aside()).getByRole('heading', { name: 'Milk' })).toBeInTheDocument()
@@ -111,7 +112,7 @@ test('a list created while a delete is in flight survives and stays selected', a
     return realFetch(url, init)
   })
   await user.click(within(nav()).getByText('Work'))
-  await menuAction(user, within(nav()).getByText('Work'))
+  await deleteViaMenu(user, within(nav()).getByText('Work'))
   await newList(user, 'Fun')
   expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
   release()
@@ -234,7 +235,7 @@ describe('multi-select', () => {
     await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step' }))
     await user.keyboard('{/Control}')
     expect(steps()).toEqual(['2% lactose free', 'Skim'])
-    expect(rowsIn(aside()).some((r) => r.className.includes('bg-clover-100'))).toBe(false)
+    expect(rowsIn(aside()).some((r) => r.className.includes(SELECTED_ROW_CLASS))).toBe(false)
   })
 
   test('modifier-click on step text selects without renaming', async () => {
@@ -248,8 +249,8 @@ describe('multi-select', () => {
       await user.click(within(aside()).getByText('2% lactose free'))
       await user.keyboard(`{/${key}}`)
       expect(within(aside()).queryAllByRole('textbox')).toHaveLength(boxes)
-      expect(row('Skim', aside())).toHaveClass('bg-clover-100')
-      expect(row('2% lactose free', aside())).toHaveClass('bg-clover-100')
+      expect(row('Skim', aside())).toHaveClass(SELECTED_ROW_CLASS)
+      expect(row('2% lactose free', aside())).toHaveClass(SELECTED_ROW_CLASS)
       await user.click(row('Skim', aside()))
     }
   })
@@ -285,7 +286,7 @@ test('a task that left the view is not deleted with the selection', async () => 
   await user.keyboard('{Control>}')
   await user.click(within(main()).getByText('Review PR'))
   await user.keyboard('{/Control}')
-  await menuAction(user, within(main()).getByText('Review PR'))
+  await deleteViaMenu(user, within(main()).getByText('Review PR'))
   await user.click(within(nav()).getByText('📋 All'))
   expect(tasks()).toContain('Milk')
   expect(tasks()).not.toContain('Review PR')

@@ -37,3 +37,6 @@ export const drag = async (page: Page, from: Locator, to: Locator) => {
   for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + (x1 - x0) * (i / 10), y0 + (y1 - y0) * (i / 10))
   await page.mouse.up()
 }
+
+// A sidebar row (Today, All, or a list) by its visible text.
+export const navRow = (page: Page, name: string) => page.locator('nav > div', { hasText: name })

@@ -4,7 +4,7 @@ import {
 } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
-import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
+import { FIELD_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
@@ -13,6 +13,9 @@ import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { TaskSummary } from './TaskSummary'
 import { ignoreRowEvents } from './ignoreRowEvents'
+
+const LABEL_CLASS =
+  'mt-5 mb-2 px-1 text-xs font-semibold tracking-[0.07em] text-ink-soft uppercase'
 
 export default function TaskDetailPane({
   task,

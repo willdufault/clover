@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { captureErrors, drag, mockApi } from './mockApi'
+import { captureErrors, drag, mockApi, navRow } from './mockApi'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors = captureErrors(page)
@@ -33,7 +33,7 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
   await drag(page, main.getByText('Milk', { exact: true }), nav.getByText('Home'))
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')!.listId).toBe('home')
   await expect(main.getByText('Milk', { exact: true })).toHaveCount(0)
-  await expect(nav.locator(':scope > div', { hasText: 'Home' })).toHaveText('Home1')
+  await expect(navRow(page, 'Home')).toHaveText('Home1')
 
   await page.waitForTimeout(500) // let the drop animation finish
   await drag(page, main.getByText('Eggs', { exact: true }), nav.getByText('☀️ Today'))

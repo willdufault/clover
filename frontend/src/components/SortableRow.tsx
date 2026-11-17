@@ -17,8 +17,8 @@ export function SortableRow({
   text: string
   tag: 'li' | 'div'
   className: string
-  onClick?: (event: React.MouseEvent) => void
-  onContextMenu?: (event: React.MouseEvent) => void
+  onClick: (event: React.MouseEvent) => void
+  onContextMenu: (event: React.MouseEvent) => void
   children: React.ReactNode
 }) {
   const {

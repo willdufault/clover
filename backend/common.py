@@ -60,6 +60,8 @@ def parse_body(event):
 
 
 MAX_BATCH = 100
+RETRY_BASE_DELAY = 0.05
+RETRY_JITTER = 0.05
 
 
 def check_ids(ids):
@@ -215,7 +217,7 @@ def create(user_id, kind, data, parent=None):
 # the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
 # with exponential backoff, plus jitter so colliding requests don't retry in sync.
 def transact(writes, retries=3):
-    delay = 0.05
+    delay = RETRY_BASE_DELAY
     for attempt in range(retries + 1):
         try:
             return table.meta.client.transact_write_items(TransactItems=writes)
@@ -229,7 +231,7 @@ def transact(writes, retries=3):
                     raise ApiError(404, "Not found.")
             if "TransactionConflict" not in reasons or attempt == retries:
                 raise
-            time.sleep(delay + random.uniform(0, 0.05))
+            time.sleep(delay + random.uniform(0, RETRY_JITTER))
             delay *= 2
 
 

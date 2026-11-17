@@ -15,9 +15,6 @@ export const MENU_ITEM_CLASS = 'w-full cursor-default rounded-lg px-3 py-2 text-
 
 export const SELECTED_ROW_CLASS = 'bg-clover-100'
 
-export const LABEL_CLASS =
-  'mt-5 mb-2 px-1 text-xs font-semibold tracking-[0.07em] text-ink-soft uppercase'
-
 export const sidebarRowClass = (selected: boolean, dragOver: boolean) => {
   const base =
     'flex select-none items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition '

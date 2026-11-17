@@ -5,7 +5,8 @@ import {
 } from '@dnd-kit/sortable'
 import { sidebarRowClass } from '../styles'
 import { RowKind, type Task, type TaskList } from '../types'
-import { ALL_LIST_ID, ALL_LIST_NAME, TODAY_LIST_ID, TODAY_LIST_NAME, tasksInList } from '../smartLists'
+import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../smartLists'
+import { logout } from '../api'
 import { TaskCountBadge } from './TaskCountBadge'
 import { AddInput } from './AddInput'
 import { LIST_NAME_MAX } from '../limits'
@@ -19,7 +20,6 @@ export default function ListSidebar({
   dragOverListId,
   onSelectList,
   onCreateList,
-  onLogout,
   onContextMenu,
 }: {
   lists: TaskList[]
@@ -28,7 +28,6 @@ export default function ListSidebar({
   dragOverListId: string | null
   onSelectList: (id: string) => void
   onCreateList: (name: string) => void
-  onLogout: () => void
   onContextMenu: OpenContextMenu
 }) {
   const { setNodeRef: setTodayRef } = useDroppable({ id: TODAY_LIST_ID })
@@ -43,14 +42,14 @@ export default function ListSidebar({
           onClick={() => onSelectList(TODAY_LIST_ID)}
           className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
         >
-          <span>{TODAY_LIST_NAME}</span>
+          <span>{SMART_LIST_NAMES[TODAY_LIST_ID]}</span>
           <TaskCountBadge count={tasksInList(tasks, TODAY_LIST_ID).length} />
         </div>
         <div
           onClick={() => onSelectList(ALL_LIST_ID)}
           className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
         >
-          <span>{ALL_LIST_NAME}</span>
+          <span>{SMART_LIST_NAMES[ALL_LIST_ID]}</span>
           <TaskCountBadge count={tasksInList(tasks, ALL_LIST_ID).length} />
         </div>
         <hr className="mx-3 my-3 border-sprout-deep" />
@@ -74,7 +73,7 @@ export default function ListSidebar({
 
         <AddInput placeholder="+ New list" maxLength={LIST_NAME_MAX} onAdd={onCreateList} className="mt-4" />
       </nav>
-      <button onClick={onLogout} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
+      <button onClick={logout} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
         Log out
       </button>
     </div>

@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
   type Over,
 } from '@dnd-kit/core'
-import { api, logout } from './api'
+import { api } from './api'
 import { applyDrop } from './drop'
 import { LISTS_PER_USER, STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST, TASKS_PER_USER } from './limits'
 import { nextSelection } from './selection'
@@ -325,7 +325,6 @@ export default function App() {
             dragOverListId={dragOverListId}
             onSelectList={selectList}
             onCreateList={createList}
-            onLogout={logout}
             onContextMenu={openContextMenu}
           />
           <TaskPane
