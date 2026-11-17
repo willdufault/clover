@@ -7,7 +7,7 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 - **Frontend**: React SPA. On load it exchanges any `?code=` for tokens, then renders if a valid id token is stored, otherwise redirects to login.
 - **Auth**: Cognito user pool (email username, open self sign-up, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URL `app_url`. The SPA stores the **id token** in `localStorage` and sends it as `Authorization: Bearer`; the authorizer checks audience, which only the id token carries. Id and access tokens last 12h. A 401 triggers a fresh login.
 - **API**: API Gateway HTTP API, Cognito JWT authorizer on every route, one Lambda proxy integration (payload v2). CORS allows `app_url`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
-- **Lambda** (`clover-api`): Python 3.14, arm64, 10s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
+- **Lambda** (`clover-api`): Python 3.14, arm64, 30s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
 - **DynamoDB**: one table (`clover-tasks`), on-demand.
 
 ## Backend code
@@ -34,7 +34,7 @@ All JSON. Items are returned as `{id, ...fields}`.
 | `GET /data` | 200 `{"lists": [...], "tasks": [...], "steps": [...]}` |
 | `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. 201 with the item. |
 | `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–100 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`); id-only patches are skipped. 200 with full updated items in request order. |
-| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–100 unique. Cascades list → its tasks → their steps, task → its steps. Batch writes (not transactional). 204. |
+| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–100 unique. Cascades list → its tasks → their steps, task → its steps. Batch writes, children first, so a failed delete leaves no orphans and a retry finishes it. 204. |
 
 Errors (`{"error": "..."}`; nothing is written):
 

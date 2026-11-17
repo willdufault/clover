@@ -134,7 +134,7 @@ resource "aws_lambda_function" "api" {
   role             = aws_iam_role.api.arn
   runtime          = "python3.14"
   architectures    = ["arm64"]
-  timeout          = 10
+  timeout          = 30
   handler          = "index.handler"
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256

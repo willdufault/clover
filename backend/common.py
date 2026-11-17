@@ -218,10 +218,13 @@ def update_many(user_id, kind, patches, items):
     return response(200, [to_api(updated[i]) for i, _ in patches])
 
 
-def delete(items):
-    with table.batch_writer() as batch:
-        for item in items:
-            batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+# Groups go children first (steps, tasks, lists), each flushed before the next,
+# so a failure partway never orphans children; retrying the DELETE finishes it.
+def delete(*groups):
+    for items in groups:
+        with table.batch_writer() as batch:
+            for item in items:
+                batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
     return response(204)
 
 

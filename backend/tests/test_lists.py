@@ -86,3 +86,14 @@ def test_delete_body_validation(call):
     assert call("DELETE /lists", {"ids": [str(i) for i in range(101)]})[0] == 400
     assert call("DELETE /lists", [a["id"]])[0] == 400
     assert call("GET /data")[1]["lists"] == [a]
+
+
+def test_delete_goes_children_first(call, table):
+    lst = call("POST /lists", {"name": "A"})[1]
+    task = call("POST /tasks", {"title": "T", "listId": lst["id"]})[1]
+    call("POST /steps", {"taskId": task["id"], "title": "S"})
+    order = []
+    delete_item = table.delete_item
+    table.delete_item = lambda Key: (order.append(Key["SK"].split("#")[0]), delete_item(Key))
+    assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
+    assert order == ["STEP", "TASK", "LIST"]
