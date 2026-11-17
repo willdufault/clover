@@ -195,17 +195,19 @@ def create(user_id, kind, data):
 # Overlapping writes to the same item (e.g. two quick edits to one task) cancel
 # the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
 # with exponential backoff, plus jitter so colliding requests don't retry in sync.
-def transact(writes, attempts=4):
-    for attempt in range(attempts):
+def transact(writes, retries=3):
+    delay = 0.05
+    for attempt in range(retries + 1):
         try:
             return table.meta.client.transact_write_items(TransactItems=writes)
         except ClientError as e:
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
             if "ConditionalCheckFailed" in reasons:
                 raise ApiError(404, "Not found.")
-            if "TransactionConflict" not in reasons or attempt == attempts - 1:
+            if "TransactionConflict" not in reasons or attempt == retries:
                 raise
-            time.sleep(0.05 * 2**attempt + random.uniform(0, 0.05))
+            time.sleep(delay + random.uniform(0, 0.05))
+            delay *= 2
 
 
 def update_many(user_id, kind, patches, items):
