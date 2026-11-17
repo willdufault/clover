@@ -9,6 +9,16 @@ test('hasValidToken checks presence and expiry', () => {
   localStorage.setItem('idToken', token(2000))
   expect(hasValidToken(1999_000)).toBe(true)
   expect(hasValidToken(2000_000)).toBe(false)
+
+  // JWT payloads are base64url: '-' and '_' instead of '+' and '/', no padding.
+  const payload = btoa(JSON.stringify({ exp: 2000, sub: '????>' }))
+  expect(payload).toMatch(/\+.*\/|\/.*\+/)
+  const urlSafe = payload.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  localStorage.setItem('idToken', `x.${urlSafe}.y`)
+  expect(hasValidToken(1999_000)).toBe(true)
+
+  localStorage.setItem('idToken', 'not-a-token')
+  expect(hasValidToken()).toBe(false)
 })
 
 test('api sends the id token and throws the server error message', async () => {

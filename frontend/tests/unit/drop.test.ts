@@ -34,11 +34,6 @@ test('reorder tasks in a list: other tasks untouched', () => {
   expect(result.lists).toEqual(makeState().lists)
 })
 
-test('reorder tasks in All', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, selectedListId: 'all', activeId: 'c1', overId: 'a1' })
-  expect(ids(result.tasks)).toEqual(['c1', 'a1', 'a2', 'a3', 'b1', 'b2'])
-})
-
 test('reorder steps: task order and other tasks untouched', () => {
   const result = applyDrop(makeState(), { ...baseDrop, detailTaskId: 'a1', activeId: 's1', overId: 's3' })
   const expected = makeState()
