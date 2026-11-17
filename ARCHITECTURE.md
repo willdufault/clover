@@ -1,54 +1,59 @@
-# Clover backend architecture
+# Clover architecture
 
-## Context
-Move Clover from local-only state to a full-stack AWS app. A single prod environment covering the API and auth only; frontend hosting is out of scope. Ordering is not persisted.
+Single prod environment in `us-east-1`. Terraform manages the API and auth; frontend hosting is out of scope. Ordering is not persisted.
 
-## Terraform (`infra/`, one flat root module)
-- `main.tf`:
-  - S3 remote state (bucket `wduf-clover-terraform-state`, created by hand), `use_lockfile = true`.
-  - DynamoDB: one table, on-demand billing.
-  - Cognito: user pool, public app client (code grant + PKCE, no secret, scopes `openid email`), hosted UI domain, callback/logout URL `app_url`.
-  - Lambda: one Python 3.14 function (`index.handler`), `backend/` zipped with `archive_file` (excluding `.venv`, `tests`, uv and pytest files), IAM role scoped to the table. Env: `TABLE_NAME`, `TABLE_REGION`.
-  - HTTP API: Cognito JWT authorizer, one route per handler, all pointing to the Lambda.
-- `variables.tf`: `cognito_domain_prefix`, `app_url`. Region is hardcoded to `us-east-1`.
-- `outputs.tf`: API URL, Cognito hosted UI URL, client ID, user pool ID.
+## Components
 
-## Data model (single table)
-- `PK=userId` (Cognito `sub`), `SK=<LIST|TASK|STEP>#<id>`, id = `uuid.uuid7()`.
-- List: `name` (any emoji is just part of the name).
-- Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = unassigned).
-- Step: `taskId`, `title`, `completed` (default false). `taskId` can't be changed.
-- Limits (enforced on create, and on task update when `listId` changes, checked against the whole batch):
-  - Per user: 10 lists, 100 tasks, 100 steps.
-  - Per parent: 20 tasks per list, 10 steps per task.
-  - Unassigned tasks count only toward the user cap.
-  - Text: list `name` max 50 chars; task and step `title` max 100 chars; none may be blank.
-- Worst case ≈ 210 items ≈ 75 KB/user → fits one Query page; no pagination anywhere.
-- Est. cost, 100 users, no free tier: ~$1.50/mo worst case.
+- **Frontend**: React SPA. On load it exchanges any `?code=` for tokens, then renders if a valid id token is stored, otherwise redirects to login.
+- **Auth**: Cognito user pool (email username, open self sign-up, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URL `app_url`. The SPA stores the **id token** in `localStorage` and sends it as `Authorization: Bearer`; the authorizer checks audience, which only the id token carries. Id and access tokens last 12h. A 401 triggers a fresh login.
+- **API**: API Gateway HTTP API, Cognito JWT authorizer on every route, one Lambda proxy integration (payload v2). CORS allows `app_url`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
+- **Lambda** (`clover-api`): Python 3.14, arm64, 10s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`, `TABLE_REGION`. IAM scoped to the table. Logs kept 7 days.
+- **DynamoDB**: one table (`clover-tasks`), on-demand.
 
-## API routes (one handler module each)
+## Backend code
+
+- `index.py`: `handler` looks up `event["routeKey"]`, reads user id from JWT claim `sub`, maps `ApiError` to `{"error": ...}`.
+- `handlers/<name>.py`: `handle(event, user_id)`, one per route.
+- `common.py`: table client, parsing, validation, storage helpers, limits.
+- `tests/`: pytest with an in-memory fake table.
+
+## Data model
+
+- `PK` = user id (Cognito `sub`), `SK` = `LIST#<id>` | `TASK#<id>` | `STEP#<id>`, id = `uuid.uuid7()`.
+- List: `name`.
+- Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list).
+- Step: `taskId`, `title`, `completed` (default false). `taskId` is set on create and can't be patched.
+- Every request loads all of a user's items with one Query (no pagination; worst case ~210 items).
+
+## API
+
 All JSON. Items are returned as `{id, ...fields}`.
 
-| Route | Handler |
+| Route | Behavior |
 |---|---|
-| `GET /data` | `get_data`: one Query on `PK=userId`, returns `{"lists": [...], "tasks": [...], "steps": [...]}` |
-| `POST /lists`, `/tasks`, `/steps` | `create_*` (checks limits), 201 with the item |
-| `PATCH /lists`, `/tasks`, `/steps` | `update_*`: body `[{"id": ..., ...fields}]` (1–100, unique ids, partial fields). All-or-nothing via one `TransactWriteItems` that SETs only the given fields (condition `attribute_exists(PK)`); id-only patches aren't written. 200 with the full updated items in request order |
-| `DELETE /lists`, `/tasks`, `/steps` | `delete_*`: body `{"ids": [...]}` (1–100, unique). Cascades (list → its tasks and their steps; task → its steps) via batch writes (not transactional), 204 |
+| `GET /data` | 200 `{"lists": [...], "tasks": [...], "steps": [...]}` |
+| `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. 201 with the item. |
+| `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–100 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`); id-only patches are skipped. 200 with full updated items in request order. |
+| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–100 unique. Cascades list → its tasks → their steps, task → its steps. Batch writes (not transactional). 204. |
 
-Errors: `{"error": "..."}` with 400 (bad JSON, bad batch shape or duplicate ids, unknown/invalid/missing field), 404 (route, any item, or referenced `listId`/`taskId` not found; nothing is written), 409 (limit reached, e.g. a batch move overflowing a list).
+Errors (`{"error": "..."}`; nothing is written):
 
-## Lambda (`backend/`, Python 3.14 stdlib + boto3, managed with uv)
-- `index.py`: `handler` routes on `event["routeKey"]`, reads `userId` from JWT claims `sub`.
-- `handlers/<name>.py`: `handle(event, user_id)`, one per route.
-- `common.py`: table client, JSON response helpers, validation, limits.
-- `tests/`: pytest with an in-memory fake table (`uv run pytest`).
+- 400: bad JSON, bad body shape, bad/duplicate ids, unknown, invalid or missing field.
+- 404: unknown route, any id not found, referenced `listId`/`taskId` not found.
+- 409: limit reached (including a PATCH batch moving too many tasks into a list).
 
-## Frontend changes
-- Auth: redirect to hosted UI, PKCE code exchange, token storage, attach `Authorization` header.
-- API client: fetch `GET /data` once, then group by `listId`/`taskId`; sort in the UI.
-- Replace local state mutations with API calls. Not optimistic: await each call, then apply the server's response to state (creates use the server-assigned id). On error, leave state unchanged and show the error.
-- Drag-and-drop reordering is local-only (not persisted); moving a task to another list is a `PATCH /tasks` of `listId`.
+## Limits
 
-## Verification
-- `terraform plan/apply`; `uv run pytest`; e2e: login → CRUD → reload persists.
+Defined in `backend/common.py` and mirrored in `frontend/src/limits.ts` (keep in sync; the frontend checks them before calling the API).
+
+- Per user: 10 lists, 100 tasks, 100 steps.
+- Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.
+- Count limits apply on create, and on task PATCH when `listId` changes (checked against the whole batch).
+- Text: list `name` ≤ 50 chars, task/step `title` ≤ 100 chars, not blank.
+- Batch size: 1–100 ids per PATCH/DELETE.
+
+## Frontend data flow
+
+- `GET /data` once on load, then group steps under tasks; sorting is in the UI.
+- Not optimistic: await each call, then apply the server response (creates use the server id). On error, state is unchanged and the error is shown.
+- Drag-and-drop reordering is local only; moving a task to another list is a `PATCH /tasks` of `listId`.

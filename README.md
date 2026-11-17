@@ -1,55 +1,59 @@
 # clover
 
-A small todo app: lists, tasks, steps, due dates, priority, stage, and drag and drop.
+A small todo app with lists, tasks, steps, due dates, priority, stage, a Today view and drag and drop. React frontend, serverless AWS backend.
 
-## Tech stack
-
-- React 19 + TypeScript
-- Vite
-- Tailwind CSS 4
-- dnd-kit (drag and drop)
-- Vitest + Testing Library (tests)
-- Playwright (browser tests)
-- oxlint (lint)
-
-## Structure
+## Layout
 
 ```
-frontend/                  web app
-  src/
-    main.tsx, App.tsx      entry point and root component
-    types.ts, seed.ts      types and seed data
-    styles.ts, index.css   styles
-    smartLists, stages,    logic modules
-    drop, dates, labels,
-    selection
-    components/            UI (ListSidebar, TaskPane, TaskDetailPane, ...)
-  tests/unit/              unit tests (vitest, jsdom)
-  tests/e2e/               browser tests (Playwright)
-  public/                  static assets
-backend/                   Python Lambda API (see ARCHITECTURE.md)
-infra/                     Terraform (AWS backend, see ARCHITECTURE.md)
+frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
+  src/          app code (api.ts = auth + API client, limits.ts = shared limits)
+  tests/unit/   Vitest + Testing Library
+  tests/e2e/    Playwright, API mocked in-browser
+backend/    Python 3.14 Lambda (index.py router, handlers/, common.py)
+  tests/        pytest with an in-memory fake table
+infra/      Terraform: DynamoDB, Cognito, Lambda, HTTP API
 ```
 
-## Prerequisites
+## Frontend
 
-Node.js and npm.
-
-## Installation
+Run from `frontend/`:
 
 ```sh
-cd frontend
 npm install
+npm run dev    # dev server on http://localhost:5173
+npm test       # unit tests (vitest)
+npm run e2e    # browser tests (playwright, starts dev server)
+npm run lint   # oxlint
+npm run build  # type-check and build
 ```
 
-## Run
+`frontend/.env` (values come from the Terraform outputs):
 
-From `frontend/`:
+- `VITE_API_URL`: API base URL (`api_url`)
+- `VITE_COGNITO_URL`: Cognito hosted UI URL (`cognito_url`)
+- `VITE_COGNITO_CLIENT_ID`: app client ID (`client_id`)
+
+## Backend
+
+Run from `backend/` (uses [uv](https://docs.astral.sh/uv/)):
 
 ```sh
-npm run dev    # start dev server
-npm test       # run tests
-npm run e2e    # run browser tests
-npm run build  # type-check and build
-npm run lint   # lint
+uv sync         # install dev deps (boto3, pytest)
+uv run pytest   # tests
 ```
+
+## Infra
+
+Run from `infra/`. Region is `us-east-1`. State lives in S3 (bucket `wduf-clover-terraform-state`, created by hand, native lockfile).
+
+```sh
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan
+terraform apply
+```
+
+Variables: `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`, used for Cognito callback/logout and CORS).
+
+Outputs: `api_url`, `cognito_url`, `client_id`, `user_pool_id`.
