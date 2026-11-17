@@ -1,5 +1,7 @@
 import pytest
 
+import common
+
 
 @pytest.fixture
 def task(call):
@@ -54,3 +56,15 @@ def test_delete(call, task):
     assert call("DELETE /steps", {"ids": [a["id"], b["id"]]}) == (204, None)
     assert call("GET /data")[1]["steps"] == [c]
     assert call("DELETE /steps", {"ids": [a["id"]]})[0] == 404
+
+
+def test_create_on_task_deleted_after_read_is_404(call, table, task, monkeypatch):
+    # Simulate the task being deleted after the read and before the write.
+    stale = common.load_all("user-1")
+    table.delete_item(Key={"PK": "user-1", "SK": f"TASK#{task['id']}"})
+    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+    assert call("POST /steps", {"title": "S", "taskId": task["id"]}) == (
+        404,
+        {"error": "Task not found."},
+    )
+    assert table.items == {}

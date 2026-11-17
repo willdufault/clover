@@ -17,4 +17,5 @@ def handle(event, user_id):
             raise common.ApiError(404, "List not found.")
         if list(list_of.values()).count(list_id) > common.TASKS_PER_LIST:
             raise common.ApiError(409, "List is full.")
-    return common.update_many(user_id, "TASK", patches, items)
+    checks = [common.parent_check(user_id, "LIST", list_id) for list_id in targets]
+    return common.update_many(user_id, "TASK", patches, items, checks)

@@ -186,9 +186,24 @@ def by_id(items, kind, ids):
     return {i: found[i] for i in ids}
 
 
-def create(user_id, kind, data):
+# The parent may be deleted between the pre-check read and the write, so writes
+# that reference one also check it still exists, or the child would be orphaned.
+def parent_check(user_id, kind, item_id):
+    return {
+        "ConditionCheck": {
+            "TableName": table.name,
+            "Key": key(user_id, kind, item_id),
+            "ConditionExpression": "attribute_exists(PK)",
+        }
+    }
+
+
+def create(user_id, kind, data, parent=None):
     item = {**key(user_id, kind, str(uuid.uuid7())), **data}
-    table.put_item(Item=item)
+    if parent:
+        transact([parent_check(user_id, *parent), {"Put": {"TableName": table.name, "Item": item}}])
+    else:
+        table.put_item(Item=item)
     return response(201, to_api(item))
 
 
@@ -202,17 +217,21 @@ def transact(writes, retries=3):
             return table.meta.client.transact_write_items(TransactItems=writes)
         except ClientError as e:
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
-            if "ConditionalCheckFailed" in reasons:
-                raise ApiError(404, "Not found.")
+            for write, reason in zip(writes, reasons):
+                if reason == "ConditionalCheckFailed":
+                    check = write.get("ConditionCheck")
+                    if check:
+                        raise ApiError(404, f"{kind_of(check['Key']).capitalize()} not found.")
+                    raise ApiError(404, "Not found.")
             if "TransactionConflict" not in reasons or attempt == retries:
                 raise
             time.sleep(delay + random.uniform(0, 0.05))
             delay *= 2
 
 
-def update_many(user_id, kind, patches, items):
+def update_many(user_id, kind, patches, items, checks=()):
     by_id(items, kind, [i for i, _ in patches])
-    writes = [
+    writes = list(checks) + [
         {
             "Update": {
                 "TableName": table.name,

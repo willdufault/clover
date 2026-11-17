@@ -198,3 +198,32 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
     assert len(sleeps) == 3
     for base, slept in zip([0.05, 0.1, 0.2], sleeps):
         assert base <= slept <= base + 0.05
+
+
+def stale_snapshot(table, monkeypatch, deleted):
+    # Simulate the parent being deleted after the read and before the write.
+    stale = common.load_all("user-1")
+    table.delete_item(Key={"PK": "user-1", "SK": deleted})
+    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+
+
+def test_create_in_list_deleted_after_read_is_404(call, table, monkeypatch):
+    lst = call("POST /lists", {"name": "L"})[1]
+    stale_snapshot(table, monkeypatch, f"LIST#{lst['id']}")
+    assert call("POST /tasks", {"title": "T", "listId": lst["id"]}) == (
+        404,
+        {"error": "List not found."},
+    )
+    assert table.items == {}
+
+
+def test_move_to_list_deleted_after_read_is_404(call, table, monkeypatch):
+    lst = call("POST /lists", {"name": "L"})[1]
+    task = call("POST /tasks", {"title": "T"})[1]
+    stale_snapshot(table, monkeypatch, f"LIST#{lst['id']}")
+    assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (
+        404,
+        {"error": "List not found."},
+    )
+    assert list(table.items) == [("user-1", f"TASK#{task['id']}")]
+    assert table.items[("user-1", f"TASK#{task['id']}")]["listId"] is None

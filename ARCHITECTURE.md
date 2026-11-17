@@ -32,8 +32,8 @@ All JSON. Items are returned as `{id, ...fields}`.
 | Route | Behavior |
 |---|---|
 | `GET /data` | 200 `{"lists": [...], "tasks": [...], "steps": [...]}` |
-| `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. 201 with the item. |
-| `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–100 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`), retried up to 3 times with backoff and jitter on `TransactionConflict`; id-only patches are skipped. 200 with full updated items in request order. |
+| `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. With a parent, the Put shares a `TransactWriteItems` with a `ConditionCheck` that the parent still exists, so a concurrent delete can't orphan it. 201 with the item. |
+| `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–100 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`), plus a `ConditionCheck` on each new task `listId`, retried up to 3 times with backoff and jitter on `TransactionConflict`; id-only patches are skipped. 200 with full updated items in request order. |
 | `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–100 unique. Cascades list → its tasks → their steps, task → its steps. Batch writes, children first, so a failed delete leaves no orphans and a retry finishes it. 204. |
 
 Errors (`{"error": "..."}`; nothing is written):

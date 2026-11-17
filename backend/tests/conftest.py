@@ -23,17 +23,25 @@ class FakeTable:
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
 
     def transact_write_items(self, TransactItems):
-        updates = [t["Update"] for t in TransactItems]
-        keys = [(u["Key"]["PK"], u["Key"]["SK"]) for u in updates]
-        if not all(k in self.items for k in keys):
-            reasons = [
-                {"Code": "None" if k in self.items else "ConditionalCheckFailed"} for k in keys
-            ]
+        # Put is unconditional; ConditionCheck and Update require the item to exist.
+        def ok(t):
+            if "Put" in t:
+                return True
+            k = (t.get("ConditionCheck") or t["Update"])["Key"]
+            return (k["PK"], k["SK"]) in self.items
+
+        if not all(ok(t) for t in TransactItems):
+            reasons = [{"Code": "None" if ok(t) else "ConditionalCheckFailed"} for t in TransactItems]
             error = {"Error": {"Code": "TransactionCanceledException"}, "CancellationReasons": reasons}
             raise ClientError(error, "TransactWriteItems")
-        for k, u in zip(keys, updates):
-            for name, field in u["ExpressionAttributeNames"].items():
-                self.items[k][field] = u["ExpressionAttributeValues"][":" + name[1:]]
+        for t in TransactItems:
+            if "Put" in t:
+                self.put_item(t["Put"]["Item"])
+            elif "Update" in t:
+                u = t["Update"]
+                item = self.items[(u["Key"]["PK"], u["Key"]["SK"])]
+                for name, field in u["ExpressionAttributeNames"].items():
+                    item[field] = u["ExpressionAttributeValues"][":" + name[1:]]
 
     def delete_item(self, Key):
         self.items.pop((Key["PK"], Key["SK"]), None)
