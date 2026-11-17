@@ -170,9 +170,13 @@ def kind_of(item):
     return item["SK"].split("#", 1)[0]
 
 
+def id_of(item):
+    return item["SK"].split("#", 1)[1]
+
+
 def to_api(item):
     data = {k: v for k, v in item.items() if k not in ("PK", "SK")}
-    return {"id": item["SK"].split("#", 1)[1], **data}
+    return {"id": id_of(item), **data}
 
 
 def load_all(user_id):
@@ -180,7 +184,7 @@ def load_all(user_id):
 
 
 def by_id(items, kind, ids):
-    found = {to_api(i)["id"]: i for i in items if kind_of(i) == kind}
+    found = {id_of(i): i for i in items if kind_of(i) == kind}
     if any(i not in found for i in ids):
         raise ApiError(404, "Not found.")
     return {i: found[i] for i in ids}
