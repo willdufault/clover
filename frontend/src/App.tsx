@@ -244,14 +244,14 @@ export default function App() {
   // The server also deletes the list's tasks and their steps.
   const deleteList = (id: string) =>
     run(async () => {
-      await api('DELETE', '/lists', { ids: [id] })
       const remaining = lists.filter((list) => list.id !== id)
       const index = lists.findIndex((list) => list.id === id)
-      setLists(remaining)
+      const neighborId = (remaining[index - 1] ?? remaining[0])?.id ?? ALL_LIST_ID
+      await api('DELETE', '/lists', { ids: [id] })
+      setLists((lists) => lists.filter((list) => list.id !== id))
       setTasks((tasks) => tasks.filter((task) => task.listId !== id))
-      if (id !== selectedListId) return
-      const neighbor = remaining[index - 1] ?? remaining[0]
-      selectList(neighbor?.id ?? ALL_LIST_ID)
+      // The deleted list's tasks and steps are gone, so stale task/step selection is harmless.
+      setSelectedListId((current) => (current === id ? neighborId : current))
     })
 
   const handleDragStart = ({ active }: DragStartEvent) => {

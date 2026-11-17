@@ -133,7 +133,12 @@ export default function TaskDetailPane({
           key={task.id + (task.due ?? '')}
           defaultValue={task.due ?? ''}
           onBlur={(event) => {
-            if (event.target.value !== (task.due ?? '')) onSetDue(task.id, event.target.value || undefined)
+            // A partly cleared date reads as '' but sets badInput; skip it so it doesn't delete the date.
+            const { value } = event.target
+            const partial = event.target.validity.badInput
+            // Show the saved date until the save succeeds; then the key changes and the input remounts.
+            event.target.value = task.due ?? ''
+            if (!partial && value !== (task.due ?? '')) onSetDue(task.id, value || undefined)
           }}
           onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}

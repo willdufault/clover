@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { seed } from '../fakeBackend'
 import { mockApi } from './mockApi'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
@@ -88,4 +89,37 @@ test('bulk priority and delete each send one request', async ({ page }) => {
   expect(backend.data.steps).toEqual([])
   expect(writes).toEqual(['PATCH /tasks', 'DELETE /tasks'])
   expect(errors).toEqual([])
+})
+
+test('a partly cleared due date is not saved, and a failed save shows the saved date', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', (e) => errors.push(e.message))
+  const data = seed()
+  data.tasks.find((t) => t.id === 'g1')!.due = '2030-01-02'
+  const backend = await mockApi(page, data)
+  await page.goto('/')
+  await page.locator('main').getByText('Milk', { exact: true }).click()
+  const aside = page.locator('aside')
+  const input = aside.locator('input[type="date"]')
+
+  // Backspace the day segment (mm/dd/yyyy), then blur.
+  await input.click()
+  await input.press('ArrowRight')
+  await input.press('Backspace')
+  expect(await input.evaluate((el: HTMLInputElement) => el.validity.badInput)).toBe(true)
+  await aside.getByRole('heading', { name: 'Schedule' }).click()
+  await expect(input).toHaveValue('2030-01-02')
+  expect(backend.data.tasks.find((t) => t.id === 'g1')!.due).toBe('2030-01-02')
+
+  const handle = backend.handle
+  backend.handle = (method, url, body) => (method === 'PATCH' ? { status: 409, body: { error: 'Boom.' } } : handle(method, url, body))
+  await input.fill('2031-05-06')
+  await input.press('Enter')
+  await expect(page.getByRole('alert')).toHaveText(/Boom/)
+  await expect(input).toHaveValue('2030-01-02')
+  await page.screenshot({ path: 'test-results/due-failed-save.png' })
+  expect(backend.data.tasks.find((t) => t.id === 'g1')!.due).toBe('2030-01-02')
+  // The browser logs the expected failed request; nothing else.
+  expect(errors.filter((e) => !e.startsWith('Failed to load resource'))).toEqual([])
 })

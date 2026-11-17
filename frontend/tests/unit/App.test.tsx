@@ -216,6 +216,26 @@ test('an edit made in a list is reflected in All', async () => {
   expect(stageSelect('Eggs')).toHaveDisplayValue('✅')
 })
 
+test('a list created while a delete is in flight survives and stays selected', async () => {
+  const { user } = await setup()
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => (release = resolve))
+  const realFetch = fetch
+  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+    if (init.method === 'DELETE') await gate
+    return realFetch(url, init)
+  })
+  await user.click(within(nav()).getByText('Work'))
+  await menuAction(user, within(nav()).getByText('Work'), 'Delete')
+  await newList(user, 'Fun')
+  expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
+  release()
+  await flush()
+  expect(lists()).toEqual(expect.arrayContaining(['Groceries', 'Home', 'Fun']))
+  expect(within(nav()).queryByText('Work')).not.toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
+})
+
 test('deleting a list deletes its tasks', async () => {
   const { user } = await setup()
   await menuAction(user, within(nav()).getByText('Work'), 'Delete')
@@ -375,6 +395,29 @@ describe('due dates', () => {
     fireEvent.keyDown(dueInput(), { key: 'Enter' })
     await flush()
     expect(backend.data.tasks.find((t) => t.id === id)!.due).toBe('2030-01-02')
+  })
+
+  it('does not save a partly cleared date', async () => {
+    const { user } = await setup()
+    await user.click(within(main()).getByText('Milk'))
+    await setDue('2030-01-02')
+    const input = dueInput()
+    Object.defineProperty(input, 'validity', { value: { badInput: true } })
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.blur(input)
+    await flush()
+    expect(backend.data.tasks.find((t) => t.title === 'Milk')!.due).toBe('2030-01-02')
+    expect(dueInput()).toHaveValue('2030-01-02')
+  })
+
+  it('shows the saved date again when the save fails', async () => {
+    const { user } = await setup()
+    await user.click(within(main()).getByText('Milk'))
+    await setDue('2030-01-02')
+    backend.handle = () => ({ status: 409, body: { error: 'Nope.' } })
+    await setDue('2031-05-06')
+    expect(screen.getByRole('alert')).toHaveTextContent('Nope.')
+    expect(dueInput()).toHaveValue('2030-01-02')
   })
 
   const openMilk = (user: User) => user.click(within(main()).getByText('Milk'))
