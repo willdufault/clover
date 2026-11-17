@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
+import { STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST } from '../../src/limits'
 import { createFakeBackend, seed, task } from '../fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
@@ -45,9 +46,9 @@ const submenuClick = async (user: User, parent: string, leaf: string) => {
   await flush()
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })
-const menuAction = async (user: User, element: HTMLElement, action: 'Delete') => {
+const menuAction = async (user: User, element: HTMLElement) => {
   await rightClick(user, element)
-  await user.click(screen.getByText(action))
+  await user.click(screen.getByText('Delete'))
 }
 const newList = async (user: User, name: string) => {
   await user.type(screen.getByPlaceholderText('+ New list'), `${name}{Enter}`)
@@ -81,7 +82,7 @@ test('opening the context menu cancels an in-progress rename', async () => {
 test('deleting every list falls back to the All view with no tasks', async () => {
   const { user } = await setup()
   for (const name of ['Groceries', 'Work', 'Home']) {
-    await menuAction(user, within(nav()).getByText(name), 'Delete')
+    await menuAction(user, within(nav()).getByText(name))
   }
   expect(screen.getByRole('heading', { name: '📋 All' })).toBeInTheDocument()
   expect(tasks()).toHaveLength(0)
@@ -92,7 +93,7 @@ test('deleting a list that is not selected keeps the current list and the open p
   const { user } = await setup()
   await user.click(within(main()).getByText('Milk'))
   // Home's neighbour is Work, so a wrong fallback would switch away from Groceries.
-  await menuAction(user, within(nav()).getByText('Home'), 'Delete')
+  await menuAction(user, within(nav()).getByText('Home'))
   expect(within(nav()).queryByText('Home')).toBeNull()
   expect(screen.getByRole('heading', { name: 'Groceries' })).toBeInTheDocument()
   expect(within(aside()).getByRole('heading', { name: 'Milk' })).toBeInTheDocument()
@@ -108,7 +109,7 @@ test('a list created while a delete is in flight survives and stays selected', a
     return realFetch(url, init)
   })
   await user.click(within(nav()).getByText('Work'))
-  await menuAction(user, within(nav()).getByText('Work'), 'Delete')
+  await menuAction(user, within(nav()).getByText('Work'))
   await newList(user, 'Fun')
   expect(screen.getByRole('heading', { name: 'Fun' })).toBeInTheDocument()
   release()
@@ -131,30 +132,26 @@ test('whitespace-only names are ignored', async () => {
   expect(lists()).toEqual(['Groceries', 'Work', 'Home'])
 })
 
-describe('due dates', () => {
-  it('saves the due date only when the edit ends', async () => {
-    const { user } = await setup()
-    await user.click(within(main()).getByText('Milk'))
-    const id = backend.data.tasks.find((t) => t.title === 'Milk')!.id
-    act(() => dueInput().focus())
-    fireEvent.change(dueInput(), { target: { value: '2030-01-02' } })
-    await flush()
-    expect(backend.data.tasks.find((t) => t.id === id)!.due).toBeNull()
-    fireEvent.keyDown(dueInput(), { key: 'Enter' })
-    await flush()
-    expect(backend.data.tasks.find((t) => t.id === id)!.due).toBe('2030-01-02')
-  })
+it('saves the due date only when the edit ends', async () => {
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  const id = backend.data.tasks.find((t) => t.title === 'Milk')!.id
+  act(() => dueInput().focus())
+  fireEvent.change(dueInput(), { target: { value: '2030-01-02' } })
+  await flush()
+  expect(backend.data.tasks.find((t) => t.id === id)!.due).toBeNull()
+  fireEvent.keyDown(dueInput(), { key: 'Enter' })
+  await flush()
+  expect(backend.data.tasks.find((t) => t.id === id)!.due).toBe('2030-01-02')
 })
 
-describe('stage', () => {
-  test('closing and reopening a task keeps position', async () => {
-    const { user } = await setup()
-    await user.click(within(nav()).getByText('Work'))
-    await user.selectOptions(stageSelect('Reply to emails'), 'done')
-    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
-    await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
-    expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
-  })
+test('closing and reopening a task keeps position', async () => {
+  const { user } = await setup()
+  await user.click(within(nav()).getByText('Work'))
+  await user.selectOptions(stageSelect('Reply to emails'), 'done')
+  expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
+  await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
+  expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
 })
 
 describe('task fields', () => {
@@ -194,24 +191,22 @@ describe('task fields', () => {
   })
 })
 
-describe('Add to Today', () => {
-  test('mixed selection offers Add, all-in-Today offers Remove', async () => {
-    const { user } = await setup()
-    await rightClick(user, row('Milk'))
-    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
-    await user.click(row('Milk'))
-    await user.keyboard('{Control>}')
-    await user.click(row('Eggs'))
-    await user.keyboard('{/Control}')
-    await rightClick(user, row('Eggs'))
-    expect(screen.queryByText('☀️ Remove from Today')).toBeNull()
-    await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
-    await rightClick(user, row('Eggs'))
-    expect(screen.getByText('☀️ Remove from Today')).toBeInTheDocument()
-    await user.click(screen.getByText('☀️ Remove from Today'))
-    await user.click(within(nav()).getByText('☀️ Today'))
-    expect(tasks()).toEqual([])
-  })
+test('mixed selection offers Add, all-in-Today offers Remove', async () => {
+  const { user } = await setup()
+  await rightClick(user, row('Milk'))
+  await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+  await user.click(row('Milk'))
+  await user.keyboard('{Control>}')
+  await user.click(row('Eggs'))
+  await user.keyboard('{/Control}')
+  await rightClick(user, row('Eggs'))
+  expect(screen.queryByText('☀️ Remove from Today')).toBeNull()
+  await user.click(screen.getAllByText('☀️ Add to Today').at(-1)!)
+  await rightClick(user, row('Eggs'))
+  expect(screen.getByText('☀️ Remove from Today')).toBeInTheDocument()
+  await user.click(screen.getByText('☀️ Remove from Today'))
+  await user.click(within(nav()).getByText('☀️ Today'))
+  expect(tasks()).toEqual([])
 })
 
 describe('multi-select', () => {
@@ -294,7 +289,7 @@ test('a task that left the view is not deleted with the selection', async () => 
   await user.keyboard('{Control>}')
   await user.click(within(main()).getByText('Review PR'))
   await user.keyboard('{/Control}')
-  await menuAction(user, within(main()).getByText('Review PR'), 'Delete')
+  await menuAction(user, within(main()).getByText('Review PR'))
   await user.click(within(nav()).getByText('📋 All'))
   expect(tasks()).toContain('Milk')
   expect(tasks()).not.toContain('Review PR')
@@ -318,30 +313,30 @@ describe('limits', () => {
 
   test('tasks-per-list limit blocks creating a task in a full list', async () => {
     const data = seed()
-    data.tasks.push(...many(18, (i) => task(`t${i}`, `T${i}`, 'groceries')))
+    data.tasks.push(...many(TASKS_PER_LIST - 2, (i) => task(`t${i}`, `T${i}`, 'groceries')))
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
-    await expectBlocked('List task limit reached (20)', 'tasks', 23)
+    await expectBlocked(`List task limit reached (${TASKS_PER_LIST})`, 'tasks', 23)
   })
 
   test('step limit counts steps across all tasks', async () => {
     const data = seed()
-    data.steps.push(...many(99, (i) => ({ id: `s${i}`, taskId: `w${(i % 3) + 1}`, title: `S${i}`, completed: false })))
+    data.steps.push(...many(STEPS_PER_USER - 1, (i) => ({ id: `s${i}`, taskId: `w${(i % 3) + 1}`, title: `S${i}`, completed: false })))
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked('Step limit reached (100)', 'steps', 100)
+    await expectBlocked(`Step limit reached (${STEPS_PER_USER})`, 'steps', STEPS_PER_USER)
   })
 
   test('steps-per-task limit blocks adding a step to a full task', async () => {
     const data = seed()
-    data.steps.push(...many(9, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })))
+    data.steps.push(...many(STEPS_PER_TASK - 1, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })))
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked('Task step limit reached (10)', 'steps', 10)
+    await expectBlocked(`Task step limit reached (${STEPS_PER_TASK})`, 'steps', STEPS_PER_TASK)
   })
 })

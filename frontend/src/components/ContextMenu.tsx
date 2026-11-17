@@ -41,9 +41,9 @@ function SubmenuRow({
       {open && (
         <div
           ref={panelRef}
-          style={{ top: shift }}
+          style={{ top: shift, width: MENU_WIDTH }}
           className={
-            'absolute -mt-1 w-52 ' + MENU_CLASS + ' ' +
+            'absolute -mt-1 ' + MENU_CLASS + ' ' +
             (flip ? 'right-full' : 'left-full')
           }
         >
@@ -158,10 +158,11 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className={'fixed z-50 w-52 ' + MENU_CLASS}
+        className={'fixed z-50 ' + MENU_CLASS}
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
+          width: MENU_WIDTH,
         }}
       >
         {menu.ids.length > 1 && (

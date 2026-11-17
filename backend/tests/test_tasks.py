@@ -2,6 +2,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 import common
+from common import TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
 def test_create_defaults(call):
@@ -35,7 +36,7 @@ def test_create_all_fields(call):
 
 def test_create_validation(call):
     assert call("POST /tasks", {})[0] == 400
-    assert call("POST /tasks", {"title": "x" * 101})[0] == 400
+    assert call("POST /tasks", {"title": "x" * (TITLE_MAX + 1)})[0] == 400
     assert call("POST /tasks", {"title": "T", "stage": "nope"})[0] == 400
     assert call("POST /tasks", {"title": "T", "priority": "urgent"})[0] == 400
     assert call("POST /tasks", {"title": "T", "due": "tomorrow"})[0] == 400
@@ -47,14 +48,14 @@ def test_create_validation(call):
 
 def test_list_limit(call):
     lst = call("POST /lists", {"name": "A"})[1]
-    for i in range(20):
+    for i in range(TASKS_PER_LIST):
         assert call("POST /tasks", {"title": f"T{i}", "listId": lst["id"]})[0] == 201
     assert call("POST /tasks", {"title": "x", "listId": lst["id"]})[0] == 409
     assert call("POST /tasks", {"title": "unassigned"})[0] == 201
 
 
 def test_user_limit(call):
-    for i in range(100):
+    for i in range(USER_LIMITS["TASK"]):
         assert call("POST /tasks", {"title": f"T{i}"})[0] == 201
     assert call("POST /tasks", {"title": "x"})[0] == 409
 
@@ -78,7 +79,7 @@ def test_update(call):
 
 def test_update_move_checks_list(call):
     full = call("POST /lists", {"name": "Full"})[1]
-    for i in range(20):
+    for i in range(TASKS_PER_LIST):
         call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})
     task = call("POST /tasks", {"title": "T"})[1]
     assert call("PATCH /tasks", [{"id": task["id"], "listId": "missing"}]) == (
@@ -98,7 +99,7 @@ def test_update_move_checks_list(call):
 
 def test_update_batch_move_overflow(call):
     target = call("POST /lists", {"name": "Target"})[1]
-    for i in range(19):
+    for i in range(TASKS_PER_LIST - 1):
         call("POST /tasks", {"title": f"T{i}", "listId": target["id"]})
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
@@ -114,7 +115,7 @@ def test_update_batch_move_overflow(call):
 
 def test_update_within_full_list_is_allowed(call):
     full = call("POST /lists", {"name": "Full"})[1]
-    tasks = [call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})[1] for i in range(20)]
+    tasks = [call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})[1] for i in range(TASKS_PER_LIST)]
     body = [{"id": tasks[0]["id"], "listId": full["id"], "stage": "done"}]
     assert call("PATCH /tasks", body)[0] == 200
 
@@ -202,16 +203,9 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
         assert base <= slept <= base + 0.05
 
 
-def stale_snapshot(table, monkeypatch, deleted):
-    # Simulate the parent being deleted after the read and before the write.
-    stale = common.load_all("user-1")
-    table.delete_item(Key={"PK": "user-1", "SK": deleted})
-    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
-
-
-def test_create_in_list_deleted_after_read_is_404(call, table, monkeypatch):
+def test_create_in_list_deleted_after_read_is_404(call, table, stale_snapshot):
     lst = call("POST /lists", {"name": "L"})[1]
-    stale_snapshot(table, monkeypatch, f"LIST#{lst['id']}")
+    stale_snapshot(f"LIST#{lst['id']}")
     assert call("POST /tasks", {"title": "T", "listId": lst["id"]}) == (
         404,
         {"error": "List not found."},
@@ -219,10 +213,10 @@ def test_create_in_list_deleted_after_read_is_404(call, table, monkeypatch):
     assert table.items == {}
 
 
-def test_move_to_list_deleted_after_read_is_404(call, table, monkeypatch):
+def test_move_to_list_deleted_after_read_is_404(call, table, stale_snapshot):
     lst = call("POST /lists", {"name": "L"})[1]
     task = call("POST /tasks", {"title": "T"})[1]
-    stale_snapshot(table, monkeypatch, f"LIST#{lst['id']}")
+    stale_snapshot(f"LIST#{lst['id']}")
     assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (
         404,
         {"error": "List not found."},
@@ -232,7 +226,7 @@ def test_move_to_list_deleted_after_read_is_404(call, table, monkeypatch):
 
 
 def test_update_over_100_writes_is_400(call):
-    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(100)]
+    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(USER_LIMITS["TASK"])]
     lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(5)]
     # 100 updates plus 5 list checks.
     body = [{"id": t["id"], "listId": lists[i % 5]["id"]} for i, t in enumerate(tasks)]

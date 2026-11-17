@@ -1,6 +1,6 @@
 import pytest
 
-import common
+from common import STEPS_PER_TASK, TITLE_MAX, USER_LIMITS
 
 
 @pytest.fixture
@@ -17,20 +17,20 @@ def test_create(call, task):
 def test_create_validation(call, task):
     assert call("POST /steps", {"title": "S"})[0] == 400
     assert call("POST /steps", {"taskId": task["id"]})[0] == 400
-    assert call("POST /steps", {"title": "x" * 101, "taskId": task["id"]})[0] == 400
+    assert call("POST /steps", {"title": "x" * (TITLE_MAX + 1), "taskId": task["id"]})[0] == 400
     assert call("POST /steps", {"title": "S", "taskId": "missing"})[0] == 404
 
 
 def test_task_limit(call, task):
-    for i in range(10):
+    for i in range(STEPS_PER_TASK):
         assert call("POST /steps", {"title": f"S{i}", "taskId": task["id"]})[0] == 201
     assert call("POST /steps", {"title": "x", "taskId": task["id"]})[0] == 409
 
 
 def test_user_limit(call):
-    for t in range(10):
+    for t in range(USER_LIMITS["STEP"] // STEPS_PER_TASK):
         task = call("POST /tasks", {"title": f"T{t}"})[1]
-        for s in range(10):
+        for s in range(STEPS_PER_TASK):
             call("POST /steps", {"title": f"S{s}", "taskId": task["id"]})
     task = call("POST /tasks", {"title": "last"})[1]
     assert call("POST /steps", {"title": "x", "taskId": task["id"]})[0] == 409
@@ -58,11 +58,8 @@ def test_delete(call, task):
     assert call("DELETE /steps", {"ids": [a["id"]]})[0] == 404
 
 
-def test_create_on_task_deleted_after_read_is_404(call, table, task, monkeypatch):
-    # Simulate the task being deleted after the read and before the write.
-    stale = common.load_all("user-1")
-    table.delete_item(Key={"PK": "user-1", "SK": f"TASK#{task['id']}"})
-    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+def test_create_on_task_deleted_after_read_is_404(call, table, task, stale_snapshot):
+    stale_snapshot(f"TASK#{task['id']}")
     assert call("POST /steps", {"title": "S", "taskId": task["id"]}) == (
         404,
         {"error": "Task not found."},

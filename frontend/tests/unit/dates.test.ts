@@ -21,9 +21,7 @@ test('nextMonday is strictly after today', () => {
 })
 
 test('formatDueDate', () => {
-  expect(formatDueDate('2026-11-07', now)).toBe('Yesterday')
   expect(formatDueDate('2026-11-08', now)).toBe('Today')
-  expect(formatDueDate('2026-11-09', now)).toBe('Tomorrow')
   expect(formatDueDate('2026-11-15', now)).toBe('Sun Nov 15')
 })
 

@@ -84,3 +84,14 @@ def call(table):
         return res["statusCode"], json.loads(res["body"]) if "body" in res else None
 
     return call
+
+
+@pytest.fixture
+def stale_snapshot(table, monkeypatch):
+    # Simulate an item being deleted after the read and before the write.
+    def stale_snapshot(deleted_sk):
+        stale = common.load_all("user-1")
+        table.delete_item(Key={"PK": "user-1", "SK": deleted_sk})
+        monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+
+    return stale_snapshot

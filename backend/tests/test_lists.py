@@ -1,3 +1,6 @@
+from common import LIST_NAME_MAX, USER_LIMITS
+
+
 def test_create_and_get(call, table):
     status, lst = call("POST /lists", {"name": "🏠 Home"})
     assert status == 201
@@ -9,12 +12,12 @@ def test_create_and_get(call, table):
 def test_create_validation(call):
     assert call("POST /lists", {})[0] == 400
     assert call("POST /lists", {"name": " "})[0] == 400
-    assert call("POST /lists", {"name": "x" * 51})[0] == 400
+    assert call("POST /lists", {"name": "x" * (LIST_NAME_MAX + 1)})[0] == 400
     assert call("POST /lists", {"name": "a", "emoji": "x"})[0] == 400
 
 
 def test_user_limit(call):
-    for i in range(10):
+    for i in range(USER_LIMITS["LIST"]):
         assert call("POST /lists", {"name": f"L{i}"})[0] == 201
     assert call("POST /lists", {"name": "too many"})[0] == 409
 

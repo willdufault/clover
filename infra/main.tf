@@ -118,10 +118,8 @@ resource "aws_iam_role_policy" "api_table_policy" {
       Effect = "Allow"
       Action = [
         "dynamodb:Query",
-        "dynamodb:GetItem",
         "dynamodb:PutItem",
         "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
         "dynamodb:BatchWriteItem",
         "dynamodb:ConditionCheckItem",
       ]

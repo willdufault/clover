@@ -1,5 +1,7 @@
+const utcDate = (date: string) => new Date(`${date}T00:00:00Z`)
+
 const addDays = (date: string, days: number) => {
-  const result = new Date(`${date}T00:00:00Z`)
+  const result = utcDate(date)
   result.setUTCDate(result.getUTCDate() + days)
   return result.toISOString().slice(0, 10)
 }
@@ -13,7 +15,7 @@ export const tomorrow = (now = new Date()) => addDays(today(now), 1)
 // Always after today.
 export const nextMonday = (now = new Date()) => {
   const todayDate = today(now)
-  const weekday = new Date(`${todayDate}T00:00:00Z`).getUTCDay()
+  const weekday = utcDate(todayDate).getUTCDay()
   return addDays(todayDate, (8 - weekday) % 7 || 7)
 }
 
@@ -34,5 +36,5 @@ export const formatDueDate = (due: string, now = new Date()) =>
     month: 'short',
     day: 'numeric',
   })
-    .format(new Date(`${due}T00:00:00Z`))
+    .format(utcDate(due))
     .replace(',', '')

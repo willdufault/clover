@@ -86,6 +86,8 @@ export default function TaskDetailPane({
     </SortableRow>
   )
 
+  const dueLabel = task.due && relativeDayLabel(task.due)
+
   return (
     <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
       <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
@@ -139,8 +141,8 @@ export default function TaskDetailPane({
         />
         {task.due ? (
           <>
-            {relativeDayLabel(task.due) && (
-              <span className={'shrink-0 ' + dueDateClass(task.due)}>{relativeDayLabel(task.due)}</span>
+            {dueLabel && (
+              <span className={'shrink-0 ' + dueDateClass(task.due)}>{dueLabel}</span>
             )}
             <button onClick={() => onUpdate({ due: null })} className={X_BUTTON_CLASS + ' text-ink-soft'}>
               ×
