@@ -7,7 +7,7 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 - **Frontend**: React SPA. On load it exchanges any `?code=` for tokens, then renders if a valid id token is stored, otherwise redirects to login.
 - **Auth**: Cognito user pool (email username, open self sign-up, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URL `app_url`. The SPA stores the **id token** in `localStorage` and sends it as `Authorization: Bearer`; the authorizer checks audience, which only the id token carries. Id and access tokens last 12h. A 401 triggers a fresh login.
 - **API**: API Gateway HTTP API, Cognito JWT authorizer on every route, one Lambda proxy integration (payload v2). CORS allows `app_url`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
-- **Lambda** (`clover-api`): Python 3.14, arm64, 10s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`, `TABLE_REGION`. IAM scoped to the table. Logs kept 7 days.
+- **Lambda** (`clover-api`): Python 3.14, arm64, 10s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
 - **DynamoDB**: one table (`clover-tasks`), on-demand.
 
 ## Backend code

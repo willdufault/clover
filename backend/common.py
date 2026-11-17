@@ -8,9 +8,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-table = boto3.resource("dynamodb", region_name=os.environ["TABLE_REGION"]).Table(
-    os.environ["TABLE_NAME"]
-)
+table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 
 USER_LIMITS = {"LIST": 10, "TASK": 100, "STEP": 100}
 TASKS_PER_LIST = 20

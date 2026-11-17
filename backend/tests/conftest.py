@@ -6,7 +6,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 os.environ.setdefault("TABLE_NAME", "test")
-os.environ.setdefault("TABLE_REGION", "us-east-1")
+os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 
 import common  # noqa: E402
 import index  # noqa: E402

@@ -22,8 +22,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-data "aws_region" "current" {}
-
 resource "aws_dynamodb_table" "tasks" {
   name         = "clover-tasks"
   billing_mode = "PAY_PER_REQUEST"
@@ -143,8 +141,7 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      TABLE_NAME   = aws_dynamodb_table.tasks.name
-      TABLE_REGION = data.aws_region.current.region
+      TABLE_NAME = aws_dynamodb_table.tasks.name
     }
   }
 }
