@@ -1,8 +1,7 @@
-import pytest
 from botocore.exceptions import ClientError
 
 import common
-from common import TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
+from common import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
 def test_create_defaults(call):
@@ -149,16 +148,14 @@ def test_update_only_writes_given_fields(call, table):
     assert updated[0]["due"] == "2030-01-02"
 
 
-def test_update_deleted_task_is_404(call):
+def test_update_deleted_task_is_404(call, table, stale_snapshot):
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
-    stale = common.load_all("user-1")
-    call("DELETE /tasks", {"ids": [b["id"]]})
-    patches = [(a["id"], {"title": "A2"}), (b["id"], {"title": "B2"})]
-    with pytest.raises(common.ApiError) as e:
-        common.update_many("user-1", "TASK", patches, stale)
-    assert e.value.status == 404
-    assert call("GET /data")[1]["tasks"] == [a]
+    stale_snapshot(f"TASK#{b['id']}")
+    before = {k: dict(v) for k, v in table.items.items()}
+    body = [{"id": a["id"], "title": "A2"}, {"id": b["id"], "title": "B2"}]
+    assert call("PATCH /tasks", body)[0] == 404
+    assert table.items == before
 
 
 def conflict():
@@ -225,9 +222,10 @@ def test_move_to_list_deleted_after_read_is_404(call, table, stale_snapshot):
     assert table.items[("user-1", f"TASK#{task['id']}")]["listId"] is None
 
 
-def test_update_over_100_writes_is_400(call):
-    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(USER_LIMITS["TASK"])]
-    lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(5)]
-    # 100 updates plus 5 list checks.
-    body = [{"id": t["id"], "listId": lists[i % 5]["id"]} for i, t in enumerate(tasks)]
+def test_update_over_max_batch_writes_is_400(call):
+    list_checks = 5
+    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(MAX_BATCH)]
+    lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(list_checks)]
+    # MAX_BATCH updates plus list_checks list checks exceeds MAX_BATCH writes.
+    body = [{"id": t["id"], "listId": lists[i % list_checks]["id"]} for i, t in enumerate(tasks)]
     assert call("PATCH /tasks", body) == (400, {"error": "Too many changes."})

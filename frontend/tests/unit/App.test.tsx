@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
+import { STAGE_LABELS } from '../../src/labels'
 import { STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST } from '../../src/limits'
 import { createFakeBackend, seed, task } from '../fakeBackend'
 
@@ -14,14 +15,15 @@ beforeEach(() => {
 })
 
 const setup = async () => {
-  const result = { user: userEvent.setup(), ...render(<App />) }
+  const user = userEvent.setup()
+  render(<App />)
   await screen.findByRole('navigation')
-  return result
+  return { user }
 }
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGES = '⚪⚡⏳✅❌️'
+const STAGES = Object.values(STAGE_LABELS).map((s) => s.emoji).join('')
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '').replace(STAGES, '').replace(/✕$/, '').replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
 const rowsIn = (root: HTMLElement) =>
@@ -56,7 +58,7 @@ const newList = async (user: User, name: string) => {
 const newStep = async (user: User, name: string) => {
   await user.type(within(aside()).getByPlaceholderText('+ New step'), `${name}{Enter}`)
 }
-const toggle = (user: User, name: string, root: HTMLElement = main()) =>
+const toggle = (user: User, name: string, root: HTMLElement) =>
   user.click(within(row(name, root)).getByRole('checkbox'))
 // Lets pending API calls settle after a synchronous fireEvent.
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
@@ -154,41 +156,35 @@ test('closing and reopening a task keeps position', async () => {
   expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
 })
 
-describe('task fields', () => {
-  const setAll = async (user: User) => {
-    await user.click(within(main()).getByText('Milk'))
-    await setDue('2000-01-01')
-    await user.selectOptions(stageSelect('Milk'), 'inProgress')
-    await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
-  }
+test('sidebar shows the selected task own values', async () => {
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  await setDue('2000-01-01')
+  await user.selectOptions(stageSelect('Milk'), 'inProgress')
+  await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
+  await user.click(within(main()).getByText('Eggs'))
+  expect(dueInput()).toHaveValue('')
+  expect(within(aside()).getByDisplayValue('🟡 Medium')).toBeInTheDocument()
+})
 
-  test('sidebar shows the selected task own values', async () => {
-    const { user } = await setup()
-    await setAll(user)
-    await user.click(within(main()).getByText('Eggs'))
-    expect(dueInput()).toHaveValue('')
-    expect(within(aside()).getByDisplayValue('🟡 Medium')).toBeInTheDocument()
-  })
-
-  test('step menu shows Mark as done unless every selected step is done', async () => {
-    const { user } = await setup()
-    await user.click(within(main()).getByText('Milk'))
-    await newStep(user, 'Oat')
-    await toggle(user, 'Oat', aside())
-    await user.click(row('2% lactose free', aside()))
-    await user.keyboard('{Control>}')
-    await user.click(row('Oat', aside()))
-    await user.keyboard('{/Control}')
-    await rightClick(user, row('Oat', aside()))
-    await user.click(screen.getByText('Mark as done'))
-    expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
-    await rightClick(user, row('Oat', aside()))
-    await user.click(screen.getByText('Mark as open'))
-    for (const name of ['2% lactose free', 'Oat']) expect(within(row(name, aside())).getByRole('checkbox')).not.toBeChecked()
-    await rightClick(user, row('Oat', aside()))
-    await user.click(screen.getByText('Delete', { exact: true }))
-    expect(backend.data.steps).toEqual([])
-  })
+test('step menu shows Mark as done unless every selected step is done', async () => {
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  await newStep(user, 'Oat')
+  await toggle(user, 'Oat', aside())
+  await user.click(row('2% lactose free', aside()))
+  await user.keyboard('{Control>}')
+  await user.click(row('Oat', aside()))
+  await user.keyboard('{/Control}')
+  await rightClick(user, row('Oat', aside()))
+  await user.click(screen.getByText('Mark as done'))
+  expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
+  await rightClick(user, row('Oat', aside()))
+  await user.click(screen.getByText('Mark as open'))
+  for (const name of ['2% lactose free', 'Oat']) expect(within(row(name, aside())).getByRole('checkbox')).not.toBeChecked()
+  await rightClick(user, row('Oat', aside()))
+  await user.click(screen.getByText('Delete', { exact: true }))
+  expect(backend.data.steps).toEqual([])
 })
 
 test('mixed selection offers Add, all-in-Today offers Remove', async () => {
@@ -314,10 +310,11 @@ describe('limits', () => {
   test('tasks-per-list limit blocks creating a task in a full list', async () => {
     const data = seed()
     data.tasks.push(...many(TASKS_PER_LIST - 2, (i) => task(`t${i}`, `T${i}`, 'groceries')))
+    const count = data.tasks.length
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
-    await expectBlocked(`List task limit reached (${TASKS_PER_LIST})`, 'tasks', 23)
+    await expectBlocked(`List task limit reached (${TASKS_PER_LIST})`, 'tasks', count)
   })
 
   test('step limit counts steps across all tasks', async () => {

@@ -1,4 +1,4 @@
-from common import LIST_NAME_MAX, USER_LIMITS
+from common import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
 def test_create_and_get(call, table):
@@ -57,7 +57,7 @@ def test_update_body_validation(call):
     assert call("PATCH /lists", [{"name": "B"}])[0] == 400
     assert call("PATCH /lists", [{"id": 1, "name": "B"}])[0] == 400
     assert call("PATCH /lists", [{"id": lst["id"]}, {"id": lst["id"], "name": "B"}])[0] == 400
-    assert call("PATCH /lists", [{"id": lst["id"]}] * 101)[0] == 400
+    assert call("PATCH /lists", [{"id": lst["id"]}] * (MAX_BATCH + 1))[0] == 400
 
 
 def test_delete_cascades(call):
@@ -86,7 +86,7 @@ def test_delete_body_validation(call):
     assert call("DELETE /lists", {"ids": []})[0] == 400
     assert call("DELETE /lists", {"ids": [a["id"], a["id"]]})[0] == 400
     assert call("DELETE /lists", {"ids": [1]})[0] == 400
-    assert call("DELETE /lists", {"ids": [str(i) for i in range(101)]})[0] == 400
+    assert call("DELETE /lists", {"ids": [str(i) for i in range(MAX_BATCH + 1)]})[0] == 400
     assert call("DELETE /lists", [a["id"]])[0] == 400
     assert call("GET /data")[1]["lists"] == [a]
 

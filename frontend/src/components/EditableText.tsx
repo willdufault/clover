@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { RenameInput } from './RenameInput'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function EditableText({
   tag: Tag,
@@ -21,21 +21,38 @@ export function EditableText({
   onCommit: (text: string) => void
 }) {
   const [draft, setDraft] = useState<string | null>(null)
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [draft])
 
   if (draft !== null) {
-    const commit = () => {
-      const name = draft.trim()
-      setDraft(null)
-      if (name) onCommit(name)
-    }
+    const cancel = () => setDraft(null)
     return (
-      <RenameInput
-        draft={draft}
+      <textarea
+        ref={ref}
+        rows={1}
+        autoFocus
+        onFocus={(event) => event.target.select()}
+        value={draft}
         maxLength={maxLength}
-        onChange={setDraft}
-        onCommit={commit}
-        onCancel={() => setDraft(null)}
-        className={inputClassName}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            const name = draft.trim()
+            setDraft(null)
+            if (name) onCommit(name)
+          }
+          if (event.key === 'Escape') cancel()
+        }}
+        onBlur={cancel}
+        onContextMenu={cancel}
+        {...ignoreRowEvents}
+        className={`${inputClassName} resize-none overflow-hidden break-words`}
       />
     )
   }

@@ -202,7 +202,7 @@ export default function App() {
       if (kind !== RowKind.List && selected.includes(id)) ids = selected
       else if (kind === RowKind.Task) replaceTaskSelection(ids)
       else if (kind === RowKind.Step) setSelectedStepIds(ids)
-      const idsTasks = tasks.filter((task) => ids.includes(task.id))
+      const menuTasks = tasks.filter((task) => ids.includes(task.id))
       const allDone = detailTask?.steps
         .filter((step) => ids.includes(step.id))
         .every((step) => step.completed)
@@ -211,8 +211,8 @@ export default function App() {
         y: event.clientY,
         kind,
         ids,
-        hasDue: idsTasks.some((t) => t.due),
-        allInToday: idsTasks.every((task) => task.addedToToday),
+        hasDue: menuTasks.some((task) => task.due),
+        allInToday: menuTasks.every((task) => task.addedToToday),
         allDone,
       })
     }
