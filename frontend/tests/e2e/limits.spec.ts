@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { seed, task } from '../fakeBackend'
-import { captureErrors, mockApi } from './mockApi'
+import { captureErrors, drag, mockApi } from './mockApi'
 
 test('dragging a task into a full list shows the limit error and keeps it in place', async ({ page }) => {
   const errors = captureErrors(page)
@@ -9,14 +9,7 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
   const backend = await mockApi(page, data)
   await page.goto('/')
 
-  const from = (await page.locator('main').getByText('Milk', { exact: true }).boundingBox())!
-  const to = (await page.locator('nav').getByText('Work').boundingBox())!
-  const [x0, y0] = [from.x + from.width / 2, from.y + from.height / 2]
-  const [x1, y1] = [to.x + to.width / 2, to.y + to.height / 2]
-  await page.mouse.move(x0, y0)
-  await page.mouse.down()
-  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + (x1 - x0) * (i / 10), y0 + (y1 - y0) * (i / 10))
-  await page.mouse.up()
+  await drag(page, page.locator('main').getByText('Milk', { exact: true }), page.locator('nav').getByText('Work'))
 
   const alert = page.getByRole('alert')
   await expect(alert).toHaveText(/List task limit reached \(20\)/)

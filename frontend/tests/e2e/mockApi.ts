@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { createFakeBackend, seed } from '../fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
@@ -24,4 +24,16 @@ export const captureErrors = (page: Page) => {
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
   page.on('pageerror', (e) => errors.push(e.message))
   return errors
+}
+
+// Presses at the centre of `from`, moves in 10 steps to the centre of `to`, then releases.
+export const drag = async (page: Page, from: Locator, to: Locator) => {
+  const a = (await from.boundingBox())!
+  const b = (await to.boundingBox())!
+  const [x0, y0] = [a.x + a.width / 2, a.y + a.height / 2]
+  const [x1, y1] = [b.x + b.width / 2, b.y + b.height / 2]
+  await page.mouse.move(x0, y0)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + (x1 - x0) * (i / 10), y0 + (y1 - y0) * (i / 10))
+  await page.mouse.up()
 }
