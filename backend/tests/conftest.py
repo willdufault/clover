@@ -71,13 +71,15 @@ def table(monkeypatch):
 
 @pytest.fixture
 def call(table):
-    def call(route_key, body=None, user="user-1"):
+    def call(route_key, body=None, user="user-1", raw=None):
         event = {
             "routeKey": route_key,
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": user}}}},
         }
         if body is not None:
             event["body"] = json.dumps(body)
+        if raw is not None:
+            event["body"] = raw
         res = index.handler(event, None)
         return res["statusCode"], json.loads(res["body"]) if "body" in res else None
 

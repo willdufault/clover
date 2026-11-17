@@ -1,5 +1,3 @@
-import json
-
 import common
 
 
@@ -11,17 +9,8 @@ def test_get_data_empty(call):
     assert call("GET /data") == (200, {"lists": [], "tasks": [], "steps": []})
 
 
-def test_invalid_json(call, table):
-    import index
-
-    event = {
-        "routeKey": "POST /lists",
-        "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "u"}}}},
-        "body": "{nope",
-    }
-    res = index.handler(event, None)
-    assert res["statusCode"] == 400
-    assert json.loads(res["body"]) == {"error": "Invalid JSON."}
+def test_invalid_json(call):
+    assert call("POST /lists", raw="{nope") == (400, {"error": "Invalid JSON."})
 
 
 def test_users_are_isolated(call):

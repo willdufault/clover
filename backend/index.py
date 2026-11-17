@@ -1,30 +1,19 @@
 import traceback
 
 import common
-from handlers import (
-    create_list,
-    create_step,
-    create_task,
-    delete_list,
-    delete_step,
-    delete_task,
-    get_data,
-    update_list,
-    update_step,
-    update_task,
-)
+import handlers
 
 ROUTES = {
-    "GET /data": get_data.handle,
-    "POST /lists": create_list.handle,
-    "PATCH /lists": update_list.handle,
-    "DELETE /lists": delete_list.handle,
-    "POST /tasks": create_task.handle,
-    "PATCH /tasks": update_task.handle,
-    "DELETE /tasks": delete_task.handle,
-    "POST /steps": create_step.handle,
-    "PATCH /steps": update_step.handle,
-    "DELETE /steps": delete_step.handle,
+    "GET /data": handlers.get_data,
+    "POST /lists": handlers.create_list,
+    "PATCH /lists": handlers.update_list,
+    "DELETE /lists": handlers.delete_list,
+    "POST /tasks": handlers.create_task,
+    "PATCH /tasks": handlers.update_task,
+    "DELETE /tasks": handlers.delete_task,
+    "POST /steps": handlers.create_step,
+    "PATCH /steps": handlers.update_step,
+    "DELETE /steps": handlers.delete_step,
 }
 
 
