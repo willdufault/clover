@@ -245,6 +245,8 @@ def update_many(user_id, kind, patches, items, checks=()):
         for item_id, data in patches
         if data
     ]
+    if len(writes) > MAX_BATCH:
+        raise ApiError(400, "Too many changes.")
     if writes:
         transact(writes)
     updated = by_id(load_all(user_id), kind, [i for i, _ in patches])

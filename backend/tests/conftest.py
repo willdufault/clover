@@ -23,6 +23,8 @@ class FakeTable:
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
 
     def transact_write_items(self, TransactItems):
+        if len(TransactItems) > 100:
+            raise ClientError({"Error": {"Code": "ValidationException"}}, "TransactWriteItems")
         # Put is unconditional; ConditionCheck and Update require the item to exist.
         def ok(t):
             if "Put" in t:

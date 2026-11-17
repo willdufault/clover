@@ -229,3 +229,11 @@ def test_move_to_list_deleted_after_read_is_404(call, table, monkeypatch):
     )
     assert list(table.items) == [("user-1", f"TASK#{task['id']}")]
     assert table.items[("user-1", f"TASK#{task['id']}")]["listId"] is None
+
+
+def test_update_over_100_writes_is_400(call):
+    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(100)]
+    lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(5)]
+    # 100 updates plus 5 list checks.
+    body = [{"id": t["id"], "listId": lists[i % 5]["id"]} for i, t in enumerate(tasks)]
+    assert call("PATCH /tasks", body) == (400, {"error": "Too many changes."})
