@@ -9,7 +9,3 @@ output "cognito_url" {
 output "client_id" {
   value = aws_cognito_user_pool_client.web.id
 }
-
-output "user_pool_id" {
-  value = aws_cognito_user_pool.users.id
-}

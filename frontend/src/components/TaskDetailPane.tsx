@@ -2,7 +2,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { formatDueDate, isOverdue, relativeDayLabel } from '../dates'
+import { isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
 import { FIELD_CLASS, LABEL_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
@@ -140,7 +140,7 @@ export default function TaskDetailPane({
         {task.due ? (
           <>
             {relativeDayLabel(task.due) && (
-              <span className={'shrink-0 ' + dueDateClass(task.due)}>{formatDueDate(task.due)}</span>
+              <span className={'shrink-0 ' + dueDateClass(task.due)}>{relativeDayLabel(task.due)}</span>
             )}
             <button onClick={() => onUpdate({ due: null })} className={X_BUTTON_CLASS + ' text-ink-soft'}>
               ×

@@ -56,4 +56,4 @@ terraform apply
 
 Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`, used for Cognito callback/logout and CORS).
 
-Outputs: `api_url`, `cognito_url`, `client_id`, `user_pool_id`.
+Outputs: `api_url`, `cognito_url`, `client_id`.

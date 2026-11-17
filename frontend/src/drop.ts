@@ -8,7 +8,7 @@ const moveById = <T extends { id: string }>(items: T[], activeId: string, overId
   return fromIndex < 0 || toIndex < 0 ? items : arrayMove(items, fromIndex, toIndex)
 }
 
-export type DropEvent = {
+type DropEvent = {
   selectedListId: string
   detailTaskId: string | null
   activeId: string

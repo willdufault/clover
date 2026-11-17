@@ -59,8 +59,8 @@ export type ContextMenuState = {
   y: number
   kind: RowKind
   ids: string[]
-  hasDue?: boolean
-  allInToday?: boolean
+  hasDue: boolean
+  allInToday: boolean
   allDone?: boolean
 }
 
