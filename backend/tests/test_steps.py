@@ -62,6 +62,6 @@ def test_create_on_task_deleted_after_read_is_404(call, task, race):
     race(lambda: call("DELETE /tasks", {"ids": [task["id"]]}))
     assert call("POST /steps", {"title": "S", "taskId": task["id"]}) == (
         404,
-        {"error": "Task not found."},
+        {"error": "Task not found"},
     )
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}

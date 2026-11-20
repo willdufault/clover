@@ -28,13 +28,13 @@ export const seed = () => ({
   steps: [{ id: 'g1a', taskId: 'g1', title: '2% lactose free', completed: false }] as Item[],
 })
 
-const BAD_REQUEST = { status: 400, body: { error: 'Bad request.' } }
+const BAD_REQUEST = { status: 400, body: { error: 'Bad request' } }
 
 const batchSizeOk = (size: number) => size >= 1 && size <= limits.batchMax
 
 const update = (items: Item[], patches: Item[]) => {
   if (patches.some((patch) => !items.some((item) => item.id === patch.id)))
-    return { status: 404, body: { error: 'Not found.' } }
+    return { status: 404, body: { error: 'Not found' } }
   return {
     status: 200,
     body: patches.flatMap((patch) =>

@@ -2,11 +2,11 @@ import common
 
 
 def test_unknown_route(call):
-    assert call("GET /nope") == (404, {"error": "Route not found."})
+    assert call("GET /nope") == (404, {"error": "Not found"})
 
 
 def test_invalid_json(call):
-    assert call("POST /lists", raw="{nope") == (400, {"error": "Invalid JSON."})
+    assert call("POST /lists", raw="{nope") == (400, {"error": "Invalid JSON"})
 
 
 def test_users_are_isolated(call):
@@ -31,4 +31,4 @@ def test_unexpected_error_is_500(call, monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(common, "load_all", boom)
-    assert call("GET /data") == (500, {"error": "Internal server error."})
+    assert call("GET /data") == (500, {"error": "Internal error"})

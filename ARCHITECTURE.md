@@ -42,8 +42,8 @@ Errors (`{"error": "..."}`; nothing is written):
 
 - 400: bad JSON, bad body shape, bad/duplicate ids, unknown, invalid or missing field.
 - 404: unknown route, PATCH id not found, referenced `listId`/`taskId` not found.
-- 409: limit reached (including a PATCH batch moving too many tasks into a list).
-- 500: unexpected error (`Internal server error.`).
+- 409: limit reached (including a PATCH batch moving too many tasks into a list), or concurrent update after retries (`Concurrent update`).
+- 500: unexpected error (`Internal error`).
 
 ## Limits
 

@@ -1,3 +1,4 @@
+import common
 from common import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
@@ -31,7 +32,7 @@ def test_create_over_limit_after_stale_read_is_409(call, race):
     for i in range(USER_LIMITS["LIST"] - 1):
         call("POST /lists", {"name": f"L{i}"})
     race(lambda: call("POST /lists", {"name": "concurrent"}))
-    assert call("POST /lists", {"name": "too many"}) == (409, {"error": "List limit reached."})
+    assert call("POST /lists", {"name": "too many"}) == (409, {"error": "List limit reached"})
     assert len(call("GET /data")[1]["lists"]) == USER_LIMITS["LIST"]
 
 
@@ -145,3 +146,10 @@ def test_delete_goes_children_first(call, table):
     table.delete_item = lambda Key: (order.append(Key["SK"].split("#")[0]), delete_item(Key))
     assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
     assert order == ["STEP", "TASK", "LIST"]
+
+
+def test_exhausted_stale_retries_is_409(call, monkeypatch):
+    stale = common.load_all("user-1")
+    call("POST /lists", {"name": "A"})
+    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+    assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})

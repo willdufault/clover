@@ -233,7 +233,7 @@ describe('multi-select', () => {
     backend.data.tasks = backend.data.tasks.filter((t) => t.id !== 'g2')
     await rightClick(user, row('Milk'))
     await submenuClick(user, 'Set priority', '🔴 High')
-    expect(screen.getByRole('alert')).toHaveTextContent('Not found.')
+    expect(screen.getByRole('alert')).toHaveTextContent('Not found')
     expect(within(main()).queryByText('🔴 High')).toBeNull()
     expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ priority: 'medium' })
   })

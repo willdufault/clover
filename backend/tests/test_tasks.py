@@ -83,11 +83,11 @@ def test_update_move_checks_list(call):
     task = call("POST /tasks", {"title": "T"})[1]
     assert call("PATCH /tasks", [{"id": task["id"], "listId": "missing"}]) == (
         404,
-        {"error": "List not found."},
+        {"error": "List not found"},
     )
     assert call("PATCH /tasks", [{"id": task["id"], "listId": full["id"]}]) == (
         409,
-        {"error": "List is full."},
+        {"error": "List is full"},
     )
     other = call("POST /lists", {"name": "Other"})[1]
     status, moved = call("PATCH /tasks", [{"id": task["id"], "listId": other["id"]}])
@@ -169,7 +169,7 @@ def test_update_deleted_task_is_404(call, table, race):
     race(lambda: call("DELETE /tasks", {"ids": [b["id"]]}))
     before = {k: dict(v) for k, v in table.items.items()}
     body = [{"id": a["id"], "title": "A2"}, {"id": b["id"], "title": "B2"}]
-    assert call("PATCH /tasks", body)[0] == 404
+    assert call("PATCH /tasks", body) == (404, {"error": "Task not found"})
     assert table.items == before
 
 
@@ -198,7 +198,7 @@ def test_transaction_conflict_is_retried(call, table, monkeypatch):
     assert body[0]["stage"] == "done"
 
 
-def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
+def test_transaction_conflict_gives_up_with_409(call, table, monkeypatch):
     sleeps = []
     monkeypatch.setattr(common.time, "sleep", sleeps.append)
     task = call("POST /tasks", {"title": "T"})[1]
@@ -208,8 +208,8 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
 
     table.transact_write_items = always
     assert call("PATCH /tasks", [{"id": task["id"], "stage": "done"}]) == (
-        500,
-        {"error": "Internal server error."},
+        409,
+        {"error": "Concurrent update"},
     )
     assert len(sleeps) == common.TRANSACTION_RETRIES
     bases = [common.RETRY_BASE_DELAY * 2**i for i in range(common.TRANSACTION_RETRIES)]
@@ -222,7 +222,7 @@ def test_create_in_list_deleted_after_read_is_404(call, race):
     race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
     assert call("POST /tasks", {"title": "T", "listId": lst["id"]}) == (
         404,
-        {"error": "List not found."},
+        {"error": "List not found"},
     )
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
@@ -233,7 +233,7 @@ def test_move_to_list_deleted_after_read_is_404(call, race):
     race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
     assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (
         404,
-        {"error": "List not found."},
+        {"error": "List not found"},
     )
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}
 

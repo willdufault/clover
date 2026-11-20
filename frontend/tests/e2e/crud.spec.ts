@@ -254,7 +254,7 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
 
   const handle = backend.handle
   backend.handle = (method, url, body) =>
-    method === 'PATCH' ? { status: 409, body: { error: 'Boom.' } } : handle(method, url, body)
+    method === 'PATCH' ? { status: 409, body: { error: 'Boom' } } : handle(method, url, body)
   await input.fill('2031-05-06')
   await input.press('Enter')
   await expect(page.getByRole('alert')).toHaveText(/Boom/)

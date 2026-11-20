@@ -26,14 +26,15 @@ LIST_NAME_MAX = LIMITS["listNameMax"]
 TITLE_MAX = LIMITS["titleMax"]
 
 
-class Stale(Exception):
-    pass
-
-
 class ApiError(Exception):
     def __init__(self, status, message):
         self.status = status
         self.message = message
+
+
+class Stale(ApiError):
+    def __init__(self):
+        super().__init__(409, "Concurrent update")
 
 
 def response(status, body=None):
@@ -53,13 +54,13 @@ def parse_json(event):
     try:
         return json.loads(raw)
     except ValueError:
-        raise ApiError(400, "Invalid JSON.")
+        raise ApiError(400, "Invalid JSON")
 
 
 def parse_body(event):
     body = parse_json(event)
     if not isinstance(body, dict):
-        raise ApiError(400, "Body must be an object.")
+        raise ApiError(400, "Body must be an object")
     return body
 
 
@@ -77,7 +78,7 @@ def check_ids(ids):
         and all(isinstance(i, str) for i in ids)
         and len(set(ids)) == len(ids)
     ):
-        raise ApiError(400, f"IDs must be 1-{MAX_BATCH} unique strings.")
+        raise ApiError(400, f"IDs must be 1-{MAX_BATCH} unique strings")
 
 
 def parse_ids(event):
@@ -89,7 +90,7 @@ def parse_ids(event):
 def parse_patches(event, fields):
     body = parse_json(event)
     if not isinstance(body, list) or not all(isinstance(p, dict) for p in body):
-        raise ApiError(400, "Body must be an array of objects.")
+        raise ApiError(400, "Body must be an array of objects")
     check_ids([p.get("id") for p in body])
     return [(p["id"], validate(fields, {k: v for k, v in p.items() if k != "id"}, partial=True)) for p in body]
 
@@ -147,16 +148,16 @@ STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 def validate(fields, body, partial=False):
     for name in body:
         if name not in fields:
-            raise ApiError(400, f"Unknown field: {name}.")
+            raise ApiError(400, f"Unknown field: {name}")
     data = {}
     for name, (check, default) in fields.items():
         if name in body:
             if not check(body[name]):
-                raise ApiError(400, f"Invalid {name}.")
+                raise ApiError(400, f"Invalid {name}")
             data[name] = body[name]
         elif not partial:
             if default is REQUIRED:
-                raise ApiError(400, f"Missing {name}.")
+                raise ApiError(400, f"Missing {name}")
             data[name] = default
     return data
 
@@ -185,7 +186,7 @@ def load_all(user_id):
 def by_id(items, kind, ids):
     found = {id_of(i): i for i in items if kind_of(i) == kind}
     if any(i not in found for i in ids):
-        raise ApiError(404, "Not found.")
+        raise ApiError(404, f"{kind.capitalize()} not found")
     return {i: found[i] for i in ids}
 
 
@@ -229,11 +230,14 @@ def transact(writes):
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
             for write, reason in zip(writes, reasons, strict=False):
                 if reason == "ConditionalCheckFailed":
-                    if write["Update"]["Key"]["SK"] == "META":
+                    sk = write["Update"]["Key"]["SK"]
+                    if sk == "META":
                         raise Stale()
-                    raise ApiError(404, "Not found.")
-            if "TransactionConflict" not in reasons or attempt == TRANSACTION_RETRIES:
+                    raise ApiError(404, f"{sk.split('#')[0].capitalize()} not found")
+            if "TransactionConflict" not in reasons:
                 raise
+            if attempt == TRANSACTION_RETRIES:
+                raise ApiError(409, "Concurrent update")
             time.sleep(delay + random.uniform(0, RETRY_JITTER))
             delay *= 2
 
@@ -277,12 +281,12 @@ def delete_parents(user_id, items, parents, *children):
 
 def check_user_limit(items, kind):
     if sum(kind_of(i) == kind for i in items) >= USER_LIMITS[kind]:
-        raise ApiError(409, f"{kind.capitalize()} limit reached.")
+        raise ApiError(409, f"{kind.capitalize()} limit reached")
 
 
 def check_parent(items, parent_kind, parent_id, child_field, limit):
     sk = f"{parent_kind}#{parent_id}"
     if not any(i["SK"] == sk for i in items):
-        raise ApiError(404, f"{parent_kind.capitalize()} not found.")
+        raise ApiError(404, f"{parent_kind.capitalize()} not found")
     if sum(i.get(child_field) == parent_id for i in items) >= limit:
-        raise ApiError(409, f"{parent_kind.capitalize()} is full.")
+        raise ApiError(409, f"{parent_kind.capitalize()} is full")

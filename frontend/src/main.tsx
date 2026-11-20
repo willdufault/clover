@@ -6,7 +6,7 @@ import { handleRedirect, hasValidToken, login } from './api'
 
 await handleRedirect()
 const root = document.getElementById('root')
-if (!root) throw new Error('Missing #root element.')
+if (!root) throw new Error('Missing #root element')
 if (hasValidToken()) {
   createRoot(root).render(
     <StrictMode>

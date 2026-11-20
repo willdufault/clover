@@ -55,9 +55,9 @@ def update_task(event, user_id):
         list_of[task_id] = list_id
     for list_id in targets:
         if not any(i["SK"] == f"LIST#{list_id}" for i in items):
-            raise common.ApiError(404, "List not found.")
+            raise common.ApiError(404, "List not found")
         if list(list_of.values()).count(list_id) > common.TASKS_PER_LIST:
-            raise common.ApiError(409, "List is full.")
+            raise common.ApiError(409, "List is full")
     checks = [common.bump(user_id, items)] if targets else []
     return common.update_many(user_id, "TASK", patches, items, checks)
 

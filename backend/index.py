@@ -22,7 +22,7 @@ ROUTES = {
 def handler(event, context):
     route = ROUTES.get(event["routeKey"])
     if route is None:
-        return common.response(404, {"error": "Route not found."})
+        return common.response(404, {"error": "Not found"})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
         for _ in range(STALE_RETRIES):
@@ -35,4 +35,4 @@ def handler(event, context):
         return common.response(e.status, {"error": e.message})
     except Exception:
         traceback.print_exc()
-        return common.response(500, {"error": "Internal server error."})
+        return common.response(500, {"error": "Internal error"})
