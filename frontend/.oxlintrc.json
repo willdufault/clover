@@ -26,17 +26,6 @@
     "no-else-return": "error",
     "typescript/no-non-null-assertion": "error",
     "react/react-in-jsx-scope": "off",
-    "import/no-unassigned-import": [
-      "error",
-      {
-        "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
-      }
-    ],
-    "jest/expect-expect": [
-      "error",
-      {
-        "assertFunctionNames": ["expect", "expectBlocked"]
-      }
-    ]
+    "import/no-unassigned-import": "off"
   }
 }

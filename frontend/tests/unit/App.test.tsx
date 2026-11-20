@@ -315,10 +315,6 @@ test('leading and trailing spaces are not stored', async () => {
 })
 
 const many = <T,>(n: number, make: (i: number) => T) => Array.from({ length: n }, (_, i) => make(i))
-const expectBlocked = async (message: string, kind: 'lists' | 'tasks' | 'steps', count: number) => {
-  expect(await screen.findByRole('alert')).toHaveTextContent(message)
-  expect(backend.data[kind]).toHaveLength(count)
-}
 
 describe('limits', () => {
   test('tasks-per-list limit blocks creating a task in a full list', async () => {
@@ -328,7 +324,8 @@ describe('limits', () => {
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
-    await expectBlocked(`List task limit reached (${limits.tasksPerList})`, 'tasks', count)
+    expect(await screen.findByRole('alert')).toHaveTextContent(`List task limit reached (${limits.tasksPerList})`)
+    expect(backend.data.tasks).toHaveLength(count)
   })
 
   test('step limit counts steps across all tasks', async () => {
@@ -345,7 +342,8 @@ describe('limits', () => {
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked(`Step limit reached (${limits.stepsPerUser})`, 'steps', limits.stepsPerUser)
+    expect(await screen.findByRole('alert')).toHaveTextContent(`Step limit reached (${limits.stepsPerUser})`)
+    expect(backend.data.steps).toHaveLength(limits.stepsPerUser)
   })
 
   test('steps-per-task limit blocks adding a step to a full task', async () => {
@@ -357,6 +355,7 @@ describe('limits', () => {
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked(`Task step limit reached (${limits.stepsPerTask})`, 'steps', limits.stepsPerTask)
+    expect(await screen.findByRole('alert')).toHaveTextContent(`Task step limit reached (${limits.stepsPerTask})`)
+    expect(backend.data.steps).toHaveLength(limits.stepsPerTask)
   })
 })
