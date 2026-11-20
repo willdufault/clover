@@ -149,6 +149,20 @@ def test_update_only_writes_given_fields(call, table):
     assert updated[0]["due"] == "2030-01-02"
 
 
+def test_update_returns_written_values_not_later_writes(call, table):
+    task = call("POST /tasks", {"title": "T"})[1]
+    real = table.transact_write_items
+
+    def concurrent(TransactItems):
+        table.items[("user-1", f"TASK#{task['id']}")]["stage"] = "waiting"
+        return real(TransactItems)
+
+    table.transact_write_items = concurrent
+    status, updated = call("PATCH /tasks", [{"id": task["id"], "due": "2030-01-02"}])
+    assert (status, updated) == (200, [{**task, "due": "2030-01-02"}])
+    assert call("GET /data")[1]["tasks"][0]["stage"] == "waiting"
+
+
 def test_update_deleted_task_is_404(call, table, race):
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]

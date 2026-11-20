@@ -240,7 +240,7 @@ def transact(writes):
 
 
 def update_many(user_id, kind, patches, items, checks=()):
-    by_id(items, kind, [i for i, _ in patches])
+    found = by_id(items, kind, [i for i, _ in patches])
     writes = list(checks) + [
         {
             "Update": {
@@ -257,8 +257,7 @@ def update_many(user_id, kind, patches, items, checks=()):
     ]
     if writes:
         transact(writes)
-    updated = by_id(load_all(user_id), kind, [i for i, _ in patches])
-    return response(200, [to_api(updated[i]) for i, _ in patches])
+    return response(200, [to_api({**found[i], **data}) for i, data in patches])
 
 
 # Groups go children first (steps, tasks, lists), each flushed before the next,
