@@ -182,7 +182,7 @@ def to_api(item):
 
 
 def load_all(user_id):
-    return table.query(KeyConditionExpression=Key("PK").eq(user_id))["Items"]
+    return table.query(KeyConditionExpression=Key("PK").eq(user_id), ConsistentRead=True)["Items"]
 
 
 def by_id(items, kind, ids):

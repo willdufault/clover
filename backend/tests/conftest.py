@@ -46,7 +46,8 @@ class FakeTable:
     def delete_item(self, Key):
         self.items.pop((Key["PK"], Key["SK"]), None)
 
-    def query(self, KeyConditionExpression):
+    def query(self, KeyConditionExpression, ConsistentRead):
+        assert ConsistentRead
         pk = KeyConditionExpression.get_expression()["values"][1]
         return {"Items": [dict(i) for (p, _), i in self.items.items() if p == pk]}
 
