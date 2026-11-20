@@ -53,7 +53,6 @@ export default function App() {
   const detailTask = soleTask(listTasks, selectedTaskIds)
   const detailSteps = detailTask?.steps ?? []
 
-  // Also clears step selection, which belongs to the detail task.
   const replaceTaskSelection = (ids: string[]) => {
     setSelectedTaskIds(ids)
     setSelectedStepIds([])

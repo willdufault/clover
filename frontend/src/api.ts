@@ -29,7 +29,6 @@ export const logout = () => {
   window.location.assign(`${COGNITO_URL}/logout?${params}`)
 }
 
-// Exchanges the ?code= from the hosted UI redirect for tokens, if present.
 export const handleRedirect = async () => {
   const code = new URLSearchParams(window.location.search).get('code')
   if (!code) return

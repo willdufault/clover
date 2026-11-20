@@ -30,7 +30,6 @@ export const captureErrors = (page: Page) => {
   return errors
 }
 
-// Presses at the centre of `from`, moves in 10 steps to the centre of `to`, then releases.
 const box = async (locator: Locator) => {
   const bounds = await locator.boundingBox()
   if (!bounds) throw new Error('Element is not visible')
@@ -48,7 +47,6 @@ export const drag = async (page: Page, from: Locator, to: Locator) => {
   await page.mouse.up()
 }
 
-// A sidebar row (Today, All, or a list) by its visible text.
 export const navRow = (page: Page, name: string) => page.locator('nav > div', { hasText: name })
 
 export const waitForDropAnimation = (page: Page) => page.waitForTimeout(500)

@@ -98,7 +98,6 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await page.keyboard.press('Escape')
   await expect(aside).toHaveCount(0)
 
-  // Deleting the selected (last) list selects its neighbour.
   await nav.getByText('📚 Books').click({ button: 'right' })
   await page.getByText('Delete', { exact: true }).click()
   await expect(nav.getByText('📚 Books')).toHaveCount(0)
@@ -162,7 +161,6 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await expect(page.locator('aside')).toHaveCount(0)
   expect(backend.data.tasks.some((t) => t.title === 'Review PR')).toBe(false)
 
-  // The done task moves from first to last.
   await expect(rows.first()).toContainText('Water plants')
   await page.getByRole('button', { name: 'Sort' }).click()
   await page.getByRole('button', { name: 'Stage', exact: true }).click()

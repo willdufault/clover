@@ -127,7 +127,6 @@ def optional_date(v):
         return False
 
 
-# field -> (check, default)
 LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED)}
 TASK_FIELDS = {
     "title": (text(TITLE_MAX), REQUIRED),
