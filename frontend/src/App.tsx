@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { api } from './api'
 import { applyDrop } from './drop'
-import { LISTS_PER_USER, STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST, TASKS_PER_USER } from './limits'
+import limits from '../../backend/limits.json'
 import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
@@ -98,7 +98,7 @@ export default function App() {
   }
 
   const listFull = (listId: string) =>
-    atLimit(tasks.filter((task) => task.listId === listId).length, TASKS_PER_LIST, 'List task limit reached')
+    atLimit(tasks.filter((task) => task.listId === listId).length, limits.tasksPerList, 'List task limit reached')
 
   useEffect(() => {
     run(async () => {
@@ -141,7 +141,7 @@ export default function App() {
   }
 
   const addTask = (title: string) => {
-    if (atLimit(tasks.length, TASKS_PER_USER, 'Task limit reached')) return
+    if (atLimit(tasks.length, limits.tasksPerUser, 'Task limit reached')) return
     if (currentList && listFull(currentList.id)) return
     return run(async () => {
       const task = await api('POST', '/tasks', {
@@ -155,8 +155,8 @@ export default function App() {
 
   const addStep = (title: string) => {
     const stepCount = tasks.reduce((sum, task) => sum + task.steps.length, 0)
-    if (atLimit(stepCount, STEPS_PER_USER, 'Step limit reached')) return
-    if (atLimit(detailTask!.steps.length, STEPS_PER_TASK, 'Task step limit reached')) return
+    if (atLimit(stepCount, limits.stepsPerUser, 'Step limit reached')) return
+    if (atLimit(detailTask!.steps.length, limits.stepsPerTask, 'Task step limit reached')) return
     return run(async () => {
       const step: Step = await api('POST', '/steps', { taskId: detailTaskId, title })
       setTasks((tasks) =>
@@ -230,7 +230,7 @@ export default function App() {
     })
 
   const createList = (name: string) => {
-    if (atLimit(lists.length, LISTS_PER_USER, 'List limit reached')) return
+    if (atLimit(lists.length, limits.listsPerUser, 'List limit reached')) return
     return run(async () => {
       const newList: TaskList = await api('POST', '/lists', { name })
       setLists((lists) => [...lists, newList])

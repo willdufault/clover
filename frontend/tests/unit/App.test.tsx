@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
-import { STEPS_PER_TASK, STEPS_PER_USER, TASKS_PER_LIST } from '../../src/limits'
+import limits from '../../../backend/limits.json'
 import { createFakeBackend, seed, task } from '../fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
@@ -310,31 +310,31 @@ describe('limits', () => {
 
   test('tasks-per-list limit blocks creating a task in a full list', async () => {
     const data = seed()
-    data.tasks.push(...many(TASKS_PER_LIST - 2, (i) => task(`t${i}`, `T${i}`, 'groceries')))
+    data.tasks.push(...many(limits.tasksPerList - 2, (i) => task(`t${i}`, `T${i}`, 'groceries')))
     const count = data.tasks.length
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
-    await expectBlocked(`List task limit reached (${TASKS_PER_LIST})`, 'tasks', count)
+    await expectBlocked(`List task limit reached (${limits.tasksPerList})`, 'tasks', count)
   })
 
   test('step limit counts steps across all tasks', async () => {
     const data = seed()
-    data.steps.push(...many(STEPS_PER_USER - 1, (i) => ({ id: `s${i}`, taskId: `w${(i % 3) + 1}`, title: `S${i}`, completed: false })))
+    data.steps.push(...many(limits.stepsPerUser - 1, (i) => ({ id: `s${i}`, taskId: `w${(i % 3) + 1}`, title: `S${i}`, completed: false })))
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked(`Step limit reached (${STEPS_PER_USER})`, 'steps', STEPS_PER_USER)
+    await expectBlocked(`Step limit reached (${limits.stepsPerUser})`, 'steps', limits.stepsPerUser)
   })
 
   test('steps-per-task limit blocks adding a step to a full task', async () => {
     const data = seed()
-    data.steps.push(...many(STEPS_PER_TASK - 1, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })))
+    data.steps.push(...many(limits.stepsPerTask - 1, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })))
     backend = createFakeBackend(data)
     const { user } = await setup()
     await user.click(within(main()).getByText('Milk'))
     await newStep(user, 'One more')
-    await expectBlocked(`Task step limit reached (${STEPS_PER_TASK})`, 'steps', STEPS_PER_TASK)
+    await expectBlocked(`Task step limit reached (${limits.stepsPerTask})`, 'steps', limits.stepsPerTask)
   })
 })

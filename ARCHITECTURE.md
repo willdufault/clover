@@ -47,7 +47,7 @@ Errors (`{"error": "..."}`; nothing is written):
 
 ## Limits
 
-Limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported by `frontend/src/limits.ts` (the frontend checks them before calling the API).
+Limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported directly by the frontend (which checks them before calling the API).
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.
