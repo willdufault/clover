@@ -64,7 +64,7 @@ def parse_body(event):
 
 
 # DynamoDB transactions cap at 100 actions and the META bump takes one slot.
-MAX_BATCH = 99
+MAX_BATCH = LIMITS["batchMax"]
 RETRY_BASE_DELAY = 0.05
 RETRY_JITTER = 0.05
 

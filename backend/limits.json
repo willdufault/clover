@@ -5,5 +5,6 @@
   "tasksPerList": 20,
   "stepsPerTask": 10,
   "listNameMax": 50,
-  "titleMax": 100
+  "titleMax": 100,
+  "batchMax": 99
 }

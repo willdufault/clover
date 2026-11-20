@@ -47,13 +47,13 @@ Errors (`{"error": "..."}`; nothing is written):
 
 ## Limits
 
-Count and text limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported by `frontend/src/limits.ts` (the frontend checks them before calling the API).
+Limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported by `frontend/src/limits.ts` (the frontend checks them before calling the API).
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.
 - Count limits apply on create, and on task PATCH when `listId` changes (checked against the whole batch).
 - Text: list `name` ≤ 50 chars, task/step `title` ≤ 100 chars, not blank.
-- Batch size: 1–99 ids per PATCH/DELETE (`MAX_BATCH` in `backend/common.py`; transactions cap at 100 actions and META takes one).
+- Batch size: 1–99 ids per PATCH/DELETE (`batchMax`; transactions cap at 100 actions and META takes one).
 
 ## Frontend data flow
 

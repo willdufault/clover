@@ -1,8 +1,8 @@
+import limits from '../../backend/limits.json' with { type: 'json' }
+
 // In-memory stand-in for the backend API, shared by unit and e2e tests.
 type Item = Record<string, unknown> & { id: string }
 type Kind = 'lists' | 'tasks' | 'steps'
-
-const MAX_BATCH = 99 // mirrors backend MAX_BATCH
 
 const DEFAULTS: Record<Kind, Record<string, unknown>> = {
   lists: {},
@@ -46,7 +46,7 @@ export const createFakeBackend = (data = seed()) => {
     }
     // PATCH and DELETE are batch and all-or-nothing.
     const batch = method === 'PATCH' ? body : (body as { ids?: unknown } | undefined)?.ids
-    if (!Array.isArray(batch) || batch.length < 1 || batch.length > MAX_BATCH) return { status: 400, body: { error: 'Bad request.' } }
+    if (!Array.isArray(batch) || batch.length < 1 || batch.length > limits.batchMax) return { status: 400, body: { error: 'Bad request.' } }
     const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch
     if (ids.some((id) => typeof id !== 'string')) return { status: 400, body: { error: 'Bad request.' } }
     if (method === 'PATCH' && ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'Not found.' } }
