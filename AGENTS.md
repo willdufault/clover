@@ -2,6 +2,14 @@
 
 For project details, see @README.md. For backend design, see @ARCHITECTURE.md.
 
+## Backend (`backend/`)
+
+Run commands from `backend/`.
+
+### Validation
+
+- Before finishing, run `uv run pytest -q`, `uv run ruff check .`, and `uv run ruff format --check .`.
+
 ## Frontend (`frontend/`)
 
 Run commands from `frontend/`.

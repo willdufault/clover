@@ -8,8 +8,15 @@ dependencies = []
 dev = [
     "boto3>=1.44.3",
     "pytest>=9.2.0",
+    "ruff>=0.17.6",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "B", "UP", "SIM", "C4", "RET", "PIE", "C90", "ERA", "PT", "RUF"]
