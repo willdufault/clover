@@ -19,11 +19,13 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 
 ## Data model
 
-- `PK` = user id (Cognito `sub`), `SK` = `LIST#<id>` | `TASK#<id>` | `STEP#<id>`, id = `uuid.uuid7()`.
+- `PK` = user id (Cognito `sub`), `SK` = `LIST#<id>` | `TASK#<id>` | `STEP#<id>` | `META`, id = `uuid.uuid7()`.
+- Meta: `version` (number), one per user.
 - List: `name`.
 - Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list).
 - Step: `taskId`, `title`, `completed` (default false). `taskId` is set on create and can't be patched.
-- Every request loads all of a user's items with one Query (no pagination; worst case ~210 items).
+- Every request loads all of a user's items with one strongly consistent Query (`ConsistentRead=True`, no pagination; worst case ~210 items).
+- Writes that change counts or parents (creates, `PATCH /tasks` moving a task into a list, `DELETE /lists`/`/tasks`) bump `META.version` in their transaction, conditioned on it being unchanged since the read (or absent). On mismatch the route re-runs from the read, up to 3 tries. This keeps count limits and parent existence strict under concurrency.
 
 ## API
 
@@ -32,26 +34,26 @@ All JSON. Items are returned as `{id, ...fields}`.
 | Route | Behavior |
 |---|---|
 | `GET /data` | 200 `{"lists": [...], "tasks": [...], "steps": [...]}` |
-| `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. With a parent, the Put shares a `TransactWriteItems` with a `ConditionCheck` that the parent still exists, so a concurrent delete can't orphan it. 201 with the item. |
-| `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–100 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`), plus a `ConditionCheck` on each new task `listId`, retried up to 3 times with backoff and jitter on `TransactionConflict`; id-only patches are skipped. 200 with full updated items in request order. |
-| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–100 unique. Cascades list → its tasks → their steps, task → its steps. Batch writes, children first, so a failed delete leaves no orphans and a retry finishes it. 204. |
+| `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. One `TransactWriteItems`: Put + META bump. 201 with the item. |
+| `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–99 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`), plus a META bump if any task moves into a list, retried up to 3 times with backoff and jitter on `TransactionConflict`; id-only patches are skipped. 200 with full updated items in request order. |
+| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–99 unique. Cascades list → its tasks → their steps, task → its steps. Lists/tasks: batch delete children first, then one `TransactWriteItems` {META bump, Delete parents}; on mismatch re-read, delete new children, retry. Steps: batch delete. Ids already gone are skipped, so retries are safe. 204. |
 
 Errors (`{"error": "..."}`; nothing is written):
 
 - 400: bad JSON, bad body shape, bad/duplicate ids, unknown, invalid or missing field.
-- 404: unknown route, any id not found, referenced `listId`/`taskId` not found.
+- 404: unknown route, PATCH id not found, referenced `listId`/`taskId` not found.
 - 409: limit reached (including a PATCH batch moving too many tasks into a list).
 - 500: unexpected error (`Internal server error.`).
 
 ## Limits
 
-Defined once in `backend/limits.json`, read by `backend/common.py` and imported by `frontend/src/limits.ts` (the frontend checks them before calling the API).
+Count and text limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported by `frontend/src/limits.ts` (the frontend checks them before calling the API).
 
-- Per user: 10 lists, 100 tasks, 100 steps.
+- Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.
 - Count limits apply on create, and on task PATCH when `listId` changes (checked against the whole batch).
 - Text: list `name` ≤ 50 chars, task/step `title` ≤ 100 chars, not blank.
-- Batch size: 1–100 ids per PATCH/DELETE.
+- Batch size: 1–99 ids per PATCH/DELETE (`MAX_BATCH` in `backend/common.py`; transactions cap at 100 actions and META takes one).
 
 ## Frontend data flow
 
