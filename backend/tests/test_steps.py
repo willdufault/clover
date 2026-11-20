@@ -55,13 +55,13 @@ def test_delete(call, task):
     c = call("POST /steps", {"title": "C", "taskId": task["id"]})[1]
     assert call("DELETE /steps", {"ids": [a["id"], b["id"]]}) == (204, None)
     assert call("GET /data")[1]["steps"] == [c]
-    assert call("DELETE /steps", {"ids": [a["id"]]})[0] == 404
+    assert call("DELETE /steps", {"ids": [a["id"]]})[0] == 204
 
 
-def test_create_on_task_deleted_after_read_is_404(call, table, task, stale_snapshot):
-    stale_snapshot(f"TASK#{task['id']}")
+def test_create_on_task_deleted_after_read_is_404(call, task, race):
+    race(lambda: call("DELETE /tasks", {"ids": [task["id"]]}))
     assert call("POST /steps", {"title": "S", "taskId": task["id"]}) == (
         404,
         {"error": "Task not found."},
     )
-    assert table.items == {}
+    assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}

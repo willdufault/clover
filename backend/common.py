@@ -26,6 +26,10 @@ LIST_NAME_MAX = LIMITS["listNameMax"]
 TITLE_MAX = LIMITS["titleMax"]
 
 
+class Stale(Exception):
+    pass
+
+
 class ApiError(Exception):
     def __init__(self, status, message):
         self.status = status
@@ -59,7 +63,8 @@ def parse_body(event):
     return body
 
 
-MAX_BATCH = 100
+# DynamoDB transactions cap at 100 actions and the META bump takes one slot.
+MAX_BATCH = 99
 RETRY_BASE_DELAY = 0.05
 RETRY_JITTER = 0.05
 
@@ -192,24 +197,26 @@ def by_id(items, kind, ids):
     return {i: found[i] for i in ids}
 
 
-# The parent may be deleted between the pre-check read and the write, so writes
-# that reference one also check it still exists, or the child would be orphaned.
-def parent_check(user_id, kind, item_id):
+def matching(items, kind, ids):
+    return [i for i in items if kind_of(i) == kind and id_of(i) in ids]
+
+
+def bump(user_id, items):
+    seen = next((i["version"] for i in items if i["SK"] == "META"), 0)
     return {
-        "ConditionCheck": {
+        "Update": {
             "TableName": table.name,
-            "Key": key(user_id, kind, item_id),
-            "ConditionExpression": "attribute_exists(PK)",
+            "Key": {"PK": user_id, "SK": "META"},
+            "UpdateExpression": "SET version = if_not_exists(version, :zero) + :one",
+            "ConditionExpression": "attribute_not_exists(PK) OR version = :seen",
+            "ExpressionAttributeValues": {":zero": 0, ":one": 1, ":seen": seen},
         }
     }
 
 
-def create(user_id, kind, data, parent=None):
+def create(user_id, kind, data, items):
     item = {**key(user_id, kind, str(uuid.uuid7())), **data}
-    if parent:
-        transact([parent_check(user_id, *parent), {"Put": {"TableName": table.name, "Item": item}}])
-    else:
-        table.put_item(Item=item)
+    transact([{"Put": {"TableName": table.name, "Item": item}}, bump(user_id, items)])
     return response(201, to_api(item))
 
 
@@ -225,9 +232,8 @@ def transact(writes, retries=3):
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
             for write, reason in zip(writes, reasons):
                 if reason == "ConditionalCheckFailed":
-                    check = write.get("ConditionCheck")
-                    if check:
-                        raise ApiError(404, f"{kind_of(check['Key']).capitalize()} not found.")
+                    if write["Update"]["Key"]["SK"] == "META":
+                        raise Stale()
                     raise ApiError(404, "Not found.")
             if "TransactionConflict" not in reasons or attempt == retries:
                 raise
@@ -251,8 +257,6 @@ def update_many(user_id, kind, patches, items, checks=()):
         for item_id, data in patches
         if data
     ]
-    if len(writes) > MAX_BATCH:
-        raise ApiError(400, "Too many changes.")
     if writes:
         transact(writes)
     updated = by_id(load_all(user_id), kind, [i for i, _ in patches])
@@ -266,6 +270,13 @@ def delete(*groups):
         with table.batch_writer() as batch:
             for item in items:
                 batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+    return response(204)
+
+
+def delete_parents(user_id, items, parents, *children):
+    delete(*children)
+    deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
+    transact([bump(user_id, items)] + deletes)
     return response(204)
 
 

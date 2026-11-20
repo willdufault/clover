@@ -23,6 +23,11 @@ def handler(event, context):
         return common.response(404, {"error": "Route not found."})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
+        for _ in range(2):
+            try:
+                return route(event, user_id)
+            except common.Stale:
+                pass
         return route(event, user_id)
     except common.ApiError as e:
         return common.response(e.status, {"error": e.message})

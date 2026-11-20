@@ -1,7 +1,7 @@
 from botocore.exceptions import ClientError
 
 import common
-from common import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
+from common import TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
 def test_create_defaults(call):
@@ -128,14 +128,14 @@ def test_delete_cascades(call):
     step = call("POST /steps", {"title": "S2", "taskId": other["id"]})[1]
     assert call("DELETE /tasks", {"ids": [a["id"], b["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [other], "steps": [step]}
-    assert call("DELETE /tasks", {"ids": [a["id"]]})[0] == 404
+    assert call("DELETE /tasks", {"ids": [a["id"]]})[0] == 204
 
 
-def test_delete_unknown_id_deletes_nothing(call):
+def test_delete_skips_missing_ids(call):
     a = call("POST /tasks", {"title": "A"})[1]
-    step = call("POST /steps", {"title": "S", "taskId": a["id"]})[1]
-    assert call("DELETE /tasks", {"ids": [a["id"], "missing"]})[0] == 404
-    assert call("GET /data")[1] == {"lists": [], "tasks": [a], "steps": [step]}
+    call("POST /steps", {"title": "S", "taskId": a["id"]})
+    assert call("DELETE /tasks", {"ids": [a["id"], "missing"]})[0] == 204
+    assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
 def test_update_only_writes_given_fields(call, table):
@@ -148,10 +148,10 @@ def test_update_only_writes_given_fields(call, table):
     assert updated[0]["due"] == "2030-01-02"
 
 
-def test_update_deleted_task_is_404(call, table, stale_snapshot):
+def test_update_deleted_task_is_404(call, table, race):
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
-    stale_snapshot(f"TASK#{b['id']}")
+    race(lambda: call("DELETE /tasks", {"ids": [b["id"]]}))
     before = {k: dict(v) for k, v in table.items.items()}
     body = [{"id": a["id"], "title": "A2"}, {"id": b["id"], "title": "B2"}]
     assert call("PATCH /tasks", body)[0] == 404
@@ -200,32 +200,22 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
         assert base <= slept <= base + common.RETRY_JITTER
 
 
-def test_create_in_list_deleted_after_read_is_404(call, table, stale_snapshot):
+def test_create_in_list_deleted_after_read_is_404(call, race):
     lst = call("POST /lists", {"name": "L"})[1]
-    stale_snapshot(f"LIST#{lst['id']}")
+    race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
     assert call("POST /tasks", {"title": "T", "listId": lst["id"]}) == (
         404,
         {"error": "List not found."},
     )
-    assert table.items == {}
+    assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_move_to_list_deleted_after_read_is_404(call, table, stale_snapshot):
+def test_move_to_list_deleted_after_read_is_404(call, race):
     lst = call("POST /lists", {"name": "L"})[1]
     task = call("POST /tasks", {"title": "T"})[1]
-    stale_snapshot(f"LIST#{lst['id']}")
+    race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
     assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (
         404,
         {"error": "List not found."},
     )
-    assert list(table.items) == [("user-1", f"TASK#{task['id']}")]
-    assert table.items[("user-1", f"TASK#{task['id']}")]["listId"] is None
-
-
-def test_update_over_max_batch_writes_is_400(call):
-    list_checks = 5
-    tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(MAX_BATCH)]
-    lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(list_checks)]
-    # MAX_BATCH updates plus list_checks list checks exceeds MAX_BATCH writes.
-    body = [{"id": t["id"], "listId": lists[i % list_checks]["id"]} for i, t in enumerate(tasks)]
-    assert call("PATCH /tasks", body) == (400, {"error": "Too many changes."})
+    assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}

@@ -1,6 +1,6 @@
 {
   "listsPerUser": 10,
-  "tasksPerUser": 100,
+  "tasksPerUser": 99,
   "stepsPerUser": 100,
   "tasksPerList": 20,
   "stepsPerTask": 10,

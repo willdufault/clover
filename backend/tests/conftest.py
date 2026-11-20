@@ -23,12 +23,14 @@ class FakeTable:
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
 
     def transact_write_items(self, TransactItems):
-        # Put is unconditional; ConditionCheck and Update require the item to exist.
         def ok(t):
-            if "Put" in t:
+            if "Update" not in t:
                 return True
-            k = (t.get("ConditionCheck") or t["Update"])["Key"]
-            return (k["PK"], k["SK"]) in self.items
+            u = t["Update"]
+            item = self.items.get((u["Key"]["PK"], u["Key"]["SK"]))
+            if u["Key"]["SK"] == "META":
+                return item is None or item["version"] == u["ExpressionAttributeValues"][":seen"]
+            return item is not None
 
         if not all(ok(t) for t in TransactItems):
             reasons = [{"Code": "None" if ok(t) else "ConditionalCheckFailed"} for t in TransactItems]
@@ -37,7 +39,13 @@ class FakeTable:
         for t in TransactItems:
             if "Put" in t:
                 self.put_item(t["Put"]["Item"])
-            elif "Update" in t:
+            elif "Delete" in t:
+                self.delete_item(t["Delete"]["Key"])
+            elif t["Update"]["Key"]["SK"] == "META":
+                k = t["Update"]["Key"]
+                meta = self.items.setdefault((k["PK"], "META"), {**k, "version": 0})
+                meta["version"] += 1
+            else:
                 u = t["Update"]
                 item = self.items[(u["Key"]["PK"], u["Key"]["SK"])]
                 for name, field in u["ExpressionAttributeNames"].items():
@@ -86,11 +94,11 @@ def call(table):
 
 
 @pytest.fixture
-def stale_snapshot(table, monkeypatch):
-    # Simulate an item being deleted after the read and before the write.
-    def stale_snapshot(deleted_sk):
-        stale = common.load_all("user-1")
-        table.delete_item(Key={"PK": "user-1", "SK": deleted_sk})
-        monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+def race(monkeypatch):
+    def race(concurrent):
+        reads = [common.load_all("user-1")]
+        concurrent()
+        real = common.load_all
+        monkeypatch.setattr(common, "load_all", lambda user_id: reads.pop() if reads else real(user_id))
 
-    return stale_snapshot
+    return race

@@ -22,7 +22,7 @@ def test_cannot_modify_other_users_data(call):
     before = call("GET /data", user="a")
     for kind, item, field in [("lists", lst, "name"), ("tasks", task, "title"), ("steps", step, "title")]:
         assert call(f"PATCH /{kind}", [{"id": item["id"], field: "X"}], user="b")[0] == 404
-        assert call(f"DELETE /{kind}", {"ids": [item["id"]]}, user="b")[0] == 404
+        assert call(f"DELETE /{kind}", {"ids": [item["id"]]}, user="b")[0] == 204
     assert call("GET /data", user="a") == before
 
 

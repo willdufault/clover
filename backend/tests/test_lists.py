@@ -22,6 +22,33 @@ def test_user_limit(call):
     assert call("POST /lists", {"name": "too many"})[0] == 409
 
 
+def test_first_write_creates_meta(call, table):
+    assert call("POST /lists", {"name": "A"})[0] == 201
+    assert table.items[("user-1", "META")]["version"] == 1
+
+
+def test_create_over_limit_after_stale_read_is_409(call, race):
+    for i in range(USER_LIMITS["LIST"] - 1):
+        call("POST /lists", {"name": f"L{i}"})
+    race(lambda: call("POST /lists", {"name": "concurrent"}))
+    assert call("POST /lists", {"name": "too many"}) == (409, {"error": "List limit reached."})
+    assert len(call("GET /data")[1]["lists"]) == USER_LIMITS["LIST"]
+
+
+def test_delete_after_stale_read_retries(call, race):
+    a = call("POST /lists", {"name": "A"})[1]
+    b = call("POST /lists", {"name": "B"})[1]
+    call("POST /tasks", {"title": "T", "listId": a["id"]})
+
+    def concurrent():
+        call("DELETE /lists", {"ids": [a["id"]]})
+        call("POST /tasks", {"title": "New", "listId": b["id"]})
+
+    race(concurrent)
+    assert call("DELETE /lists", {"ids": [a["id"], b["id"]]}) == (204, None)
+    assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
+
+
 def test_update(call):
     lst = call("POST /lists", {"name": "A"})[1]
     assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}]) == (
@@ -71,13 +98,13 @@ def test_delete_cascades(call):
     other = call("POST /tasks", {"title": "Other"})[1]
     assert call("DELETE /lists", {"ids": [a["id"], b["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [keep], "tasks": [other], "steps": []}
-    assert call("DELETE /lists", {"ids": [a["id"]]})[0] == 404
+    assert call("DELETE /lists", {"ids": [a["id"]]})[0] == 204
 
 
-def test_delete_unknown_id_deletes_nothing(call):
+def test_delete_skips_missing_ids(call):
     a = call("POST /lists", {"name": "A"})[1]
-    assert call("DELETE /lists", {"ids": [a["id"], "missing"]})[0] == 404
-    assert call("GET /data")[1]["lists"] == [a]
+    assert call("DELETE /lists", {"ids": [a["id"], "missing"]})[0] == 204
+    assert call("GET /data")[1]["lists"] == []
 
 
 def test_delete_body_validation(call):
