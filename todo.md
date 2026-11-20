@@ -2,4 +2,7 @@
 - add actual api backend (create new aws acct)
 - clickin gin the due date field is kind of weird, it selects the mm/dd/yyyy where you click
 - remove any unnecessary ui elements; minimal, only add more if unclear
-- orphan race: a step/task created while its parent task/list is being deleted can survive the cascade (delete reads children up front)
+- orphan race: a step/task created while its parent task/list is being deleted can survive the cascade (delete reads children up front); DELETE /lists retry can't find steps of already-deleted tasks
+- partial delete: DELETE /lists and /tasks delete children before the META transaction, so exhausted retries return 409 after data is gone
+- update_task repeats check_parent's list-exists/full checks; share one helper (needs projected counts for batch moves)
+- index.py stale retry: one loop that re-raises on the last try instead of loop + final call

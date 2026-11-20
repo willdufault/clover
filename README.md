@@ -6,7 +6,7 @@ A small todo app with lists, tasks, steps, due dates, priority, stage, a Today v
 
 ```
 frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
-  src/          app code (api.ts = auth + API client, limits.ts = limits from backend/limits.json)
+  src/          app code (api.ts = auth + API client; limits come from backend/limits.json)
   tests/unit/   Vitest + Testing Library
   tests/e2e/    Playwright, API mocked in-browser
 backend/    Python 3.14 Lambda (index.py router, handlers.py, common.py)
