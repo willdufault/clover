@@ -46,7 +46,8 @@ export const handleRedirect = async () => {
     }),
   })
   localStorage.removeItem('verifier')
-  if (response.ok) localStorage.setItem('idToken', (await response.json()).id_token)
+  if (!response.ok) throw new Error(`Token exchange failed: ${response.status}`)
+  localStorage.setItem('idToken', (await response.json()).id_token)
 }
 
 export const hasValidToken = (now = Date.now()) => {

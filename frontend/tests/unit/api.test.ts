@@ -51,3 +51,11 @@ test('handleRedirect stores the id token and removes the verifier', async () => 
   expect(localStorage.getItem('idToken')).toBe('tok')
   expect(localStorage.getItem('verifier')).toBeNull()
 })
+
+test('handleRedirect throws on a failed token exchange', async () => {
+  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/', origin: 'http://localhost:5173' })
+  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  vi.stubGlobal('fetch', async () => ({ ok: false, status: 400 }))
+  await expect(handleRedirect()).rejects.toThrow('Token exchange failed: 400')
+  expect(localStorage.getItem('idToken')).toBeNull()
+})
