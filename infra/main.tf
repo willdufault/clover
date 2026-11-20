@@ -120,8 +120,8 @@ resource "aws_iam_role_policy" "api_table_policy" {
         "dynamodb:Query",
         "dynamodb:PutItem",
         "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
         "dynamodb:BatchWriteItem",
-        "dynamodb:ConditionCheckItem",
       ]
       Resource = aws_dynamodb_table.tasks.arn
     }]
