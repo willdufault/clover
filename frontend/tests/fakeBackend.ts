@@ -2,7 +2,7 @@
 type Item = Record<string, unknown> & { id: string }
 type Kind = 'lists' | 'tasks' | 'steps'
 
-const MAX_BATCH = 100 // mirrors backend MAX_BATCH
+const MAX_BATCH = 99 // mirrors backend MAX_BATCH
 
 const DEFAULTS: Record<Kind, Record<string, unknown>> = {
   lists: {},
@@ -49,7 +49,7 @@ export const createFakeBackend = (data = seed()) => {
     if (!Array.isArray(batch) || batch.length < 1 || batch.length > MAX_BATCH) return { status: 400, body: { error: 'Bad request.' } }
     const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch
     if (ids.some((id) => typeof id !== 'string')) return { status: 400, body: { error: 'Bad request.' } }
-    if (ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'Not found.' } }
+    if (method === 'PATCH' && ids.some((id) => !items.some((item) => item.id === id))) return { status: 404, body: { error: 'Not found.' } }
     if (method === 'PATCH') {
       return { status: 200, body: batch.map((patch) => Object.assign(items.find((item) => item.id === patch.id)!, patch)) }
     }
