@@ -16,20 +16,12 @@ test('sorts by stage order', () => {
 })
 
 test('sorts by due date, earliest first, undated last', () => {
-  const tasks = [
-    makeTask('none'),
-    makeTask('late', { due: '2026-03-01' }),
-    makeTask('early', { due: '2026-01-01' }),
-  ]
+  const tasks = [makeTask('none'), makeTask('late', { due: '2026-03-01' }), makeTask('early', { due: '2026-01-01' })]
   expect(ids(sortTasks(tasks, 'due'))).toEqual(['early', 'late', 'none'])
 })
 
 test('sorts by priority, high first', () => {
-  const tasks = [
-    makeTask('low', { priority: 'low' }),
-    makeTask('high', { priority: 'high' }),
-    makeTask('medium'),
-  ]
+  const tasks = [makeTask('low', { priority: 'low' }), makeTask('high', { priority: 'high' }), makeTask('medium')]
   expect(ids(sortTasks(tasks, 'priority'))).toEqual(['high', 'medium', 'low'])
 })
 

@@ -27,7 +27,7 @@ export function EditableText({
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
-  }, [draft])
+  })
 
   if (draft !== null) {
     const cancel = () => setDraft(null)

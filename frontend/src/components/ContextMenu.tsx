@@ -9,16 +9,17 @@ const MENU_WIDTH = 208
 type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
 
 function SubmenuRow({
-  item,
+  label,
+  submenu,
   renderItems,
 }: {
-  item: MenuItem
+  label: string
+  submenu: MenuItem[]
   renderItems: (items: MenuItem[]) => React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [flip, setFlip] = useState(false)
   const [shift, setShift] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (!open || !panelRef.current) return setShift(0)
@@ -26,28 +27,34 @@ function SubmenuRow({
   }, [open])
   return (
     <div
-      ref={ref}
       className="relative"
-      onMouseEnter={() => {
-        setFlip(ref.current!.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
+      onMouseEnter={(event) => {
+        setFlip(event.currentTarget.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
         setOpen(true)
       }}
       onMouseLeave={() => setOpen(false)}
     >
       <button className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}>
-        <span>{item.label}</span>
-        <svg viewBox="0 0 16 16" className="size-3.5 self-center text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4" /></svg>
+        <span>{label}</span>
+        <svg
+          viewBox="0 0 16 16"
+          className="size-3.5 self-center text-ink-faint"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 4l4 4-4 4" />
+        </svg>
       </button>
       {open && (
         <div
           ref={panelRef}
           style={{ top: shift, width: MENU_WIDTH }}
-          className={
-            'absolute -mt-1 ' + MENU_CLASS + ' ' +
-            (flip ? 'right-full' : 'left-full')
-          }
+          className={'absolute -mt-1 ' + MENU_CLASS + ' ' + (flip ? 'right-full' : 'left-full')}
         >
-          {renderItems(item.submenu!)}
+          {renderItems(submenu)}
         </div>
       )}
     </div>
@@ -82,7 +89,7 @@ export default function ContextMenu({
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
   useLayoutEffect(() => {
-    setTop(Math.min(menu.y, window.innerHeight - ref.current!.offsetHeight))
+    if (ref.current) setTop(Math.min(menu.y, window.innerHeight - ref.current.offsetHeight))
   }, [menu.y])
 
   useEffect(() => {
@@ -128,7 +135,7 @@ export default function ContextMenu({
   const renderItems = (items: MenuItem[]): React.ReactNode =>
     items.map((item) =>
       item.submenu ? (
-        <SubmenuRow key={item.label} item={item} renderItems={renderItems} />
+        <SubmenuRow key={item.label} label={item.label} submenu={item.submenu} renderItems={renderItems} />
       ) : (
         <button
           key={item.label}
@@ -136,10 +143,7 @@ export default function ContextMenu({
             item.action?.()
             onClose()
           }}
-          className={
-            'block ' + MENU_ITEM_CLASS + ' ' +
-            (item.danger ? 'text-coral' : 'text-ink')
-          }
+          className={'block ' + MENU_ITEM_CLASS + ' ' + (item.danger ? 'text-coral' : 'text-ink')}
         >
           {item.label}
         </button>

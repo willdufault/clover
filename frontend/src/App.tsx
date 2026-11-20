@@ -25,10 +25,16 @@ import TaskPane from './components/TaskPane'
 
 type DragInfo = { kind: RowKind; text: string }
 
+const clickModifiers = (event: React.MouseEvent) => ({
+  ctrl: event.ctrlKey || event.metaKey,
+  shift: event.shiftKey,
+})
+
+const soleTask = (tasks: Task[], ids: string[]) =>
+  ids.length === 1 ? tasks.find((task) => task.id === ids[0]) : undefined
+
 export default function App() {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  )
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const [lists, setLists] = useState<TaskList[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,11 +50,8 @@ export default function App() {
   const currentList = lists.find((list) => list.id === selectedListId)
   const listName = SMART_LIST_NAMES[selectedListId] ?? currentList?.name
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
-  const detailTask =
-    selectedTaskIds.length === 1
-      ? listTasks.find((task) => task.id === selectedTaskIds[0])
-      : undefined
-  const detailTaskId = detailTask?.id ?? null
+  const detailTask = soleTask(listTasks, selectedTaskIds)
+  const detailSteps = detailTask?.steps ?? []
 
   // Also clears step selection, which belongs to the detail task.
   const replaceTaskSelection = (ids: string[]) => {
@@ -61,21 +64,21 @@ export default function App() {
     replaceTaskSelection([])
   }
 
-  const clickModifiers = (event: React.MouseEvent) => ({
-    ctrl: event.ctrlKey || event.metaKey,
-    shift: event.shiftKey,
-  })
-
   const selectTask = (id: string, event: React.MouseEvent) =>
     replaceTaskSelection(
-      nextSelection(selectedTaskIds, listTasks.map((task) => task.id), id, clickModifiers(event)),
+      nextSelection(
+        selectedTaskIds,
+        listTasks.map((task) => task.id),
+        id,
+        clickModifiers(event),
+      ),
     )
 
   const selectStep = (id: string, event: React.MouseEvent) =>
     setSelectedStepIds(
       nextSelection(
         selectedStepIds,
-        detailTask!.steps.map((step) => step.id),
+        detailSteps.map((step) => step.id),
         id,
         clickModifiers(event),
       ),
@@ -99,21 +102,22 @@ export default function App() {
     atLimit(tasks.filter((task) => task.listId === listId).length, limits.tasksPerList, 'List task limit reached')
 
   useEffect(() => {
-    run(async () => {
-      const data: { lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] } = await api('GET', '/data')
-      setLists(data.lists)
-      setTasks(
-        data.tasks.map((task) => ({ ...task, steps: data.steps.filter((step) => step.taskId === task.id) })),
-      )
-      setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
-    }).finally(() => setLoading(false))
+    api('GET', '/data')
+      .then((data: { lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }) => {
+        setLists(data.lists)
+        setTasks(data.tasks.map((task) => ({ ...task, steps: data.steps.filter((step) => step.taskId === task.id) })))
+        setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
+      })
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return
       if ((event.target as HTMLElement).closest('input, textarea, select')) return
-      replaceTaskSelection([])
+      setSelectedTaskIds([])
+      setSelectedStepIds([])
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -124,13 +128,13 @@ export default function App() {
   // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
   const patchTasks = async (patches: Partial<Task>[]) => {
     const updated: Omit<Task, 'steps'>[] = await api('PATCH', '/tasks', patches)
-    setTasks((tasks) => tasks.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
+    setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
   }
 
   const patchSteps = async (patches: Partial<Step>[]) => {
     const updated: Step[] = await api('PATCH', '/steps', patches)
-    setTasks((tasks) =>
-      tasks.map((task) => ({
+    setTasks((prev) =>
+      prev.map((task) => ({
         ...task,
         steps: task.steps.map((step) => updated.find((other) => other.id === step.id) ?? step),
       })),
@@ -146,18 +150,18 @@ export default function App() {
         listId: currentList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
       })
-      setTasks((tasks) => [{ ...task, steps: [] }, ...tasks])
+      setTasks((prev) => [{ ...task, steps: [] }, ...prev])
     })
   }
 
   const addStep = (title: string) => {
     const stepCount = tasks.reduce((sum, task) => sum + task.steps.length, 0)
     if (atLimit(stepCount, limits.stepsPerUser, 'Step limit reached')) return
-    if (atLimit(detailTask!.steps.length, limits.stepsPerTask, 'Task step limit reached')) return
+    if (atLimit(detailSteps.length, limits.stepsPerTask, 'Task step limit reached')) return
     return run(async () => {
-      const step: Step = await api('POST', '/steps', { taskId: detailTaskId, title })
-      setTasks((tasks) =>
-        tasks.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
+      const step: Step = await api('POST', '/steps', { taskId: detailTask?.id, title })
+      setTasks((prev) =>
+        prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
     })
   }
@@ -165,7 +169,7 @@ export default function App() {
   const deleteTasks = (ids: string[]) =>
     run(async () => {
       await api('DELETE', '/tasks', { ids })
-      setTasks((tasks) => tasks.filter((task) => !ids.includes(task.id)))
+      setTasks((prev) => prev.filter((task) => !ids.includes(task.id)))
       replaceTaskSelection([])
     })
 
@@ -173,8 +177,7 @@ export default function App() {
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
-  const sortList = (criteria: SortCriteria) =>
-    setTasks((tasks) => applySort(tasks, listTasks, criteria))
+  const sortList = (criteria: SortCriteria) => setTasks((prev) => applySort(prev, listTasks, criteria))
 
   const setStepsCompleted = (ids: string[], completed: boolean) =>
     run(async () => {
@@ -184,41 +187,35 @@ export default function App() {
   const deleteSteps = (ids: string[]) =>
     run(async () => {
       await api('DELETE', '/steps', { ids })
-      setTasks((tasks) =>
-        tasks.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })),
-      )
+      setTasks((prev) => prev.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })))
       setSelectedStepIds([])
     })
 
-  const openContextMenu =
-    (kind: RowKind, id: string) =>
-    (event: React.MouseEvent) => {
-      event.preventDefault()
-      const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
-      let ids = [id]
-      if (kind !== RowKind.List && selected.includes(id)) ids = selected
-      else if (kind === RowKind.Task) replaceTaskSelection(ids)
-      else if (kind === RowKind.Step) setSelectedStepIds(ids)
-      const menuTasks = tasks.filter((task) => ids.includes(task.id))
-      const allDone = detailTask?.steps
-        .filter((step) => ids.includes(step.id))
-        .every((step) => step.completed)
-      setMenu({
-        x: event.clientX,
-        y: event.clientY,
-        kind,
-        ids,
-        hasDue: menuTasks.some((task) => task.due),
-        allInToday: menuTasks.every((task) => task.addedToToday),
-        allDone,
-      })
-    }
+  const openContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => {
+    event.preventDefault()
+    const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
+    let ids = [id]
+    if (kind !== RowKind.List && selected.includes(id)) ids = selected
+    else if (kind === RowKind.Task) replaceTaskSelection(ids)
+    else if (kind === RowKind.Step) setSelectedStepIds(ids)
+    const menuTasks = tasks.filter((task) => ids.includes(task.id))
+    const allDone = detailTask?.steps.filter((step) => ids.includes(step.id)).every((step) => step.completed)
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      kind,
+      ids,
+      hasDue: menuTasks.some((task) => task.due),
+      allInToday: menuTasks.every((task) => task.addedToToday),
+      allDone,
+    })
+  }
 
   const renameItem = (kind: RowKind, id: string, name: string) =>
     run(async () => {
       if (kind === RowKind.List) {
         const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
-        setLists((lists) => lists.map((list) => (list.id === id ? updated : list)))
+        setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
       } else if (kind === RowKind.Task) {
         await patchTasks([{ id, title: name }])
       } else {
@@ -230,7 +227,7 @@ export default function App() {
     if (atLimit(lists.length, limits.listsPerUser, 'List limit reached')) return
     return run(async () => {
       const newList: TaskList = await api('POST', '/lists', { name })
-      setLists((lists) => [...lists, newList])
+      setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
   }
@@ -242,8 +239,8 @@ export default function App() {
       const index = lists.findIndex((list) => list.id === id)
       const neighborId = (remaining[index - 1] ?? remaining[0])?.id ?? ALL_LIST_ID
       await api('DELETE', '/lists', { ids: [id] })
-      setLists((lists) => lists.filter((list) => list.id !== id))
-      setTasks((tasks) => tasks.filter((task) => task.listId !== id))
+      setLists((prev) => prev.filter((list) => list.id !== id))
+      setTasks((prev) => prev.filter((task) => task.listId !== id))
       // The deleted list's tasks and steps are gone, so stale task/step selection is harmless.
       setSelectedListId((current) => (current === id ? neighborId : current))
     })
@@ -279,17 +276,20 @@ export default function App() {
     }
     if (target) {
       replaceTaskSelection([])
-      const task = tasks.find((task) => task.id === active.id)
-      if (task?.listId === target || listFull(target)) return
+      const dragged = tasks.find((task) => task.id === active.id)
+      if (dragged?.listId === target || listFull(target)) return
       updateTask(String(active.id), { listId: target })
       return
     }
-    const nextState = applyDrop({ lists, tasks }, {
-      selectedListId,
-      detailTaskId,
-      activeId: String(active.id),
-      overId,
-    })
+    const nextState = applyDrop(
+      { lists, tasks },
+      {
+        selectedListId,
+        detailTaskId: detailTask?.id ?? null,
+        activeId: String(active.id),
+        overId,
+      },
+    )
     setLists(nextState.lists)
     setTasks(nextState.tasks)
   }
@@ -308,9 +308,14 @@ export default function App() {
     >
       <div className="flex h-screen overflow-hidden flex-col font-sans">
         {error && (
-          <div role="alert" className="flex items-center justify-between gap-3 bg-coral-50 px-4 py-2 text-sm text-coral">
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-3 bg-coral-50 px-4 py-2 text-sm text-coral"
+          >
             <span>{error}</span>
-            <button onClick={() => setError(null)} aria-label="Dismiss error">×</button>
+            <button onClick={() => setError(null)} aria-label="Dismiss error">
+              ×
+            </button>
           </div>
         )}
         <div className="flex flex-1 min-h-0">
@@ -374,7 +379,7 @@ export default function App() {
           onUpdate={(patch) => updateTasks(menu.ids, patch)}
           onSetStepCompleted={(completed) =>
             setStepsCompleted(
-              detailTask!.steps
+              detailSteps
                 .filter((step) => menu.ids.includes(step.id) && step.completed !== completed)
                 .map((step) => step.id),
               completed,

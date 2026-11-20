@@ -29,11 +29,17 @@ export const applyDrop = (
 
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
-  const containsBoth = (items: { id: string }[]) => items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
+  const containsBoth = (items: { id: string }[]) =>
+    items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(visibleInList)) return { lists, tasks: moveById(tasks, activeId, overId) }
   const detailTask = visibleInList.find((task) => task.id === detailTaskId)
   if (detailTask && containsBoth(detailTask.steps)) {
-    return { lists, tasks: tasks.map((task) => (task === detailTask ? { ...task, steps: moveById(task.steps, activeId, overId) } : task)) }
+    return {
+      lists,
+      tasks: tasks.map((task) =>
+        task === detailTask ? { ...task, steps: moveById(task.steps, activeId, overId) } : task,
+      ),
+    }
   }
   return state
 }

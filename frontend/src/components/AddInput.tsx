@@ -27,7 +27,11 @@ export function AddInput({
       onKeyDown={(event) => event.key === 'Enter' && add()}
       placeholder={placeholder}
       maxLength={maxLength}
-      className={FIELD_CLASS + ' border-dashed border-clover-400/70! bg-transparent! placeholder:text-clover-700! hover:border-clover-400! focus:border-solid focus:border-clover-400! focus:bg-paper!' + (className ? ' ' + className : '')}
+      className={
+        FIELD_CLASS +
+        ' border-dashed border-clover-400/70! bg-transparent! placeholder:text-clover-700! hover:border-clover-400! focus:border-solid focus:border-clover-400! focus:bg-paper!' +
+        (className ? ' ' + className : '')
+      }
     />
   )
 }

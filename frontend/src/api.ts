@@ -3,7 +3,10 @@ const COGNITO_URL = import.meta.env.VITE_COGNITO_URL
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID
 
 const base64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 
 export const login = async () => {
   const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)))

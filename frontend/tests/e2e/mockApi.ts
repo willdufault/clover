@@ -10,7 +10,11 @@ export const mockApi = async (page: Page, data = seed()) => {
     (url) => url.hostname.endsWith('.amazonaws.com'),
     async (route) => {
       const request = route.request()
-      const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' }
+      const headers = {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': '*',
+        'access-control-allow-methods': '*',
+      }
       if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
       const { status, body } = backend.handle(request.method(), request.url(), request.postDataJSON() ?? undefined)
       await route.fulfill({ status, headers, json: body })
@@ -27,9 +31,15 @@ export const captureErrors = (page: Page) => {
 }
 
 // Presses at the centre of `from`, moves in 10 steps to the centre of `to`, then releases.
+const box = async (locator: Locator) => {
+  const bounds = await locator.boundingBox()
+  if (!bounds) throw new Error('Element is not visible')
+  return bounds
+}
+
 export const drag = async (page: Page, from: Locator, to: Locator) => {
-  const a = (await from.boundingBox())!
-  const b = (await to.boundingBox())!
+  const a = await box(from)
+  const b = await box(to)
   const [x0, y0] = [a.x + a.width / 2, a.y + a.height / 2]
   const [x1, y1] = [b.x + b.width / 2, b.y + b.height / 2]
   await page.mouse.move(x0, y0)

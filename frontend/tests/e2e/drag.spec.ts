@@ -31,13 +31,13 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
 
   // Regression: the last list was not a drop target.
   await drag(page, main.getByText('Milk', { exact: true }), nav.getByText('Home'))
-  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')!.listId).toBe('home')
+  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('home')
   await expect(main.getByText('Milk', { exact: true })).toHaveCount(0)
   await expect(navRow(page, 'Home')).toHaveText('Home1')
 
   await waitForDropAnimation(page)
   await drag(page, main.getByText('Eggs', { exact: true }), nav.getByText('☀️ Today'))
-  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')!.addedToToday).toBe(true)
+  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.addedToToday).toBe(true)
   await expect(main.locator('[data-kind="task"]', { hasText: 'Eggs' })).toContainText('☀️ Today')
   await waitForDropAnimation(page)
   await page.screenshot({ path: 'test-results/drag-task.png' })

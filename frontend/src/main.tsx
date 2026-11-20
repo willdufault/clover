@@ -6,7 +6,7 @@ import { handleRedirect, hasValidToken, login } from './api'
 
 await handleRedirect()
 if (hasValidToken()) {
-  createRoot(document.getElementById('root')!).render(
+  createRoot(document.getElementById('root') as HTMLElement).render(
     <StrictMode>
       <App />
     </StrictMode>,

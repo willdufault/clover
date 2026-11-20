@@ -1,7 +1,7 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
 
   --color-milk: #fbf6e7;
   --color-cream: #f4ecd4;
@@ -46,7 +46,7 @@ select.field {
   background-size: 1rem;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator {
   opacity: 0.45;
   cursor: pointer;
 }
@@ -61,16 +61,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 2px solid var(--color-clover-400);
   border-radius: 9999px;
   background: var(--color-paper);
-  transition: background-color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 
 .check:checked {
   border-color: var(--color-clover-500);
-  background: var(--color-clover-500) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5 7 11l5-6'/%3E%3C/svg%3E") center / 0.75rem no-repeat;
+  background: var(--color-clover-500)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5 7 11l5-6'/%3E%3C/svg%3E")
+    center / 0.75rem no-repeat;
 }
 
 @keyframes pane-in {
-  from { opacity: 0; transform: translateX(12px); }
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
 }
 
 .pane-in {
@@ -78,7 +85,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane-in { animation: none; }
+  .pane-in {
+    animation: none;
+  }
 }
 
 button:focus-visible {

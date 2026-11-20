@@ -51,7 +51,9 @@ test('task dropped on its own list or on All is a no-op', () => {
 test('mismatched ids are no-ops', () => {
   const state = makeState()
   const expectNoop = (drop: Partial<Parameters<typeof applyDrop>[1]>) =>
-    expect(applyDrop(state, { ...baseDrop, detailTaskId: 'a1', activeId: 'a1', overId: 'a2', ...drop })).toEqual(makeState())
+    expect(applyDrop(state, { ...baseDrop, detailTaskId: 'a1', activeId: 'a1', overId: 'a2', ...drop })).toEqual(
+      makeState(),
+    )
   expectNoop({ activeId: 's1', overId: 'a2' }) // step over task
   expectNoop({ activeId: 'a1', overId: 's1' }) // task over step
   expectNoop({ activeId: 's1', overId: 'x1' }) // step of another task

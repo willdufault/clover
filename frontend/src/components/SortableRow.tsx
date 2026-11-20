@@ -21,14 +21,10 @@ export function SortableRow({
   onContextMenu: (event: React.MouseEvent) => void
   children: React.ReactNode
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, data: { kind, text } })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    data: { kind, text },
+  })
   return (
     <Tag
       ref={setNodeRef}

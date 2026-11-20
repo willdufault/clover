@@ -2,13 +2,7 @@ import { STAGES, STAGE_LABELS } from '../labels'
 import type { Stage } from '../types'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
-export function StageSelect({
-  value,
-  onChange,
-}: {
-  value: Stage
-  onChange: (stage: Stage) => void
-}) {
+export function StageSelect({ value, onChange }: { value: Stage; onChange: (stage: Stage) => void }) {
   return (
     <select
       value={value}

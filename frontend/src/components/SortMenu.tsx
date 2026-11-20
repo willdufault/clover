@@ -31,7 +31,7 @@ export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void 
                   onSort(criteria)
                   setOpen(false)
                 }}
-                className={"block text-ink " + MENU_ITEM_CLASS}
+                className={'block text-ink ' + MENU_ITEM_CLASS}
               >
                 {label}
               </button>

@@ -26,9 +26,12 @@ test('api sends the id token and throws the server error message', async () => {
   const fetch = vi.fn(async () => ({ status: 409, ok: false, json: async () => ({ error: 'List limit reached.' }) }))
   vi.stubGlobal('fetch', fetch)
   await expect(api('POST', '/lists', { name: 'x' })).rejects.toThrow('List limit reached.')
-  expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/lists$/), expect.objectContaining({
-    headers: { authorization: 'Bearer abc', 'content-type': 'application/json' },
-  }))
+  expect(fetch).toHaveBeenCalledWith(
+    expect.stringMatching(/\/lists$/),
+    expect.objectContaining({
+      headers: { authorization: 'Bearer abc', 'content-type': 'application/json' },
+    }),
+  )
 })
 
 test('api redirects to login on 401', async () => {

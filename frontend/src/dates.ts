@@ -7,8 +7,7 @@ const addDays = (date: string, days: number) => {
 }
 
 // Local date, not UTC.
-export const today = (now = new Date()) =>
-  new Intl.DateTimeFormat('en-CA').format(now)
+export const today = (now = new Date()) => new Intl.DateTimeFormat('en-CA').format(now)
 
 export const tomorrow = (now = new Date()) => addDays(today(now), 1)
 

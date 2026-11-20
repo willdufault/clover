@@ -14,7 +14,7 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
 
   const alert = page.getByRole('alert')
   await expect(alert).toContainText(`List task limit reached (${limits.tasksPerList})`)
-  expect(backend.data.tasks.find((t) => t.id === 'g1')!.listId).toBe('groceries')
+  expect(backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('groceries')
   await expect(page.locator('main [data-kind="task"]', { hasText: 'Milk' })).toBeVisible()
   await waitForDropAnimation(page)
   await page.screenshot({ path: 'test-results/limit-banner.png' })

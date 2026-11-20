@@ -11,7 +11,7 @@ const sortKey = {
 
 export const sortTasks = (tasks: Task[], criteria: SortCriteria) => {
   const key = sortKey[criteria]
-  return [...tasks].sort((a, b) => {
+  return tasks.toSorted((a, b) => {
     if (key(a) === key(b)) return 0
     return key(a) < key(b) ? -1 : 1
   })

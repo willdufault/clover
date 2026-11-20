@@ -91,7 +91,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await task.click()
   await aside.getByRole('button', { name: '×', exact: true }).click()
   await expect(task).not.toContainText('📅')
-  await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Dune Messiah')!.due).toBeNull()
+  await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Dune Messiah')?.due).toBeNull()
   await aside.getByRole('button', { name: 'Remove from Today' }).click()
   await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today')
   await expect(task).not.toContainText('☀️ Today')
@@ -145,7 +145,7 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
 
   await water.getByRole('combobox').selectOption('done')
   await expect(water.getByRole('combobox')).toHaveValue('done')
-  await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Water plants')!.stage).toBe('done')
+  await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Water plants')?.stage).toBe('done')
 
   const call = rows.filter({ hasText: 'Call mom' })
   await call.click()
@@ -178,7 +178,10 @@ test('bulk range select, menu actions and delete each send one request', async (
   data.tasks.splice(2, 0, makeTask('g3', 'Bread', 'groceries'))
   const backend = await mockApi(page, data)
   const writes: string[] = []
-  page.on('request', (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`))
+  page.on(
+    'request',
+    (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`),
+  )
   await page.goto('/')
 
   const main = page.locator('main')
@@ -235,7 +238,7 @@ test('bulk range select, menu actions and delete each send one request', async (
 test('a partly cleared due date is not saved, and a failed save shows the saved date', async ({ page }) => {
   const errors = captureErrors(page)
   const data = seed()
-  data.tasks.find((t) => t.id === 'g1')!.due = '2030-01-02'
+  data.tasks = data.tasks.map((t) => (t.id === 'g1' ? { ...t, due: '2030-01-02' } : t))
   const backend = await mockApi(page, data)
   await page.goto('/')
   await page.locator('main').getByText('Milk', { exact: true }).click()
@@ -249,16 +252,17 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   expect(await input.evaluate((el: HTMLInputElement) => el.validity.badInput)).toBe(true)
   await aside.getByRole('heading', { name: 'Schedule' }).click()
   await expect(input).toHaveValue('2030-01-02')
-  expect(backend.data.tasks.find((t) => t.id === 'g1')!.due).toBe('2030-01-02')
+  expect(backend.data.tasks.find((t) => t.id === 'g1')?.due).toBe('2030-01-02')
 
   const handle = backend.handle
-  backend.handle = (method, url, body) => (method === 'PATCH' ? { status: 409, body: { error: 'Boom.' } } : handle(method, url, body))
+  backend.handle = (method, url, body) =>
+    method === 'PATCH' ? { status: 409, body: { error: 'Boom.' } } : handle(method, url, body)
   await input.fill('2031-05-06')
   await input.press('Enter')
   await expect(page.getByRole('alert')).toHaveText(/Boom/)
   await expect(input).toHaveValue('2030-01-02')
   await page.screenshot({ path: 'test-results/due-failed-save.png' })
-  expect(backend.data.tasks.find((t) => t.id === 'g1')!.due).toBe('2030-01-02')
+  expect(backend.data.tasks.find((t) => t.id === 'g1')?.due).toBe('2030-01-02')
   await page.getByRole('button', { name: 'Dismiss error' }).click()
   await expect(page.getByRole('alert')).toHaveCount(0)
   // The browser logs the expected failed request; nothing else.
