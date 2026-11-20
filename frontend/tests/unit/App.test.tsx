@@ -157,7 +157,7 @@ test('closing and reopening a task keeps position', async () => {
   expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
 })
 
-test('sidebar shows the selected task own values', async () => {
+test("detail pane shows the selected task's own values", async () => {
   const { user } = await setup()
   await user.click(within(main()).getByText('Milk'))
   await setDue('2000-01-01')

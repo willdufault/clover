@@ -2,7 +2,7 @@ import { applyDrop, type ListsAndTasks } from '../../src/drop'
 import type { Step } from '../../src/types'
 import { makeTask } from './makeTask'
 
-const makeStep = (id: string, completed = false): Step => ({ id, taskId: '', title: id, completed })
+const makeStep = (id: string): Step => ({ id, taskId: '', title: id, completed: false })
 const makeState = (): ListsAndTasks => ({
   lists: [
     { id: 'A', name: 'A' },

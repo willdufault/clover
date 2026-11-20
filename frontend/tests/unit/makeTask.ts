@@ -1,13 +1,4 @@
 import type { Task } from '../../src/types'
+import { task } from '../fakeBackend'
 
-export const makeTask = (id: string, patch: Partial<Task> = {}): Task => ({
-  id,
-  title: id,
-  due: null,
-  listId: null,
-  addedToToday: false,
-  steps: [],
-  stage: 'open',
-  priority: 'medium',
-  ...patch,
-})
+export const makeTask = (id: string, patch: Partial<Task> = {}): Task => ({ ...task(id, id, null), steps: [], ...patch }) as Task
