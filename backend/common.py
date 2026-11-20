@@ -53,7 +53,7 @@ def parse_json(event):
     try:
         return json.loads(raw)
     except ValueError:
-        raise ApiError(400, "Invalid JSON.") from None
+        raise ApiError(400, "Invalid JSON.")
 
 
 def parse_body(event):
@@ -231,8 +231,8 @@ def transact(writes):
             for write, reason in zip(writes, reasons, strict=False):
                 if reason == "ConditionalCheckFailed":
                     if write["Update"]["Key"]["SK"] == "META":
-                        raise Stale() from None
-                    raise ApiError(404, "Not found.") from None
+                        raise Stale()
+                    raise ApiError(404, "Not found.")
             if "TransactionConflict" not in reasons or attempt == TRANSACTION_RETRIES:
                 raise
             time.sleep(delay + random.uniform(0, RETRY_JITTER))
