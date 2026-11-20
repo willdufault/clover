@@ -105,7 +105,8 @@ def test_update_batch_move_overflow(call):
     body = [{"id": a["id"], "listId": target["id"]}, {"id": b["id"], "listId": target["id"]}]
     assert call("PATCH /tasks", body)[0] == 409
     tasks = {t["id"]: t for t in call("GET /data")[1]["tasks"]}
-    assert tasks[a["id"]] == a and tasks[b["id"]] == b
+    assert tasks[a["id"]] == a
+    assert tasks[b["id"]] == b
     # Swapping one task out makes room for both.
     inside = next(t for t in tasks.values() if t["listId"] == target["id"])
     status, _ = call("PATCH /tasks", [{"id": inside["id"], "listId": None}, *body])
@@ -179,7 +180,8 @@ def test_transaction_conflict_is_retried(call, table, monkeypatch):
 
     table.transact_write_items = flaky
     status, body = call("PATCH /tasks", [{"id": task["id"], "stage": "done"}])
-    assert status == 200 and body[0]["stage"] == "done"
+    assert status == 200
+    assert body[0]["stage"] == "done"
 
 
 def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
@@ -197,7 +199,7 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
     )
     assert len(sleeps) == common.TRANSACTION_RETRIES
     bases = [common.RETRY_BASE_DELAY * 2**i for i in range(common.TRANSACTION_RETRIES)]
-    for base, slept in zip(bases, sleeps):
+    for base, slept in zip(bases, sleeps, strict=True):
         assert base <= slept <= base + common.RETRY_JITTER
 
 

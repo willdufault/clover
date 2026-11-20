@@ -53,7 +53,7 @@ def parse_json(event):
     try:
         return json.loads(raw)
     except ValueError:
-        raise ApiError(400, "Invalid JSON.")
+        raise ApiError(400, "Invalid JSON.") from None
 
 
 def parse_body(event):
@@ -91,10 +91,7 @@ def parse_patches(event, fields):
     if not isinstance(body, list) or not all(isinstance(p, dict) for p in body):
         raise ApiError(400, "Body must be an array of objects.")
     check_ids([p.get("id") for p in body])
-    return [
-        (p["id"], validate(fields, {k: v for k, v in p.items() if k != "id"}, partial=True))
-        for p in body
-    ]
+    return [(p["id"], validate(fields, {k: v for k, v in p.items() if k != "id"}, partial=True)) for p in body]
 
 
 REQUIRED = object()
@@ -126,7 +123,7 @@ def optional_date(v):
     try:
         # Only YYYY-MM-DD; fromisoformat also accepts forms like 20240101.
         return date.fromisoformat(v).isoformat() == v
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return False
 
 
@@ -227,14 +224,15 @@ def transact(writes):
     delay = RETRY_BASE_DELAY
     for attempt in range(TRANSACTION_RETRIES + 1):
         try:
-            return table.meta.client.transact_write_items(TransactItems=writes)
+            table.meta.client.transact_write_items(TransactItems=writes)
+            return
         except ClientError as e:
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
-            for write, reason in zip(writes, reasons):
+            for write, reason in zip(writes, reasons, strict=False):
                 if reason == "ConditionalCheckFailed":
                     if write["Update"]["Key"]["SK"] == "META":
-                        raise Stale()
-                    raise ApiError(404, "Not found.")
+                        raise Stale() from None
+                    raise ApiError(404, "Not found.") from None
             if "TransactionConflict" not in reasons or attempt == TRANSACTION_RETRIES:
                 raise
             time.sleep(delay + random.uniform(0, RETRY_JITTER))
@@ -275,7 +273,7 @@ def delete(*groups):
 def delete_parents(user_id, items, parents, *children):
     delete(*children)
     deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
-    transact([bump(user_id, items)] + deletes)
+    transact([bump(user_id, items), *deletes])
     return response(204)
 
 
