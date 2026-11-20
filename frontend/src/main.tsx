@@ -5,8 +5,10 @@ import App from './App.tsx'
 import { handleRedirect, hasValidToken, login } from './api'
 
 await handleRedirect()
+const root = document.getElementById('root')
+if (!root) throw new Error('Missing #root element.')
 if (hasValidToken()) {
-  createRoot(document.getElementById('root') as HTMLElement).render(
+  createRoot(root).render(
     <StrictMode>
       <App />
     </StrictMode>,
