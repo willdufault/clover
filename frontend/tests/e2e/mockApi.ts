@@ -40,3 +40,5 @@ export const drag = async (page: Page, from: Locator, to: Locator) => {
 
 // A sidebar row (Today, All, or a list) by its visible text.
 export const navRow = (page: Page, name: string) => page.locator('nav > div', { hasText: name })
+
+export const waitForDropAnimation = (page: Page) => page.waitForTimeout(500)

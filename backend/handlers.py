@@ -27,9 +27,9 @@ def delete_list(event, user_id):
     ids = common.parse_ids(event)
     items = common.load_all(user_id)
     lists = common.matching(items, "LIST", ids)
-    tasks = [i for i in items if common.kind_of(i) == "TASK" and i["listId"] in ids]
+    tasks = common.children(items, "TASK", "listId", ids)
     task_ids = {common.id_of(t) for t in tasks}
-    steps = [i for i in items if common.kind_of(i) == "STEP" and i["taskId"] in task_ids]
+    steps = common.children(items, "STEP", "taskId", task_ids)
     return common.delete_parents(user_id, items, lists, steps, tasks)
 
 
@@ -66,7 +66,7 @@ def delete_task(event, user_id):
     ids = common.parse_ids(event)
     items = common.load_all(user_id)
     tasks = common.matching(items, "TASK", ids)
-    steps = [i for i in items if common.kind_of(i) == "STEP" and i["taskId"] in ids]
+    steps = common.children(items, "STEP", "taskId", ids)
     return common.delete_parents(user_id, items, tasks, steps)
 
 
@@ -86,4 +86,5 @@ def update_step(event, user_id):
 def delete_step(event, user_id):
     ids = common.parse_ids(event)
     steps = common.matching(common.load_all(user_id), "STEP", ids)
-    return common.delete(steps)
+    common.delete(steps)
+    return common.response(204)

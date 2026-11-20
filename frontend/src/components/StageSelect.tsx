@@ -2,7 +2,6 @@ import { STAGES, STAGE_LABELS } from '../labels'
 import type { Stage } from '../types'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
-// Emoji-only select; the label shows as a tooltip.
 export function StageSelect({
   value,
   onChange,

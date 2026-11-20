@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import limits from '../../../backend/limits.json' with { type: 'json' }
 import { seed, task } from '../fakeBackend'
-import { captureErrors, drag, mockApi } from './mockApi'
+import { captureErrors, drag, mockApi, waitForDropAnimation } from './mockApi'
 
 test('dragging a task into a full list shows the limit error and keeps it in place', async ({ page }) => {
   const errors = captureErrors(page)
@@ -16,7 +16,7 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
   await expect(alert).toContainText(`List task limit reached (${limits.tasksPerList})`)
   expect(backend.data.tasks.find((t) => t.id === 'g1')!.listId).toBe('groceries')
   await expect(page.locator('main [data-kind="task"]', { hasText: 'Milk' })).toBeVisible()
-  await page.waitForTimeout(500) // let the drop animation finish before the screenshot
+  await waitForDropAnimation(page)
   await page.screenshot({ path: 'test-results/limit-banner.png' })
   expect(errors).toEqual([])
 })

@@ -66,6 +66,7 @@ def parse_body(event):
 # DynamoDB transactions cap at 100 actions and the META bump takes one slot.
 MAX_BATCH = LIMITS["batchMax"]
 RETRY_BASE_DELAY = 0.05
+TRANSACTION_RETRIES = 3
 RETRY_JITTER = 0.05
 
 
@@ -95,8 +96,6 @@ def parse_patches(event, fields):
         for p in body
     ]
 
-
-# Validation
 
 REQUIRED = object()
 
@@ -166,9 +165,6 @@ def validate(fields, body, partial=False):
     return data
 
 
-# Storage
-
-
 def key(user_id, kind, item_id):
     return {"PK": user_id, "SK": f"{kind}#{item_id}"}
 
@@ -201,6 +197,10 @@ def matching(items, kind, ids):
     return [i for i in items if kind_of(i) == kind and id_of(i) in ids]
 
 
+def children(items, kind, field, parent_ids):
+    return [i for i in items if kind_of(i) == kind and i[field] in parent_ids]
+
+
 def bump(user_id, items):
     seen = next((i["version"] for i in items if i["SK"] == "META"), 0)
     return {
@@ -223,9 +223,9 @@ def create(user_id, kind, data, items):
 # Overlapping writes to the same item (e.g. two quick edits to one task) cancel
 # the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
 # with exponential backoff, plus jitter so colliding requests don't retry in sync.
-def transact(writes, retries=3):
+def transact(writes):
     delay = RETRY_BASE_DELAY
-    for attempt in range(retries + 1):
+    for attempt in range(TRANSACTION_RETRIES + 1):
         try:
             return table.meta.client.transact_write_items(TransactItems=writes)
         except ClientError as e:
@@ -235,7 +235,7 @@ def transact(writes, retries=3):
                     if write["Update"]["Key"]["SK"] == "META":
                         raise Stale()
                     raise ApiError(404, "Not found.")
-            if "TransactionConflict" not in reasons or attempt == retries:
+            if "TransactionConflict" not in reasons or attempt == TRANSACTION_RETRIES:
                 raise
             time.sleep(delay + random.uniform(0, RETRY_JITTER))
             delay *= 2
@@ -270,7 +270,6 @@ def delete(*groups):
         with table.batch_writer() as batch:
             for item in items:
                 batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
-    return response(204)
 
 
 def delete_parents(user_id, items, parents, *children):
@@ -278,9 +277,6 @@ def delete_parents(user_id, items, parents, *children):
     deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
     transact([bump(user_id, items)] + deletes)
     return response(204)
-
-
-# Limits
 
 
 def check_user_limit(items, kind):

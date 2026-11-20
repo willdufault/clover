@@ -5,8 +5,6 @@ import { EditableText } from './EditableText'
 import limits from '../../../backend/limits.json'
 import { StageSelect } from './StageSelect'
 
-// Stage dropdown + title, shared by the task row and the detail pane header.
-// The header variant is larger and its title is renamable.
 export function TaskSummary({
   task,
   heading = false,

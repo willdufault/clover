@@ -1,17 +1,7 @@
 import { applySort, sortTasks } from '../../src/sort'
 import type { Task } from '../../src/types'
+import { makeTask } from './makeTask'
 
-const makeTask = (id: string, patch: Partial<Task> = {}): Task => ({
-  id,
-  title: id,
-  due: null,
-  listId: null,
-  addedToToday: false,
-  steps: [],
-  stage: 'open',
-  priority: 'medium',
-  ...patch,
-})
 const ids = (tasks: Task[]) => tasks.map((task) => task.id)
 
 test('sorts by stage order', () => {

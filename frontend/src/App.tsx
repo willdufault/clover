@@ -81,7 +81,6 @@ export default function App() {
       ),
     )
 
-  // Awaits the API call; on failure, state is left unchanged and the error is shown.
   const run = async (action: () => Promise<void>) => {
     try {
       await action()
@@ -90,7 +89,6 @@ export default function App() {
     }
   }
 
-  // Shows the error and returns true if adding one more would exceed the limit.
   const atLimit = (count: number, limit: number, message: string) => {
     if (count < limit) return false
     setError(`${message} (${limit}).`)
@@ -111,7 +109,6 @@ export default function App() {
     }).finally(() => setLoading(false))
   }, [])
 
-  // Escape clears all selection, unless a menu handled it or it came from a text field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return
@@ -255,7 +252,6 @@ export default function App() {
     setActiveDrag(active.data.current as DragInfo)
   }
 
-  // The list id or TODAY_LIST_ID when a task is dragged over a list or Today; otherwise null.
   const taskDropTarget = (over: Over | null) => {
     if (!over || activeDrag?.kind !== RowKind.Task) return null
     const id = String(over.id)

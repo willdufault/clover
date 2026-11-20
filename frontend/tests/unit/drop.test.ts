@@ -1,8 +1,8 @@
 import { applyDrop, type ListsAndTasks } from '../../src/drop'
-import type { Step, Task } from '../../src/types'
+import type { Step } from '../../src/types'
+import { makeTask } from './makeTask'
 
 const makeStep = (id: string, completed = false): Step => ({ id, taskId: '', title: id, completed })
-const makeTask = (id: string, listId: string, steps: Step[] = []): Task => ({ id, title: id, listId, steps, stage: 'open', priority: 'medium', due: null, addedToToday: false })
 const makeState = (): ListsAndTasks => ({
   lists: [
     { id: 'A', name: 'A' },
@@ -10,12 +10,12 @@ const makeState = (): ListsAndTasks => ({
     { id: 'C', name: 'C' },
   ],
   tasks: [
-    makeTask('a1', 'A', [makeStep('s1'), makeStep('s2'), makeStep('s3')]),
-    makeTask('a2', 'A', [makeStep('x1'), makeStep('x2')]),
-    makeTask('a3', 'A'),
-    makeTask('b1', 'B', [makeStep('y1')]),
-    makeTask('b2', 'B'),
-    makeTask('c1', 'C', [makeStep('z1')]),
+    makeTask('a1', { listId: 'A', steps: [makeStep('s1'), makeStep('s2'), makeStep('s3')] }),
+    makeTask('a2', { listId: 'A', steps: [makeStep('x1'), makeStep('x2')] }),
+    makeTask('a3', { listId: 'A' }),
+    makeTask('b1', { listId: 'B', steps: [makeStep('y1')] }),
+    makeTask('b2', { listId: 'B' }),
+    makeTask('c1', { listId: 'C', steps: [makeStep('z1')] }),
   ],
 })
 const baseDrop = { selectedListId: 'A', detailTaskId: null as string | null }

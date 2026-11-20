@@ -195,8 +195,9 @@ def test_transaction_conflict_gives_up_with_500(call, table, monkeypatch):
         500,
         {"error": "Internal server error."},
     )
-    assert len(sleeps) == 3
-    for base, slept in zip([0.05, 0.1, 0.2], sleeps):
+    assert len(sleeps) == common.TRANSACTION_RETRIES
+    bases = [common.RETRY_BASE_DELAY * 2**i for i in range(common.TRANSACTION_RETRIES)]
+    for base, slept in zip(bases, sleeps):
         assert base <= slept <= base + common.RETRY_JITTER
 
 

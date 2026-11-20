@@ -3,6 +3,8 @@ import traceback
 import common
 import handlers
 
+STALE_RETRIES = 2
+
 ROUTES = {
     "GET /data": handlers.get_data,
     "POST /lists": handlers.create_list,
@@ -23,7 +25,7 @@ def handler(event, context):
         return common.response(404, {"error": "Route not found."})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
-        for _ in range(2):
+        for _ in range(STALE_RETRIES):
             try:
                 return route(event, user_id)
             except common.Stale:

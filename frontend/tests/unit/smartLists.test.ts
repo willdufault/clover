@@ -1,7 +1,7 @@
 import type { Task } from '../../src/types'
 import { TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
+import { makeTask } from './makeTask'
 
-const makeTask = (id: string): Task => ({ id, title: id, steps: [], stage: 'open', priority: 'medium', due: null, listId: null, addedToToday: false })
 
 test('Today view shows only tasks added to Today, whatever their due date', () => {
   const tasks: Task[] = [
