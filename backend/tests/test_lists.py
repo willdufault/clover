@@ -49,6 +49,24 @@ def test_delete_after_stale_read_retries(call, race):
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
+def test_first_writes_race_retries(call, table, race):
+    race(lambda: call("POST /lists", {"name": "A"}))
+    attempts = []
+    real = table.transact_write_items
+    table.transact_write_items = lambda TransactItems: (attempts.append(1), real(TransactItems))[1]
+    assert call("POST /lists", {"name": "B"})[0] == 201
+    assert len(call("GET /data")[1]["lists"]) == 2
+    assert table.items[("user-1", "META")]["version"] == 2
+    assert len(attempts) == 2
+
+
+def test_update_does_not_bump_meta(call, table):
+    lst = call("POST /lists", {"name": "A"})[1]
+    version = table.items[("user-1", "META")]["version"]
+    assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}])[0] == 200
+    assert table.items[("user-1", "META")]["version"] == version
+
+
 def test_update(call):
     lst = call("POST /lists", {"name": "A"})[1]
     assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}]) == (
