@@ -16,7 +16,7 @@ Run commands from `frontend/`.
 
 ### Validation
 
-- Before finishing, run `npm test`, `npm run lint`, and `npm run build` (type-check).
+- Before finishing, run `npm test`, `npm run lint`, `npm run format:check`, and `npm run build` (type-check).
 - Add or update tests when behavior changes (new logic, state, interactions, bug fixes). Skip for copy, styling, and layout-only changes.
 
 ### UI changes

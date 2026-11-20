@@ -1,4 +1,8 @@
 {
+  "plugins": ["unicorn", "typescript", "oxc", "react", "import", "jest"],
+  "categories": {
+    "suspicious": "error"
+  },
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/ban-ts-comment": "error",
@@ -12,6 +16,27 @@
     "react/no-array-index-key": "error",
     "no-nested-ternary": "error",
     "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error"
+    "jest/no-disabled-tests": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "max-depth": ["error", 3],
+    "complexity": ["error", 10],
+    "no-else-return": "error",
+    "typescript/no-non-null-assertion": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": [
+      "error",
+      {
+        "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
+      }
+    ],
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": ["expect", "expectBlocked"]
+      }
+    ]
   }
 }
