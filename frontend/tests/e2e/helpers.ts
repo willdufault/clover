@@ -1,11 +1,19 @@
 import type { Locator, Page } from '@playwright/test'
+import { loadEnv } from 'vite'
 import { createFakeBackend, seed } from '../shared/fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page, data = seed()) => {
   const backend = createFakeBackend(data)
-  const payload = btoa(JSON.stringify({ exp: 9999999999 }))
-  await page.addInitScript((token) => localStorage.setItem('idToken', token), `x.${payload}.y`)
+  const env = loadEnv('development', process.cwd())
+  const key = `oidc.user:${env.VITE_COGNITO_URL}:${env.VITE_COGNITO_CLIENT_ID}`
+  const user = JSON.stringify({
+    access_token: 'x',
+    token_type: 'Bearer',
+    profile: { sub: 'u' },
+    expires_at: 9999999999,
+  })
+  await page.addInitScript(({ k, v }) => localStorage.setItem(k, v), { k: key, v: user })
   await page.route(
     (url) => url.hostname.endsWith('.amazonaws.com'),
     async (route) => {

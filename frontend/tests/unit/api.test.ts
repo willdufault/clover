@@ -1,9 +1,18 @@
+import { UserManager } from 'oidc-client-ts'
 import { api, handleRedirect } from '../../src/api'
 
-beforeEach(() => localStorage.clear())
+const userKey = `oidc.user:${import.meta.env.VITE_COGNITO_URL}:${import.meta.env.VITE_COGNITO_CLIENT_ID}`
 
-test('api sends the id token and throws the server error message', async () => {
-  localStorage.setItem('idToken', 'abc')
+beforeEach(() => {
+  localStorage.clear()
+  vi.restoreAllMocks()
+})
+
+test('api sends the access token and throws the server error message', async () => {
+  localStorage.setItem(
+    userKey,
+    JSON.stringify({ access_token: 'abc', token_type: 'Bearer', profile: { sub: 'u' }, expires_at: 9999999999 }),
+  )
   const fetch = vi.fn(async () => ({ status: 409, ok: false, json: async () => ({ error: 'List limit reached' }) }))
   vi.stubGlobal('fetch', fetch)
   await expect(api('POST', '/lists', { name: 'x' })).rejects.toThrow('List limit reached')
@@ -17,26 +26,23 @@ test('api sends the id token and throws the server error message', async () => {
 
 test('api redirects to login on 401', async () => {
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const assign = vi.fn()
-  vi.stubGlobal('location', { ...window.location, assign, origin: 'http://localhost:5173' })
+  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Session expired')
-  expect(assign).toHaveBeenCalledWith(expect.stringContaining('/oauth2/authorize?'))
+  expect(signinRedirect).toHaveBeenCalled()
 })
 
-test('handleRedirect stores the id token and removes the verifier', async () => {
-  localStorage.setItem('verifier', 'v')
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/', origin: 'http://localhost:5173' })
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
-  vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ id_token: 'tok' }) }))
+test('handleRedirect does nothing without a code', async () => {
+  const signinCallback = vi.spyOn(UserManager.prototype, 'signinCallback')
+  const replaceState = vi.spyOn(window.history, 'replaceState')
   await handleRedirect()
-  expect(localStorage.getItem('idToken')).toBe('tok')
-  expect(localStorage.getItem('verifier')).toBeNull()
+  expect(signinCallback).not.toHaveBeenCalled()
+  expect(replaceState).not.toHaveBeenCalled()
 })
 
-test('handleRedirect throws on a failed token exchange', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/', origin: 'http://localhost:5173' })
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
-  vi.stubGlobal('fetch', async () => ({ ok: false, status: 400 }))
-  await expect(handleRedirect()).rejects.toThrow('Token exchange failed: 400')
-  expect(localStorage.getItem('idToken')).toBeNull()
+test('handleRedirect swallows a failed callback and strips the code', async () => {
+  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
+  const replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  await expect(handleRedirect()).resolves.toBeUndefined()
+  expect(replaceState).toHaveBeenCalledWith(null, '', '/')
+  expect(localStorage.getItem(userKey)).toBeNull()
 })

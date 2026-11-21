@@ -1,60 +1,40 @@
+import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
+
 const API_URL = import.meta.env.VITE_API_URL
 const COGNITO_URL = import.meta.env.VITE_COGNITO_URL
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID
 
-const base64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+const userManager = new UserManager({
+  authority: COGNITO_URL,
+  metadata: {
+    authorization_endpoint: `${COGNITO_URL}/oauth2/authorize`,
+    token_endpoint: `${COGNITO_URL}/oauth2/token`,
+  },
+  client_id: CLIENT_ID,
+  redirect_uri: window.location.origin,
+  scope: 'openid email',
+  userStore: new WebStorageStateStore({ store: localStorage }),
+})
 
-export const login = async () => {
-  const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)))
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))
-  localStorage.setItem('verifier', verifier)
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: CLIENT_ID,
-    redirect_uri: window.location.origin,
-    scope: 'openid email',
-    code_challenge_method: 'S256',
-    code_challenge: base64url(new Uint8Array(hash)),
-  })
-  window.location.assign(`${COGNITO_URL}/oauth2/authorize?${params}`)
-}
+export const login = () => userManager.signinRedirect()
 
-export const logout = () => {
-  localStorage.removeItem('idToken')
+export const logout = async () => {
+  await userManager.removeUser()
   const params = new URLSearchParams({ client_id: CLIENT_ID, logout_uri: window.location.origin })
   window.location.assign(`${COGNITO_URL}/logout?${params}`)
 }
 
 export const handleRedirect = async () => {
-  const code = new URLSearchParams(window.location.search).get('code')
-  if (!code) return
+  if (!new URLSearchParams(window.location.search).has('code')) return
+  await userManager.signinCallback().catch(() => {})
   window.history.replaceState(null, '', window.location.pathname)
-  const response = await fetch(`${COGNITO_URL}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: CLIENT_ID,
-      code,
-      redirect_uri: window.location.origin,
-      code_verifier: localStorage.getItem('verifier') ?? '',
-    }),
-  })
-  localStorage.removeItem('verifier')
-  if (!response.ok) throw new Error(`Token exchange failed: ${response.status}`)
-  localStorage.setItem('idToken', (await response.json()).id_token)
 }
 
-// The JWT authorizer checks the audience, which only the id token has.
 export const api = async (method: string, path: string, body?: object) => {
   const response = await fetch(API_URL + path, {
     method,
     headers: {
-      authorization: `Bearer ${localStorage.getItem('idToken')}`,
+      authorization: `Bearer ${(await userManager.getUser())?.access_token}`,
       ...(body && { 'content-type': 'application/json' }),
     },
     body: body && JSON.stringify(body),

@@ -71,7 +71,7 @@ resource "aws_cognito_user_pool_client" "web" {
   callback_urls                        = [var.app_url]
   logout_urls                          = [var.app_url]
   id_token_validity                    = 12
-  access_token_validity                = 12
+  access_token_validity                = 1
 
   token_validity_units {
     id_token     = "hours"
@@ -190,12 +190,13 @@ resource "aws_apigatewayv2_integration" "api" {
 }
 
 resource "aws_apigatewayv2_route" "api" {
-  for_each           = local.routes
-  api_id             = aws_apigatewayv2_api.api.id
-  route_key          = each.value
-  target             = "integrations/${aws_apigatewayv2_integration.api.id}"
-  authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  for_each             = local.routes
+  api_id               = aws_apigatewayv2_api.api.id
+  route_key            = each.value
+  target               = "integrations/${aws_apigatewayv2_integration.api.id}"
+  authorization_type   = "JWT"
+  authorizer_id        = aws_apigatewayv2_authorizer.cognito.id
+  authorization_scopes = ["openid"]
 }
 
 resource "aws_apigatewayv2_stage" "default" {

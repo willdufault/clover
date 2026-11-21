@@ -70,7 +70,7 @@ export default function ListSidebar({
 
         <AddInput placeholder="+ New list" maxLength={limits.listNameMax} onAdd={onCreateList} className="mt-4" />
       </nav>
-      <button onClick={logout} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
+      <button onClick={() => void logout()} className="mx-6 mb-4 w-fit text-sm text-ink-soft transition hover:text-ink">
         Log out
       </button>
     </div>
