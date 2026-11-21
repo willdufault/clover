@@ -12,7 +12,7 @@ field_sets = st.sampled_from([schema.LIST_FIELDS, schema.TASK_FIELDS, schema.STE
 
 
 @given(json_values)
-def test_check_ids_accepts_only_unique_string_batches(ids):
+def test_check_ids_accepts_only_unique_string_batches(ids: object) -> None:
     ok, _ = outcome(schema.check_ids, ids)
     if not ok:
         return
@@ -23,7 +23,7 @@ def test_check_ids_accepts_only_unique_string_batches(ids):
 
 
 @given(field_sets, json_values)
-def test_parse_patches_returns_valid_patches_or_400(fields, value):
+def test_parse_patches_returns_valid_patches_or_400(fields: dict, value: object) -> None:
     ok, patches = outcome(schema.parse_patches, {"body": json.dumps(value)}, fields)
     if not ok:
         return
@@ -33,7 +33,7 @@ def test_parse_patches_returns_valid_patches_or_400(fields, value):
 
 
 @given(field_sets, st.dictionaries(st.text(), json_values), st.booleans())
-def test_validate_returns_valid_data_or_400(fields, body, partial):
+def test_validate_returns_valid_data_or_400(fields: dict, body: dict, partial: bool) -> None:
     ok, data = outcome(schema.validate, fields, body, partial=partial)
     if not ok:
         return
@@ -46,7 +46,7 @@ def test_validate_returns_valid_data_or_400(fields, body, partial):
 
 
 @given(st.sampled_from(["name", "title"]), st.text())
-def test_text_fields_respect_limits(name, value):
+def test_text_fields_respect_limits(name: str, value: str) -> None:
     fields = schema.LIST_FIELDS if name == "name" else schema.TASK_FIELDS
     ok, _ = outcome(schema.validate, fields, {name: value}, partial=True)
     if ok:
@@ -55,7 +55,7 @@ def test_text_fields_respect_limits(name, value):
 
 
 @given(json_values)
-def test_optional_date_accepts_only_iso_dates(value):
+def test_optional_date_accepts_only_iso_dates(value: object) -> None:
     if schema.optional_date(value) and value is not None:
         assert isinstance(value, str)
         assert len(value) == 10
@@ -63,10 +63,10 @@ def test_optional_date_accepts_only_iso_dates(value):
 
 
 @given(st.dates())
-def test_optional_date_accepts_every_date(value):
+def test_optional_date_accepts_every_date(value: date) -> None:
     assert schema.optional_date(value.isoformat())
 
 
 @pytest.mark.parametrize("value", ["20240101", "2024-1-1", "2024-02-30"])
-def test_optional_date_rejects_non_iso(value):
+def test_optional_date_rejects_non_iso(value: str) -> None:
     assert not schema.optional_date(value)

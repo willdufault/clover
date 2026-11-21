@@ -1,21 +1,26 @@
+from collections.abc import Callable
+
+import pytest
+from mypy_boto3_dynamodb.service_resource import Table
+
 from shared import db
 
 
-def test_unknown_route(call):
+def test_unknown_route(call: Callable) -> None:
     assert call("GET /nope") == (404, {"error": "Not found"})
 
 
-def test_invalid_json(call):
+def test_invalid_json(call: Callable) -> None:
     assert call("POST /lists", raw="{nope") == (400, {"error": "Invalid JSON"})
 
 
-def test_users_are_isolated(call):
+def test_users_are_isolated(call: Callable) -> None:
     call("POST /lists", {"name": "Mine"}, user="a")
     assert call("GET /data", user="b")[1]["lists"] == []
     assert len(call("GET /data", user="a")[1]["lists"]) == 1
 
 
-def test_cannot_modify_other_users_data(call):
+def test_cannot_modify_other_users_data(call: Callable) -> None:
     lst = call("POST /lists", {"name": "L"}, user="a")[1]
     task = call("POST /tasks", {"title": "T", "listId": lst["id"]}, user="a")[1]
     step = call("POST /steps", {"title": "S", "taskId": task["id"]}, user="a")[1]
@@ -26,31 +31,33 @@ def test_cannot_modify_other_users_data(call):
     assert call("GET /data", user="a") == before
 
 
-def test_unexpected_error_is_500(call, monkeypatch):
-    def boom(user_id):
+def test_unexpected_error_is_500(call: Callable, monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(user_id: str) -> None:
         raise RuntimeError("boom")
 
     monkeypatch.setattr(db, "load_all", boom)
     assert call("GET /data") == (500, {"error": "Internal error"})
 
 
-def test_first_write_after_stale_read_retries(call, mock_table, race):
+def test_first_write_after_stale_read_retries(
+    call: Callable, mock_table: Table, race: Callable, monkeypatch: pytest.MonkeyPatch
+) -> None:
     race(lambda: call("POST /lists", {"name": "A"}))
     attempts = []
     real = mock_table.meta.client.transact_write_items
 
-    def counted(TransactItems):
+    def counted(TransactItems: list) -> object:
         attempts.append(1)
         return real(TransactItems=TransactItems)
 
-    mock_table.meta.client.transact_write_items = counted
+    monkeypatch.setattr(mock_table.meta.client, "transact_write_items", counted)
     assert call("POST /lists", {"name": "B"})[0] == 201
     assert len(call("GET /data")[1]["lists"]) == 2
     assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 2
     assert len(attempts) == 2
 
 
-def test_exhausted_stale_retries_is_409(call, monkeypatch):
+def test_exhausted_stale_retries_is_409(call: Callable, monkeypatch: pytest.MonkeyPatch) -> None:
     stale = db.load_all("user-1")
     call("POST /lists", {"name": "A"})
     monkeypatch.setattr(db, "load_all", lambda user_id: stale)

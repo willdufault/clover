@@ -1,7 +1,12 @@
+from collections.abc import Callable
+
+import pytest
+from mypy_boto3_dynamodb.service_resource import Table
+
 from shared.schema import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
-def test_create_defaults(call):
+def test_create_defaults(call: Callable) -> None:
     status, task = call("POST /tasks", {"title": "T"})
     assert status == 201
     assert task == {
@@ -15,7 +20,7 @@ def test_create_defaults(call):
     }
 
 
-def test_create_all_fields(call):
+def test_create_all_fields(call: Callable) -> None:
     lst = call("POST /lists", {"name": "A"})[1]
     body = {
         "title": "T",
@@ -30,7 +35,7 @@ def test_create_all_fields(call):
     assert task == {"id": task["id"], **body}
 
 
-def test_create_validation(call):
+def test_create_validation(call: Callable) -> None:
     assert call("POST /tasks", {})[0] == 400
     assert call("POST /tasks", {"title": "x" * (TITLE_MAX + 1)})[0] == 400
     assert call("POST /tasks", {"title": "T", "stage": "nope"})[0] == 400
@@ -43,7 +48,7 @@ def test_create_validation(call):
     assert call("POST /tasks", {"title": "x" * TITLE_MAX})[0] == 201
 
 
-def test_list_limit(call):
+def test_list_limit(call: Callable) -> None:
     lst = call("POST /lists", {"name": "A"})[1]
     for i in range(TASKS_PER_LIST):
         assert call("POST /tasks", {"title": f"T{i}", "listId": lst["id"]})[0] == 201
@@ -51,13 +56,13 @@ def test_list_limit(call):
     assert call("POST /tasks", {"title": "unassigned"})[0] == 201
 
 
-def test_user_limit(call):
+def test_user_limit(call: Callable) -> None:
     for i in range(USER_LIMITS["TASK"]):
         assert call("POST /tasks", {"title": f"T{i}"})[0] == 201
     assert call("POST /tasks", {"title": "x"})[0] == 409
 
 
-def test_update(call):
+def test_update(call: Callable) -> None:
     task = call("POST /tasks", {"title": "T"})[1]
     other = call("POST /tasks", {"title": "O"})[1]
     body = [
@@ -75,7 +80,7 @@ def test_update(call):
     assert call("PATCH /tasks", [{"id": task["id"], "title": "x" * (TITLE_MAX + 1)}])[0] == 400
 
 
-def test_update_move_checks_list(call):
+def test_update_move_checks_list(call: Callable) -> None:
     full = call("POST /lists", {"name": "Full"})[1]
     for i in range(TASKS_PER_LIST):
         call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})
@@ -95,7 +100,7 @@ def test_update_move_checks_list(call):
     assert (status, moved[0]["listId"]) == (200, None)
 
 
-def test_update_batch_move_overflow(call):
+def test_update_batch_move_overflow(call: Callable) -> None:
     target = call("POST /lists", {"name": "Target"})[1]
     for i in range(TASKS_PER_LIST - 1):
         call("POST /tasks", {"title": f"T{i}", "listId": target["id"]})
@@ -112,14 +117,14 @@ def test_update_batch_move_overflow(call):
     assert status == 200
 
 
-def test_update_within_full_list_is_allowed(call):
+def test_update_within_full_list_is_allowed(call: Callable) -> None:
     full = call("POST /lists", {"name": "Full"})[1]
     tasks = [call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})[1] for i in range(TASKS_PER_LIST)]
     body = [{"id": tasks[0]["id"], "listId": full["id"], "stage": "done"}]
     assert call("PATCH /tasks", body)[0] == 200
 
 
-def test_delete_cascades(call):
+def test_delete_cascades(call: Callable) -> None:
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
     call("POST /steps", {"title": "S", "taskId": a["id"]})
@@ -131,14 +136,14 @@ def test_delete_cascades(call):
     assert call("DELETE /tasks", {"ids": [a["id"]]})[0] == 204
 
 
-def test_delete_skips_missing_ids(call):
+def test_delete_skips_missing_ids(call: Callable) -> None:
     a = call("POST /tasks", {"title": "A"})[1]
     call("POST /steps", {"title": "S", "taskId": a["id"]})
     assert call("DELETE /tasks", {"ids": [a["id"], "missing"]})[0] == 204
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_update_only_writes_given_fields(call, mock_table):
+def test_update_only_writes_given_fields(call: Callable, mock_table: Table) -> None:
     task = call("POST /tasks", {"title": "T"})[1]
     # Simulate a concurrent write the caller hasn't seen.
     mock_table.update_item(
@@ -152,11 +157,13 @@ def test_update_only_writes_given_fields(call, mock_table):
     assert updated[0]["due"] == "2030-01-02"
 
 
-def test_update_returns_written_values_not_later_writes(call, mock_table):
+def test_update_returns_written_values_not_later_writes(
+    call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch
+) -> None:
     task = call("POST /tasks", {"title": "T"})[1]
     real = mock_table.meta.client.transact_write_items
 
-    def concurrent(TransactItems):
+    def concurrent(TransactItems: list) -> object:
         mock_table.update_item(
             Key={"PK": "user-1", "SK": f"TASK#{task['id']}"},
             UpdateExpression="SET stage = :s",
@@ -164,13 +171,13 @@ def test_update_returns_written_values_not_later_writes(call, mock_table):
         )
         return real(TransactItems=TransactItems)
 
-    mock_table.meta.client.transact_write_items = concurrent
+    monkeypatch.setattr(mock_table.meta.client, "transact_write_items", concurrent)
     status, updated = call("PATCH /tasks", [{"id": task["id"], "due": "2030-01-02"}])
     assert (status, updated) == (200, [{**task, "due": "2030-01-02"}])
     assert call("GET /data")[1]["tasks"][0]["stage"] == "waiting"
 
 
-def test_update_task_deleted_after_read_is_404(call, mock_table, race):
+def test_update_task_deleted_after_read_is_404(call: Callable, mock_table: Table, race: Callable) -> None:
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
     race(lambda: call("DELETE /tasks", {"ids": [b["id"]]}))
@@ -180,7 +187,7 @@ def test_update_task_deleted_after_read_is_404(call, mock_table, race):
     assert mock_table.scan()["Items"] == before
 
 
-def test_create_in_list_deleted_after_read_is_404(call, race):
+def test_create_in_list_deleted_after_read_is_404(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L"})[1]
     race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
     assert call("POST /tasks", {"title": "T", "listId": lst["id"]}) == (
@@ -190,7 +197,7 @@ def test_create_in_list_deleted_after_read_is_404(call, race):
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_move_to_list_deleted_after_read_is_404(call, race):
+def test_move_to_list_deleted_after_read_is_404(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L"})[1]
     task = call("POST /tasks", {"title": "T"})[1]
     race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))
@@ -201,7 +208,7 @@ def test_move_to_list_deleted_after_read_is_404(call, race):
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}
 
 
-def test_create_over_list_limit_after_stale_read_is_409(call, race):
+def test_create_over_list_limit_after_stale_read_is_409(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L"})[1]
     for i in range(TASKS_PER_LIST - 1):
         call("POST /tasks", {"title": f"T{i}", "listId": lst["id"]})
@@ -211,20 +218,24 @@ def test_create_over_list_limit_after_stale_read_is_409(call, race):
     assert len([t for t in tasks if t["listId"] == lst["id"]]) == TASKS_PER_LIST
 
 
-def test_delete_with_step_added_after_read_removes_step(call, mock_table, race):
+def test_delete_with_step_added_after_read_removes_step(call: Callable, mock_table: Table, race: Callable) -> None:
     task = call("POST /tasks", {"title": "T"})[1]
     race(lambda: call("POST /steps", {"title": "S", "taskId": task["id"]}))
     assert call("DELETE /tasks", {"ids": [task["id"]]}) == (204, None)
-    assert [i["SK"] for i in mock_table.scan()["Items"] if i["SK"].startswith(("TASK#", "STEP#"))] == []
+    assert [
+        i["SK"]
+        for i in mock_table.scan()["Items"]
+        if isinstance(i["SK"], str) and i["SK"].startswith(("TASK#", "STEP#"))
+    ] == []
 
 
-def test_update_clears_due(call, mock_table):
+def test_update_clears_due(call: Callable, mock_table: Table) -> None:
     task = call("POST /tasks", {"title": "T", "due": "2026-12-01"})[1]
     assert call("PATCH /tasks", [{"id": task["id"], "due": None}]) == (200, [{**task, "due": None}])
     assert mock_table.get_item(Key={"PK": "user-1", "SK": f"TASK#{task['id']}"})["Item"]["due"] is None
 
 
-def test_max_batch_fits_transaction(call):
+def test_max_batch_fits_transaction(call: Callable) -> None:
     lists = [call("POST /lists", {"name": f"L{i}"})[1] for i in range(MAX_BATCH // TASKS_PER_LIST + 1)]
     tasks = [call("POST /tasks", {"title": f"T{i}"})[1] for i in range(MAX_BATCH)]
     body = [{"id": t["id"], "listId": lists[i // TASKS_PER_LIST]["id"]} for i, t in enumerate(tasks)]

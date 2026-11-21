@@ -1,9 +1,11 @@
 import json
 import os
+from collections.abc import Callable, Iterator
 
 import boto3
 import pytest
 from moto import mock_aws
+from mypy_boto3_dynamodb.service_resource import Table
 
 os.environ["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] = "true"
 os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
@@ -14,7 +16,7 @@ from shared import db
 
 
 @pytest.fixture
-def mock_table(monkeypatch):
+def mock_table(monkeypatch: pytest.MonkeyPatch) -> Iterator[Table]:
     with mock_aws():
         mock_table = boto3.resource("dynamodb").create_table(
             TableName="test",
@@ -30,8 +32,8 @@ def mock_table(monkeypatch):
 
 
 @pytest.fixture
-def call(mock_table):
-    def call(route_key, body=None, user="user-1", raw=None):
+def call(mock_table: Table) -> Callable:
+    def call(route_key: str, body: object = None, user: str = "user-1", raw: str | None = None) -> tuple:
         event = {
             "routeKey": route_key,
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": user}}}},
@@ -47,8 +49,8 @@ def call(mock_table):
 
 
 @pytest.fixture
-def race(monkeypatch):
-    def race(concurrent):
+def race(monkeypatch: pytest.MonkeyPatch) -> Callable:
+    def race(concurrent: Callable) -> None:
         reads = [db.load_all("user-1")]
         concurrent()
         real = db.load_all

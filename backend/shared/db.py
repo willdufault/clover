@@ -2,6 +2,7 @@ import os
 import random
 import time
 import uuid
+from collections.abc import Collection, Iterable
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -16,43 +17,43 @@ TRANSACTION_RETRIES = 3
 RETRY_JITTER = 0.05
 
 
-def key(user_id, kind, item_id):
+def key(user_id: str, kind: str, item_id: str) -> dict:
     return {"PK": user_id, "SK": f"{kind}#{item_id}"}
 
 
-def kind_of(item):
+def kind_of(item: dict) -> str:
     return item["SK"].split("#", 1)[0]
 
 
-def id_of(item):
+def id_of(item: dict) -> str:
     return item["SK"].split("#", 1)[1]
 
 
-def to_api(item):
+def to_api(item: dict) -> dict:
     data = {k: v for k, v in item.items() if k not in ("PK", "SK")}
     return {"id": id_of(item), **data}
 
 
-def load_all(user_id):
+def load_all(user_id: str) -> list:
     return table.query(KeyConditionExpression=Key("PK").eq(user_id), ConsistentRead=True)["Items"]
 
 
-def by_id(items, kind, ids):
+def by_id(items: list, kind: str, ids: list) -> dict:
     found = {id_of(i): i for i in items if kind_of(i) == kind}
     if any(i not in found for i in ids):
         raise ApiError(404, f"{kind.capitalize()} not found")
     return {i: found[i] for i in ids}
 
 
-def matching(items, kind, ids):
+def matching(items: list, kind: str, ids: Collection) -> list:
     return [i for i in items if kind_of(i) == kind and id_of(i) in ids]
 
 
-def children(items, kind, field, parent_ids):
+def children(items: list, kind: str, field: str, parent_ids: Collection) -> list:
     return [i for i in items if kind_of(i) == kind and i[field] in parent_ids]
 
 
-def bump(user_id, items):
+def bump(user_id: str, items: list) -> dict:
     seen = next((i["version"] for i in items if i["SK"] == "META"), 0)
     return {
         "Update": {
@@ -68,7 +69,7 @@ def bump(user_id, items):
 # Overlapping writes to the same item (e.g. two quick edits to one task) cancel
 # the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
 # with exponential backoff, plus jitter so colliding requests don't retry in sync.
-def transact(writes):
+def transact(writes: list) -> None:
     delay = RETRY_BASE_DELAY
     for attempt in range(TRANSACTION_RETRIES + 1):
         try:
@@ -90,13 +91,13 @@ def transact(writes):
             delay *= 2
 
 
-def create(user_id, kind, data, items):
+def create(user_id: str, kind: str, data: dict, items: list) -> dict:
     item = {**key(user_id, kind, str(uuid.uuid7())), **data}
     transact([{"Put": {"TableName": table.name, "Item": item}}, bump(user_id, items)])
     return to_api(item)
 
 
-def update_many(user_id, kind, patches, items, checks=()):
+def update_many(user_id: str, kind: str, patches: list, items: list, checks: Iterable = ()) -> list:
     found = by_id(items, kind, [i for i, _ in patches])
     writes = list(checks) + [
         {
@@ -119,14 +120,14 @@ def update_many(user_id, kind, patches, items, checks=()):
 
 # Groups go children first (steps, tasks, lists), each flushed before the next,
 # so a failure partway never orphans children; retrying the DELETE finishes it.
-def delete(*groups):
+def delete(*groups: list) -> None:
     for items in groups:
         with table.batch_writer() as batch:
             for item in items:
                 batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
 
 
-def delete_parents(user_id, items, parents, *children):
+def delete_parents(user_id: str, items: list, parents: list, *children: list) -> None:
     delete(*children)
     deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
     transact([bump(user_id, items), *deletes])

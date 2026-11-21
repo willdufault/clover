@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from hypothesis import strategies as st
 
 from shared.api import ApiError
@@ -9,7 +11,7 @@ json_values = st.recursive(
 )
 
 
-def outcome(fn, *args, **kwargs):
+def outcome(fn: Callable, *args: object, **kwargs: object) -> tuple:
     try:
         return True, fn(*args, **kwargs)
     except ApiError as e:

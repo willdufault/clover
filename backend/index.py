@@ -19,7 +19,7 @@ ROUTES = {
 }
 
 
-def handler(event, context):
+def handler(event: dict, context: object) -> dict:
     route = ROUTES.get(event["routeKey"])
     if route is None:
         return api.response(404, {"error": "Not found"})

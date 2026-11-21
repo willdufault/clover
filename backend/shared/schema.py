@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import Callable
 from datetime import date
 
 from shared.api import ApiError, parse_body, parse_json
@@ -20,7 +21,7 @@ TITLE_MAX = LIMITS["titleMax"]
 MAX_BATCH = LIMITS["batchMax"]
 
 
-def check_ids(ids):
+def check_ids(ids: object) -> list:
     if not (
         isinstance(ids, list)
         and 1 <= len(ids) <= MAX_BATCH
@@ -28,15 +29,14 @@ def check_ids(ids):
         and len(set(ids)) == len(ids)
     ):
         raise ApiError(400, f"IDs must be 1-{MAX_BATCH} unique strings")
-
-
-def parse_ids(event):
-    ids = parse_body(event).get("ids")
-    check_ids(ids)
     return ids
 
 
-def parse_patches(event, fields):
+def parse_ids(event: dict) -> list:
+    return check_ids(parse_body(event).get("ids"))
+
+
+def parse_patches(event: dict, fields: dict) -> list:
     body = parse_json(event)
     if not isinstance(body, list) or not all(isinstance(p, dict) for p in body):
         raise ApiError(400, "Body must be an array of objects")
@@ -47,33 +47,33 @@ def parse_patches(event, fields):
 REQUIRED = object()
 
 
-def text(max_len):
+def text(max_len: int) -> Callable:
     return lambda v: isinstance(v, str) and v.strip() != "" and len(v) <= max_len
 
 
-def one_of(*options):
+def one_of(*options: str) -> Callable:
     return lambda v: isinstance(v, str) and v in options
 
 
-def is_bool(v):
+def is_bool(v: object) -> bool:
     return isinstance(v, bool)
 
 
-def is_str(v):
+def is_str(v: object) -> bool:
     return isinstance(v, str)
 
 
-def optional_str(v):
+def optional_str(v: object) -> bool:
     return v is None or isinstance(v, str)
 
 
-def optional_date(v):
-    if v is None:
-        return True
+def optional_date(v: object) -> bool:
+    if not isinstance(v, str):
+        return v is None
     try:
         # Only YYYY-MM-DD; fromisoformat also accepts forms like 20240101.
         return date.fromisoformat(v).isoformat() == v
-    except TypeError, ValueError:
+    except ValueError:
         return False
 
 
@@ -94,7 +94,7 @@ STEP_FIELDS = {
 STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 
 
-def validate(fields, body, partial=False):
+def validate(fields: dict, body: dict, partial: bool = False) -> dict:
     for name in body:
         if name not in fields:
             raise ApiError(400, f"Unknown field: {name}")

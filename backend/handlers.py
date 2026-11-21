@@ -1,12 +1,12 @@
 from shared import api, db, schema
 
 
-def check_user_limit(items, kind):
+def check_user_limit(items: list, kind: str) -> None:
     if sum(db.kind_of(i) == kind for i in items) >= schema.USER_LIMITS[kind]:
         raise api.ApiError(409, f"{kind.capitalize()} limit reached")
 
 
-def check_parent(items, parent_kind, parent_id, child_field, limit):
+def check_parent(items: list, parent_kind: str, parent_id: str, child_field: str, limit: int) -> None:
     sk = f"{parent_kind}#{parent_id}"
     if not any(i["SK"] == sk for i in items):
         raise api.ApiError(404, f"{parent_kind.capitalize()} not found")
@@ -14,7 +14,7 @@ def check_parent(items, parent_kind, parent_id, child_field, limit):
         raise api.ApiError(409, f"{parent_kind.capitalize()} is full")
 
 
-def get_data(event, user_id):
+def get_data(event: dict, user_id: str) -> dict:
     data = {"lists": [], "tasks": [], "steps": []}
     names = {"LIST": "lists", "TASK": "tasks", "STEP": "steps"}
     for item in db.load_all(user_id):
@@ -24,19 +24,19 @@ def get_data(event, user_id):
     return api.response(200, data)
 
 
-def create_list(event, user_id):
+def create_list(event: dict, user_id: str) -> dict:
     data = schema.validate(schema.LIST_FIELDS, api.parse_body(event))
     items = db.load_all(user_id)
     check_user_limit(items, "LIST")
     return api.response(201, db.create(user_id, "LIST", data, items))
 
 
-def update_list(event, user_id):
+def update_list(event: dict, user_id: str) -> dict:
     patches = schema.parse_patches(event, schema.LIST_FIELDS)
     return api.response(200, db.update_many(user_id, "LIST", patches, db.load_all(user_id)))
 
 
-def delete_list(event, user_id):
+def delete_list(event: dict, user_id: str) -> dict:
     ids = schema.parse_ids(event)
     items = db.load_all(user_id)
     lists = db.matching(items, "LIST", ids)
@@ -47,7 +47,7 @@ def delete_list(event, user_id):
     return api.response(204)
 
 
-def create_task(event, user_id):
+def create_task(event: dict, user_id: str) -> dict:
     data = schema.validate(schema.TASK_FIELDS, api.parse_body(event))
     items = db.load_all(user_id)
     check_user_limit(items, "TASK")
@@ -56,7 +56,7 @@ def create_task(event, user_id):
     return api.response(201, db.create(user_id, "TASK", data, items))
 
 
-def update_task(event, user_id):
+def update_task(event: dict, user_id: str) -> dict:
     patches = schema.parse_patches(event, schema.TASK_FIELDS)
     items = db.load_all(user_id)
     db.by_id(items, "TASK", [i for i, _ in patches])
@@ -76,7 +76,7 @@ def update_task(event, user_id):
     return api.response(200, db.update_many(user_id, "TASK", patches, items, checks))
 
 
-def delete_task(event, user_id):
+def delete_task(event: dict, user_id: str) -> dict:
     ids = schema.parse_ids(event)
     items = db.load_all(user_id)
     tasks = db.matching(items, "TASK", ids)
@@ -85,7 +85,7 @@ def delete_task(event, user_id):
     return api.response(204)
 
 
-def create_step(event, user_id):
+def create_step(event: dict, user_id: str) -> dict:
     data = schema.validate(schema.STEP_FIELDS, api.parse_body(event))
     items = db.load_all(user_id)
     check_user_limit(items, "STEP")
@@ -93,12 +93,12 @@ def create_step(event, user_id):
     return api.response(201, db.create(user_id, "STEP", data, items))
 
 
-def update_step(event, user_id):
+def update_step(event: dict, user_id: str) -> dict:
     patches = schema.parse_patches(event, schema.STEP_EDITABLE)
     return api.response(200, db.update_many(user_id, "STEP", patches, db.load_all(user_id)))
 
 
-def delete_step(event, user_id):
+def delete_step(event: dict, user_id: str) -> dict:
     ids = schema.parse_ids(event)
     steps = db.matching(db.load_all(user_id), "STEP", ids)
     db.delete(steps)
