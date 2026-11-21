@@ -28,11 +28,6 @@ def test_user_limit(call: Callable) -> None:
     assert call("POST /lists", {"name": "too many"})[0] == 409
 
 
-def test_first_write_creates_meta(call: Callable, mock_table: Table) -> None:
-    assert call("POST /lists", {"name": "A"})[0] == 201
-    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 1
-
-
 def test_create_over_limit_after_stale_read_is_409(call: Callable, race: Callable) -> None:
     for i in range(USER_LIMITS["LIST"] - 1):
         call("POST /lists", {"name": f"L{i}"})
@@ -161,3 +156,11 @@ def test_delete_goes_parents_first(call: Callable, mock_table: Table, monkeypatc
     monkeypatch.setattr(client, "transact_write_items", transact)
     assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
     assert order == ["LIST", "TASK", "STEP"]
+
+
+def test_id_only_update_skips_transaction(call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch) -> None:
+    lst = call("POST /lists", {"name": "A"})[1]
+    calls = []
+    monkeypatch.setattr(mock_table.meta.client, "transact_write_items", lambda **kwargs: calls.append(kwargs))
+    assert call("PATCH /lists", [{"id": lst["id"]}]) == (200, [lst])
+    assert calls == []

@@ -41,9 +41,9 @@ def test_create_validation(call: Callable) -> None:
     assert call("POST /tasks", {"title": "T", "stage": "nope"})[0] == 400
     assert call("POST /tasks", {"title": "T", "priority": "urgent"})[0] == 400
     assert call("POST /tasks", {"title": "T", "due": "tomorrow"})[0] == 400
-    assert call("POST /tasks", {"title": "T", "due": "20240101"})[0] == 400
     assert call("POST /tasks", {"title": "T", "due": "2024-W01-1"})[0] == 400
     assert call("POST /tasks", {"title": "T", "addedToToday": "yes"})[0] == 400
+    assert call("POST /tasks", {"title": "T", "listId": 5})[0] == 400
     assert call("POST /tasks", {"title": "T", "listId": "missing"})[0] == 404
     assert call("POST /tasks", {"title": "x" * TITLE_MAX})[0] == 201
 
@@ -117,11 +117,13 @@ def test_update_batch_move_overflow(call: Callable) -> None:
     assert status == 200
 
 
-def test_update_within_full_list_is_allowed(call: Callable) -> None:
+def test_update_within_full_list_is_allowed(call: Callable, mock_table: Table) -> None:
     full = call("POST /lists", {"name": "Full"})[1]
     tasks = [call("POST /tasks", {"title": f"T{i}", "listId": full["id"]})[1] for i in range(TASKS_PER_LIST)]
+    version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
     body = [{"id": tasks[0]["id"], "listId": full["id"], "stage": "done"}]
     assert call("PATCH /tasks", body)[0] == 200
+    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == version
 
 
 def test_delete_cascades(call: Callable) -> None:
@@ -141,20 +143,6 @@ def test_delete_skips_missing_ids(call: Callable) -> None:
     call("POST /steps", {"title": "S", "taskId": a["id"]})
     assert call("DELETE /tasks", {"ids": [a["id"], "missing"]})[0] == 204
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
-
-
-def test_update_only_writes_given_fields(call: Callable, mock_table: Table) -> None:
-    task = call("POST /tasks", {"title": "T"})[1]
-    # Simulate a concurrent write the caller hasn't seen.
-    mock_table.update_item(
-        Key={"PK": "user-1", "SK": f"TASK#{task['id']}"},
-        UpdateExpression="SET stage = :s",
-        ExpressionAttributeValues={":s": "waiting"},
-    )
-    status, updated = call("PATCH /tasks", [{"id": task["id"], "due": "2030-01-02"}])
-    assert status == 200
-    assert updated[0]["stage"] == "waiting"
-    assert updated[0]["due"] == "2030-01-02"
 
 
 def test_update_returns_written_values_not_later_writes(

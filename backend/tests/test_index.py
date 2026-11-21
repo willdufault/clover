@@ -57,8 +57,17 @@ def test_first_write_after_stale_read_retries(
     assert len(attempts) == 2
 
 
-def test_exhausted_stale_retries_is_409(call: Callable, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_exhausted_stale_retries_is_409(call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch) -> None:
     stale = db.load_all("user-1")
     call("POST /lists", {"name": "A"})
     monkeypatch.setattr(db, "load_all", lambda user_id: stale)
+    attempts = []
+    real = mock_table.meta.client.transact_write_items
+
+    def counted(TransactItems: list) -> object:
+        attempts.append(1)
+        return real(TransactItems=TransactItems)
+
+    monkeypatch.setattr(mock_table.meta.client, "transact_write_items", counted)
     assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})
+    assert len(attempts) == 3

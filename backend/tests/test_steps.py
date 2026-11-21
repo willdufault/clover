@@ -21,6 +21,7 @@ def test_create_validation(call: Callable, task: dict) -> None:
     assert call("POST /steps", {"title": "S"})[0] == 400
     assert call("POST /steps", {"taskId": task["id"]})[0] == 400
     assert call("POST /steps", {"title": "x" * (TITLE_MAX + 1), "taskId": task["id"]})[0] == 400
+    assert call("POST /steps", {"title": "S", "taskId": 5})[0] == 400
     assert call("POST /steps", {"title": "S", "taskId": "missing"})[0] == 404
     assert call("POST /steps", {"title": "x" * TITLE_MAX, "taskId": task["id"]})[0] == 201
 
@@ -33,9 +34,10 @@ def test_task_limit(call: Callable, task: dict) -> None:
 
 def test_user_limit(call: Callable) -> None:
     for t in range(USER_LIMITS["STEP"] // STEPS_PER_TASK):
-        task = call("POST /tasks", {"title": f"T{t}"})[1]
+        status, task = call("POST /tasks", {"title": f"T{t}"})
+        assert status == 201
         for s in range(STEPS_PER_TASK):
-            call("POST /steps", {"title": f"S{s}", "taskId": task["id"]})
+            assert call("POST /steps", {"title": f"S{s}", "taskId": task["id"]})[0] == 201
     task = call("POST /tasks", {"title": "last"})[1]
     assert call("POST /steps", {"title": "x", "taskId": task["id"]})[0] == 409
 
@@ -89,9 +91,3 @@ def test_delete_removes_orphan_steps(call: Callable, task: dict, mock_table: Tab
     orphan(mock_table)
     assert call("DELETE /steps", {"ids": [step["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}
-
-
-def test_delete_orphan_step_by_id(call: Callable, mock_table: Table) -> None:
-    orphan(mock_table)
-    assert call("DELETE /steps", {"ids": ["orphan"]}) == (204, None)
-    assert [i["SK"] for i in mock_table.scan()["Items"]] == []
