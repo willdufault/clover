@@ -5,3 +5,5 @@
 - look into adding video evidence to PRs
 - trim filler tasks from the full-list drag e2e test (fake backend already returns the 409)
 - think about moving limits.json to a shared folder
+- DELETE /lists race: a concurrent PATCH /tasks or POST /steps can lose a moved task or orphan a step; 404 when a task's list is gone and bump META on any listId change
+- keep typed text when a create fails (run returns boolean, AddInput clears only on success)
