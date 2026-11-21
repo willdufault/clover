@@ -10,7 +10,7 @@ frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
   tests/unit/   Vitest + Testing Library
   tests/e2e/    Playwright, API mocked in-browser
 backend/    Python 3.14 Lambda (index.py router, handlers.py, common.py)
-  tests/        pytest with an in-memory fake table
+  tests/        pytest with moto-mocked DynamoDB
 infra/      Terraform: DynamoDB, Cognito, Lambda, HTTP API
 ```
 
@@ -38,7 +38,7 @@ npm run build  # type-check and build
 Run from `backend/` (uses [uv](https://docs.astral.sh/uv/)):
 
 ```sh
-uv sync                          # install dev deps (boto3, pytest, ruff, ty)
+uv sync                          # install dev deps (boto3, pytest, moto, ruff, ty)
 uv run pytest                    # tests
 uv run ruff check --ignore-noqa  # lint
 uv run ruff format               # format

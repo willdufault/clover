@@ -15,7 +15,7 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 - `index.py`: `handler` looks up `event["routeKey"]`, reads user id from JWT claim `sub`, maps `ApiError` to `{"error": ...}`.
 - `handlers.py`: one `(event, user_id)` function per route.
 - `common.py`: table client, parsing, validation, storage helpers, limits.
-- `tests/`: pytest with an in-memory fake table.
+- `tests/`: pytest with moto-mocked DynamoDB.
 
 ## Data model
 

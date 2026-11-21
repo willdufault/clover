@@ -139,38 +139,46 @@ def test_delete_skips_missing_ids(call):
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_update_only_writes_given_fields(call, table):
+def test_update_only_writes_given_fields(call, mock_table):
     task = call("POST /tasks", {"title": "T"})[1]
     # Simulate a concurrent write the caller hasn't seen.
-    table.items[("user-1", f"TASK#{task['id']}")]["stage"] = "waiting"
+    mock_table.update_item(
+        Key={"PK": "user-1", "SK": f"TASK#{task['id']}"},
+        UpdateExpression="SET stage = :s",
+        ExpressionAttributeValues={":s": "waiting"},
+    )
     status, updated = call("PATCH /tasks", [{"id": task["id"], "due": "2030-01-02"}])
     assert status == 200
     assert updated[0]["stage"] == "waiting"
     assert updated[0]["due"] == "2030-01-02"
 
 
-def test_update_returns_written_values_not_later_writes(call, table):
+def test_update_returns_written_values_not_later_writes(call, mock_table):
     task = call("POST /tasks", {"title": "T"})[1]
-    real = table.transact_write_items
+    real = mock_table.meta.client.transact_write_items
 
     def concurrent(TransactItems):
-        table.items[("user-1", f"TASK#{task['id']}")]["stage"] = "waiting"
-        return real(TransactItems)
+        mock_table.update_item(
+            Key={"PK": "user-1", "SK": f"TASK#{task['id']}"},
+            UpdateExpression="SET stage = :s",
+            ExpressionAttributeValues={":s": "waiting"},
+        )
+        return real(TransactItems=TransactItems)
 
-    table.transact_write_items = concurrent
+    mock_table.meta.client.transact_write_items = concurrent
     status, updated = call("PATCH /tasks", [{"id": task["id"], "due": "2030-01-02"}])
     assert (status, updated) == (200, [{**task, "due": "2030-01-02"}])
     assert call("GET /data")[1]["tasks"][0]["stage"] == "waiting"
 
 
-def test_update_deleted_task_is_404(call, table, race):
+def test_update_deleted_task_is_404(call, mock_table, race):
     a = call("POST /tasks", {"title": "A"})[1]
     b = call("POST /tasks", {"title": "B"})[1]
     race(lambda: call("DELETE /tasks", {"ids": [b["id"]]}))
-    before = {k: dict(v) for k, v in table.items.items()}
+    before = mock_table.scan()["Items"]
     body = [{"id": a["id"], "title": "A2"}, {"id": b["id"], "title": "B2"}]
     assert call("PATCH /tasks", body) == (404, {"error": "Task not found"})
-    assert table.items == before
+    assert mock_table.scan()["Items"] == before
 
 
 def conflict():
@@ -181,24 +189,24 @@ def conflict():
     return ClientError(error, "TransactWriteItems")
 
 
-def test_transaction_conflict_is_retried(call, table, monkeypatch):
+def test_transaction_conflict_is_retried(call, mock_table, monkeypatch):
     monkeypatch.setattr(common.time, "sleep", lambda s: None)
     task = call("POST /tasks", {"title": "T"})[1]
-    real = table.transact_write_items
+    real = mock_table.meta.client.transact_write_items
     failures = [conflict()]
 
     def flaky(TransactItems):
         if failures:
             raise failures.pop()
-        return real(TransactItems)
+        return real(TransactItems=TransactItems)
 
-    table.transact_write_items = flaky
+    mock_table.meta.client.transact_write_items = flaky
     status, body = call("PATCH /tasks", [{"id": task["id"], "stage": "done"}])
     assert status == 200
     assert body[0]["stage"] == "done"
 
 
-def test_transaction_conflict_gives_up_with_409(call, table, monkeypatch):
+def test_transaction_conflict_gives_up_with_409(call, mock_table, monkeypatch):
     sleeps = []
     monkeypatch.setattr(common.time, "sleep", sleeps.append)
     task = call("POST /tasks", {"title": "T"})[1]
@@ -206,7 +214,7 @@ def test_transaction_conflict_gives_up_with_409(call, table, monkeypatch):
     def always(TransactItems):
         raise conflict()
 
-    table.transact_write_items = always
+    mock_table.meta.client.transact_write_items = always
     assert call("PATCH /tasks", [{"id": task["id"], "stage": "done"}]) == (
         409,
         {"error": "Concurrent update"},
@@ -248,8 +256,8 @@ def test_create_over_list_limit_after_stale_read_is_409(call, race):
     assert len([t for t in tasks if t["listId"] == lst["id"]]) == TASKS_PER_LIST
 
 
-def test_delete_after_step_added_removes_step(call, table, race):
+def test_delete_after_step_added_removes_step(call, mock_table, race):
     task = call("POST /tasks", {"title": "T"})[1]
     race(lambda: call("POST /steps", {"title": "S", "taskId": task["id"]}))
     assert call("DELETE /tasks", {"ids": [task["id"]]}) == (204, None)
-    assert [sk for _, sk in table.items if sk.startswith(("TASK#", "STEP#"))] == []
+    assert [i["SK"] for i in mock_table.scan()["Items"] if i["SK"].startswith(("TASK#", "STEP#"))] == []

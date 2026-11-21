@@ -2,11 +2,11 @@ import common
 from common import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
-def test_create_and_get(call, table):
+def test_create_and_get(call, mock_table):
     status, lst = call("POST /lists", {"name": "🏠 Home"})
     assert status == 201
     assert lst == {"id": lst["id"], "name": "🏠 Home"}
-    assert ("user-1", f"LIST#{lst['id']}") in table.items
+    assert "Item" in mock_table.get_item(Key={"PK": "user-1", "SK": f"LIST#{lst['id']}"})
     assert call("GET /data")[1]["lists"] == [lst]
 
 
@@ -23,9 +23,9 @@ def test_user_limit(call):
     assert call("POST /lists", {"name": "too many"})[0] == 409
 
 
-def test_first_write_creates_meta(call, table):
+def test_first_write_creates_meta(call, mock_table):
     assert call("POST /lists", {"name": "A"})[0] == 201
-    assert table.items[("user-1", "META")]["version"] == 1
+    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 1
 
 
 def test_create_over_limit_after_stale_read_is_409(call, race):
@@ -50,22 +50,27 @@ def test_delete_after_stale_read_retries(call, race):
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_first_writes_race_retries(call, table, race):
+def test_first_writes_race_retries(call, mock_table, race):
     race(lambda: call("POST /lists", {"name": "A"}))
     attempts = []
-    real = table.transact_write_items
-    table.transact_write_items = lambda TransactItems: (attempts.append(1), real(TransactItems))[1]
+    real = mock_table.meta.client.transact_write_items
+
+    def counted(TransactItems):
+        attempts.append(1)
+        return real(TransactItems=TransactItems)
+
+    mock_table.meta.client.transact_write_items = counted
     assert call("POST /lists", {"name": "B"})[0] == 201
     assert len(call("GET /data")[1]["lists"]) == 2
-    assert table.items[("user-1", "META")]["version"] == 2
+    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 2
     assert len(attempts) == 2
 
 
-def test_update_does_not_bump_meta(call, table):
+def test_update_does_not_bump_meta(call, mock_table):
     lst = call("POST /lists", {"name": "A"})[1]
-    version = table.items[("user-1", "META")]["version"]
+    version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
     assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}])[0] == 200
-    assert table.items[("user-1", "META")]["version"] == version
+    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == version
 
 
 def test_update(call):
@@ -137,13 +142,25 @@ def test_delete_body_validation(call):
     assert call("GET /data")[1]["lists"] == [a]
 
 
-def test_delete_goes_children_first(call, table):
+def test_delete_goes_children_first(call, mock_table):
     lst = call("POST /lists", {"name": "A"})[1]
     task = call("POST /tasks", {"title": "T", "listId": lst["id"]})[1]
     call("POST /steps", {"taskId": task["id"], "title": "S"})
     order = []
-    delete_item = table.delete_item
-    table.delete_item = lambda Key: (order.append(Key["SK"].split("#")[0]), delete_item(Key))
+    client = mock_table.meta.client
+    batch_write_item = client.batch_write_item
+    transact_write_items = client.transact_write_items
+
+    def batch(RequestItems):
+        order.extend(r["DeleteRequest"]["Key"]["SK"].split("#")[0] for r in RequestItems["test"])
+        return batch_write_item(RequestItems=RequestItems)
+
+    def transact(TransactItems):
+        order.extend(t["Delete"]["Key"]["SK"].split("#")[0] for t in TransactItems if "Delete" in t)
+        return transact_write_items(TransactItems=TransactItems)
+
+    client.batch_write_item = batch
+    client.transact_write_items = transact
     assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
     assert order == ["STEP", "TASK", "LIST"]
 

@@ -1,83 +1,36 @@
 import json
 import os
-from types import SimpleNamespace
 
+import boto3
 import pytest
-from botocore.exceptions import ClientError
+from moto import mock_aws
 
-os.environ.setdefault("TABLE_NAME", "test")
-os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
+os.environ["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] = "true"
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+os.environ["TABLE_NAME"] = "test"
 
 import common
 import index
 
 
-class FakeTable:
-    name = "test"
-
-    def __init__(self):
-        self.items = {}
-        self.meta = SimpleNamespace(client=self)
-
-    def put_item(self, Item):
-        self.items[(Item["PK"], Item["SK"])] = dict(Item)
-
-    def transact_write_items(self, TransactItems):
-        def ok(t):
-            if "Update" not in t:
-                return True
-            u = t["Update"]
-            item = self.items.get((u["Key"]["PK"], u["Key"]["SK"]))
-            if u["Key"]["SK"] == "META":
-                return item is None or item["version"] == u["ExpressionAttributeValues"][":seen"]
-            return item is not None
-
-        if not all(ok(t) for t in TransactItems):
-            reasons = [{"Code": "None" if ok(t) else "ConditionalCheckFailed"} for t in TransactItems]
-            error = {"Error": {"Code": "TransactionCanceledException"}, "CancellationReasons": reasons}
-            raise ClientError(error, "TransactWriteItems")
-        for t in TransactItems:
-            if "Put" in t:
-                self.put_item(t["Put"]["Item"])
-            elif "Delete" in t:
-                self.delete_item(t["Delete"]["Key"])
-            elif t["Update"]["Key"]["SK"] == "META":
-                k = t["Update"]["Key"]
-                meta = self.items.setdefault((k["PK"], "META"), {**k, "version": 0})
-                meta["version"] += 1
-            else:
-                u = t["Update"]
-                item = self.items[(u["Key"]["PK"], u["Key"]["SK"])]
-                for name, field in u["ExpressionAttributeNames"].items():
-                    item[field] = u["ExpressionAttributeValues"][":" + name[1:]]
-
-    def delete_item(self, Key):
-        self.items.pop((Key["PK"], Key["SK"]), None)
-
-    def query(self, KeyConditionExpression, ConsistentRead):
-        assert ConsistentRead
-        pk = KeyConditionExpression.get_expression()["values"][1]
-        return {"Items": [dict(i) for (p, _), i in self.items.items() if p == pk]}
-
-    def batch_writer(self):
-        return self
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        pass
+@pytest.fixture
+def mock_table(monkeypatch):
+    with mock_aws():
+        mock_table = boto3.resource("dynamodb").create_table(
+            TableName="test",
+            KeySchema=[{"AttributeName": "PK", "KeyType": "HASH"}, {"AttributeName": "SK", "KeyType": "RANGE"}],
+            AttributeDefinitions=[
+                {"AttributeName": "PK", "AttributeType": "S"},
+                {"AttributeName": "SK", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        monkeypatch.setattr(common, "table", mock_table)
+        yield mock_table
 
 
 @pytest.fixture
-def table(monkeypatch):
-    fake = FakeTable()
-    monkeypatch.setattr(common, "table", fake)
-    return fake
-
-
-@pytest.fixture
-def call(table):
+def call(mock_table):
     def call(route_key, body=None, user="user-1", raw=None):
         event = {
             "routeKey": route_key,
