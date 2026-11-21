@@ -208,6 +208,18 @@ def test_move_to_list_deleted_after_read_is_404(call: Callable, race: Callable) 
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}
 
 
+def test_move_into_list_filled_after_read_is_409(call: Callable, race: Callable) -> None:
+    lst = call("POST /lists", {"name": "L"})[1]
+    for i in range(TASKS_PER_LIST - 1):
+        call("POST /tasks", {"title": f"T{i}", "listId": lst["id"]})
+    task = call("POST /tasks", {"title": "T"})[1]
+    race(lambda: call("POST /tasks", {"title": "concurrent", "listId": lst["id"]}))
+    assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (409, {"error": "List is full"})
+    tasks = call("GET /data")[1]["tasks"]
+    assert next(t for t in tasks if t["id"] == task["id"])["listId"] is None
+    assert len([t for t in tasks if t["listId"] == lst["id"]]) == TASKS_PER_LIST
+
+
 def test_create_over_list_limit_after_stale_read_is_409(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L"})[1]
     for i in range(TASKS_PER_LIST - 1):
