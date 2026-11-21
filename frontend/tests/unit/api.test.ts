@@ -1,11 +1,15 @@
 import { UserManager } from 'oidc-client-ts'
-import { api, handleRedirect } from '../../src/api'
+
+let api: typeof import('../../src/api').api
+let handleRedirect: typeof import('../../src/api').handleRedirect
 
 const userKey = `oidc.user:${import.meta.env.VITE_COGNITO_URL}:${import.meta.env.VITE_COGNITO_CLIENT_ID}`
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear()
   vi.restoreAllMocks()
+  vi.resetModules()
+  ;({ api, handleRedirect } = await import('../../src/api'))
 })
 
 test('api sends the access token and throws the server error message', async () => {
@@ -45,4 +49,14 @@ test('handleRedirect swallows a failed callback and strips the code', async () =
   await expect(handleRedirect()).resolves.toBeUndefined()
   expect(replaceState).toHaveBeenCalledWith(null, '', '/')
   expect(localStorage.getItem(userKey)).toBeNull()
+})
+
+test('api throws instead of redirecting after a failed callback', async () => {
+  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
+  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  await handleRedirect()
+  vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
+  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
+  await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
+  expect(signinRedirect).not.toHaveBeenCalled()
 })
