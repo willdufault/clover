@@ -14,6 +14,7 @@ For project details, see @README.md. For backend design, see @ARCHITECTURE.md.
 
 ## Infra (run from `infra/`)
 
+- Run Terraform with `AWS_PROFILE=wduf_clover`.
 - Before finishing, run `terraform fmt -check`, `terraform init -backend=false`, and `terraform validate`.
 - Never run `terraform apply` or `terraform destroy` without explicit approval.
 - When credentials are available, run `terraform plan` and review it for unexpected changes, especially replacements and destroys.
