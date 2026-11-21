@@ -155,18 +155,7 @@ resource "aws_cloudwatch_log_group" "api" {
 }
 
 locals {
-  routes = toset([
-    "GET /data",
-    "POST /lists",
-    "PATCH /lists",
-    "DELETE /lists",
-    "POST /tasks",
-    "PATCH /tasks",
-    "DELETE /tasks",
-    "POST /steps",
-    "PATCH /steps",
-    "DELETE /steps",
-  ])
+  routes = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
 }
 
 resource "aws_apigatewayv2_api" "api" {

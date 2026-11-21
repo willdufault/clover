@@ -1,3 +1,5 @@
+import json
+import os
 import traceback
 
 import handlers
@@ -5,18 +7,8 @@ from shared import api
 
 STALE_RETRIES = 2
 
-ROUTES = {
-    "GET /data": handlers.get_data,
-    "POST /lists": handlers.create_list,
-    "PATCH /lists": handlers.update_list,
-    "DELETE /lists": handlers.delete_list,
-    "POST /tasks": handlers.create_task,
-    "PATCH /tasks": handlers.update_task,
-    "DELETE /tasks": handlers.delete_task,
-    "POST /steps": handlers.create_step,
-    "PATCH /steps": handlers.update_step,
-    "DELETE /steps": handlers.delete_step,
-}
+with open(os.path.join(os.path.dirname(__file__), "routes.json")) as f:
+    ROUTES = {route: getattr(handlers, name) for route, name in json.load(f).items()}
 
 
 def handler(event: dict, context: object) -> dict:

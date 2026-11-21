@@ -1,0 +1,12 @@
+{
+  "GET /data": "get_data",
+  "POST /lists": "create_list",
+  "PATCH /lists": "update_list",
+  "DELETE /lists": "delete_list",
+  "POST /tasks": "create_task",
+  "PATCH /tasks": "update_task",
+  "DELETE /tasks": "delete_task",
+  "POST /steps": "create_step",
+  "PATCH /steps": "update_step",
+  "DELETE /steps": "delete_step"
+}
