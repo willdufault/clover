@@ -3,8 +3,7 @@ import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
-import limits from '../../../backend/limits.json'
-import { createFakeBackend, seed, task } from '../shared/fakeBackend'
+import { createFakeBackend } from '../shared/fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
 beforeEach(() => {
@@ -319,50 +318,4 @@ test('leading and trailing spaces are not stored', async () => {
   await user.click(within(main()).getByText('Bread'))
   await newStep(user, '  Toast  ')
   expect(steps()).toEqual(['Toast'])
-})
-
-const many = <T,>(n: number, make: (i: number) => T) => Array.from({ length: n }, (_, i) => make(i))
-
-describe('limits', () => {
-  test('tasks-per-list limit blocks creating a task in a full list', async () => {
-    const data = seed()
-    data.tasks.push(...many(limits.tasksPerList - 2, (i) => task(`t${i}`, `T${i}`, 'groceries')))
-    const count = data.tasks.length
-    backend = createFakeBackend(data)
-    const { user } = await setup()
-    await user.type(screen.getByPlaceholderText('+ New task'), 'One more{Enter}')
-    expect(await screen.findByRole('alert')).toHaveTextContent(`List task limit reached (${limits.tasksPerList})`)
-    expect(backend.data.tasks).toHaveLength(count)
-  })
-
-  test('step limit counts steps across all tasks', async () => {
-    const data = seed()
-    data.steps.push(
-      ...many(limits.stepsPerUser - 1, (i) => ({
-        id: `s${i}`,
-        taskId: `w${(i % 3) + 1}`,
-        title: `S${i}`,
-        completed: false,
-      })),
-    )
-    backend = createFakeBackend(data)
-    const { user } = await setup()
-    await user.click(within(main()).getByText('Milk'))
-    await newStep(user, 'One more')
-    expect(await screen.findByRole('alert')).toHaveTextContent(`Step limit reached (${limits.stepsPerUser})`)
-    expect(backend.data.steps).toHaveLength(limits.stepsPerUser)
-  })
-
-  test('steps-per-task limit blocks adding a step to a full task', async () => {
-    const data = seed()
-    data.steps.push(
-      ...many(limits.stepsPerTask - 1, (i) => ({ id: `s${i}`, taskId: 'g1', title: `S${i}`, completed: false })),
-    )
-    backend = createFakeBackend(data)
-    const { user } = await setup()
-    await user.click(within(main()).getByText('Milk'))
-    await newStep(user, 'One more')
-    expect(await screen.findByRole('alert')).toHaveTextContent(`Task step limit reached (${limits.stepsPerTask})`)
-    expect(backend.data.steps).toHaveLength(limits.stepsPerTask)
-  })
 })

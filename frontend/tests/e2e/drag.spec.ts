@@ -51,15 +51,18 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
   const data = seed()
   data.tasks.push(...Array.from({ length: limits.tasksPerList - 3 }, (_, i) => task(`t${i}`, `T${i}`, 'work')))
   const backend = await mockApi(page, data)
+  const handle = backend.handle
+  backend.handle = (method, url, body) =>
+    method === 'PATCH' ? { status: 409, body: { error: 'List is full' } } : handle(method, url, body)
   await page.goto('/')
 
   await drag(page, page.locator('main').getByText('Milk', { exact: true }), page.locator('nav').getByText('Work'))
 
   const alert = page.getByRole('alert')
-  await expect(alert).toContainText(`List task limit reached (${limits.tasksPerList})`)
+  await expect(alert).toContainText('List is full')
   expect(backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('groceries')
   await expect(page.locator('main [data-kind="task"]', { hasText: 'Milk' })).toBeVisible()
   await waitForDropAnimation(page)
   await page.screenshot({ path: 'test-results/limit-banner.png' })
-  expect(errors).toEqual([])
+  expect(errors.filter((e) => !e.startsWith('Failed to load resource'))).toEqual([])
 })
