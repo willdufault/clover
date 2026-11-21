@@ -1,4 +1,6 @@
+import * as fc from 'fast-check'
 import { applyDrop, type ListsAndTasks } from '../../src/drop'
+import { ALL_LIST_ID, TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
 import type { Step } from '../../src/types'
 import { makeTask } from './makeTask'
 
@@ -61,4 +63,83 @@ test('mismatched ids are no-ops', () => {
   expectNoop({ activeId: 's1', overId: 'x1' }) // step of another task
   expectNoop({ activeId: 'A', overId: 'a1' }) // list over task
   expectNoop({ activeId: 'b1', overId: 'a1' }) // task from unselected list
+})
+
+const stateArb = fc
+  .record({
+    listCount: fc.nat({ max: 4 }),
+    tasks: fc.array(fc.record({ list: fc.nat(), addedToToday: fc.boolean(), stepCount: fc.nat({ max: 3 }) }), {
+      maxLength: 6,
+    }),
+  })
+  .map(({ listCount, tasks }): ListsAndTasks => ({
+    lists: Array.from({ length: listCount }, (_, i) => ({ id: `L${i}`, name: `L${i}` })),
+    tasks: tasks.map((task, i) =>
+      makeTask(`T${i}`, {
+        listId: listCount ? `L${task.list % listCount}` : null,
+        addedToToday: task.addedToToday,
+        steps: Array.from({ length: task.stepCount }, (_, j) => makeStep(`T${i}S${j}`)),
+      }),
+    ),
+  }))
+
+const caseArb = stateArb.chain((state) => {
+  const listIds = ids(state.lists)
+  const taskIds = ids(state.tasks)
+  const allIds = [...listIds, ...taskIds, ...state.tasks.flatMap((task) => ids(task.steps)), 'unknown']
+  return fc.record({
+    state: fc.constant(state),
+    drop: fc.record({
+      selectedListId: fc.constantFrom(...listIds, ALL_LIST_ID, TODAY_LIST_ID, 'unknown'),
+      detailTaskId: fc.constantFrom(...taskIds, 'unknown', null),
+      activeId: fc.constantFrom(...allIds),
+      overId: fc.constantFrom(...allIds),
+    }),
+  })
+})
+
+const has = (items: { id: string }[], id: string) => items.some((item) => item.id === id)
+const sortedIds = (items: { id: string }[]) => ids(items).toSorted()
+const stepIdsByTask = (state: ListsAndTasks) =>
+  Object.fromEntries(state.tasks.map((task) => [task.id, sortedIds(task.steps)]))
+
+test('property: no list, task, or step is lost or duplicated', () => {
+  fc.assert(
+    fc.property(caseArb, ({ state, drop }) => {
+      const result = applyDrop(state, drop)
+      expect(sortedIds(result.lists)).toEqual(sortedIds(state.lists))
+      expect(sortedIds(result.tasks)).toEqual(sortedIds(state.tasks))
+      expect(stepIdsByTask(result)).toEqual(stepIdsByTask(state))
+    }),
+  )
+})
+
+test('property: dropping an item on itself returns the same state', () => {
+  fc.assert(
+    fc.property(caseArb, ({ state, drop }) => {
+      expect(applyDrop(state, { ...drop, overId: drop.activeId })).toBe(state)
+    }),
+  )
+})
+
+test('property: task fields other than step order are unchanged', () => {
+  fc.assert(
+    fc.property(caseArb, ({ state, drop }) => {
+      for (const task of applyDrop(state, drop).tasks) {
+        expect(task).toEqual({ ...state.tasks.find((original) => original.id === task.id), steps: task.steps })
+      }
+    }),
+  )
+})
+
+test('property: drops outside lists, visible tasks, or detail steps return the same state', () => {
+  fc.assert(
+    fc.property(caseArb, ({ state, drop }) => {
+      const both = (items: { id: string }[]) => has(items, drop.activeId) && has(items, drop.overId)
+      const visible = tasksInList(state.tasks, drop.selectedListId)
+      const detailTask = visible.find((task) => task.id === drop.detailTaskId)
+      fc.pre(!both(state.lists) && !both(visible) && !(detailTask && both(detailTask.steps)))
+      expect(applyDrop(state, drop)).toBe(state)
+    }),
+  )
 })

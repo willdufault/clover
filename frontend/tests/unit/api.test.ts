@@ -1,3 +1,4 @@
+import * as fc from 'fast-check'
 import { api, handleRedirect, hasValidToken } from '../../src/api'
 
 const token = (exp: number) => `x.${btoa(JSON.stringify({ exp }))}.y`
@@ -58,4 +59,42 @@ test('handleRedirect throws on a failed token exchange', async () => {
   vi.stubGlobal('fetch', async () => ({ ok: false, status: 400 }))
   await expect(handleRedirect()).rejects.toThrow('Token exchange failed: 400')
   expect(localStorage.getItem('idToken')).toBeNull()
+})
+
+const base64url = (text: string) => btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+test('hasValidToken returns a boolean for any stored string', () => {
+  fc.assert(
+    fc.property(
+      fc.oneof(
+        fc.string(),
+        fc.string({ unit: 'grapheme' }),
+        fc.array(fc.string()).map((parts) => parts.join('.')),
+      ),
+      (stored) => {
+        localStorage.clear()
+        localStorage.setItem('idToken', stored)
+        expect(typeof hasValidToken()).toBe('boolean')
+      },
+    ),
+  )
+})
+
+test('hasValidToken is true iff exp is after now', () => {
+  fc.assert(
+    fc.property(fc.string(), fc.integer(), fc.string(), fc.integer(), (header, exp, sig, now) => {
+      localStorage.clear()
+      localStorage.setItem('idToken', `${base64url(header)}.${base64url(JSON.stringify({ exp }))}.${base64url(sig)}`)
+      expect(hasValidToken(now)).toBe(exp * 1000 > now)
+    }),
+  )
+})
+
+test('hasValidToken is false without a token', () => {
+  fc.assert(
+    fc.property(fc.integer(), (now) => {
+      localStorage.clear()
+      expect(hasValidToken(now)).toBe(false)
+    }),
+  )
 })
