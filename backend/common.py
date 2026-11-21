@@ -49,9 +49,9 @@ def response(status, body=None):
 
 def parse_json(event):
     raw = event.get("body") or "{}"
-    if event.get("isBase64Encoded"):
-        raw = base64.b64decode(raw)
     try:
+        if event.get("isBase64Encoded"):
+            raw = base64.b64decode(raw)
         return json.loads(raw)
     except ValueError as e:
         raise ApiError(400, "Invalid JSON") from e
