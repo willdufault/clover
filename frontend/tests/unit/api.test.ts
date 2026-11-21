@@ -1,26 +1,6 @@
-import * as fc from 'fast-check'
-import { api, handleRedirect, hasValidToken } from '../../src/api'
-
-const token = (exp: number) => `x.${btoa(JSON.stringify({ exp }))}.y`
+import { api, handleRedirect } from '../../src/api'
 
 beforeEach(() => localStorage.clear())
-
-test('hasValidToken checks presence and expiry', () => {
-  expect(hasValidToken()).toBe(false)
-  localStorage.setItem('idToken', token(2000))
-  expect(hasValidToken(1999_000)).toBe(true)
-  expect(hasValidToken(2000_000)).toBe(false)
-
-  // JWT payloads are base64url: '-' and '_' instead of '+' and '/', no padding.
-  const payload = btoa(JSON.stringify({ exp: 2000, sub: '????>' }))
-  expect(payload).toMatch(/\+.*\/|\/.*\+/)
-  const urlSafe = payload.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  localStorage.setItem('idToken', `x.${urlSafe}.y`)
-  expect(hasValidToken(1999_000)).toBe(true)
-
-  localStorage.setItem('idToken', 'not-a-token')
-  expect(hasValidToken()).toBe(false)
-})
 
 test('api sends the id token and throws the server error message', async () => {
   localStorage.setItem('idToken', 'abc')
@@ -59,42 +39,4 @@ test('handleRedirect throws on a failed token exchange', async () => {
   vi.stubGlobal('fetch', async () => ({ ok: false, status: 400 }))
   await expect(handleRedirect()).rejects.toThrow('Token exchange failed: 400')
   expect(localStorage.getItem('idToken')).toBeNull()
-})
-
-const base64url = (text: string) => btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-
-test('hasValidToken returns a boolean for any stored string', () => {
-  fc.assert(
-    fc.property(
-      fc.oneof(
-        fc.string(),
-        fc.string({ unit: 'grapheme' }),
-        fc.array(fc.string()).map((parts) => parts.join('.')),
-      ),
-      (stored) => {
-        localStorage.clear()
-        localStorage.setItem('idToken', stored)
-        expect(typeof hasValidToken()).toBe('boolean')
-      },
-    ),
-  )
-})
-
-test('hasValidToken is true iff exp is after now', () => {
-  fc.assert(
-    fc.property(fc.string(), fc.integer(), fc.string(), fc.integer(), (header, exp, sig, now) => {
-      localStorage.clear()
-      localStorage.setItem('idToken', `${base64url(header)}.${base64url(JSON.stringify({ exp }))}.${base64url(sig)}`)
-      expect(hasValidToken(now)).toBe(exp * 1000 > now)
-    }),
-  )
-})
-
-test('hasValidToken is false without a token', () => {
-  fc.assert(
-    fc.property(fc.integer(), (now) => {
-      localStorage.clear()
-      expect(hasValidToken(now)).toBe(false)
-    }),
-  )
 })

@@ -49,17 +49,6 @@ export const handleRedirect = async () => {
   localStorage.setItem('idToken', (await response.json()).id_token)
 }
 
-export const hasValidToken = (now = Date.now()) => {
-  const token = localStorage.getItem('idToken')
-  if (!token) return false
-  try {
-    const payload = JSON.parse(atob((token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')))
-    return payload.exp * 1000 > now
-  } catch {
-    return false
-  }
-}
-
 // The JWT authorizer checks the audience, which only the id token has.
 export const api = async (method: string, path: string, body?: object) => {
   const response = await fetch(API_URL + path, {
