@@ -3,7 +3,6 @@
 - remove any unnecessary ui elements; minimal, only add more if unclear
 - look into using enums in frontend and backend
 - look into adding video evidence to PRs
-- trim filler tasks from the full-list drag e2e test (fake backend already returns the 409)
 - think about moving limits.json to a shared folder
 - keep typed text when a create fails
 - add CI and a pre-push hook running the AGENTS.md checks

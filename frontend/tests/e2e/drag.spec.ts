@@ -1,6 +1,4 @@
 import { expect, test } from '@playwright/test'
-import limits from '../../../backend/limits.json' with { type: 'json' }
-import { seed, task } from '../shared/fakeBackend'
 import { captureErrors, drag, mockApi, navRow, waitForDropAnimation } from './helpers'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
@@ -48,9 +46,7 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
 
 test('dragging a task into a full list shows the limit error and keeps it in place', async ({ page }) => {
   const errors = captureErrors(page)
-  const data = seed()
-  data.tasks.push(...Array.from({ length: limits.tasksPerList - 3 }, (_, i) => task(`t${i}`, `T${i}`, 'work')))
-  const backend = await mockApi(page, data)
+  const backend = await mockApi(page)
   const handle = backend.handle
   backend.handle = (method, url, body) =>
     method === 'PATCH' ? { status: 409, body: { error: 'List is full' } } : handle(method, url, body)
