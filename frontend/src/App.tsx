@@ -83,12 +83,8 @@ export default function App() {
       ),
     )
 
-  const run = async (action: () => Promise<void>) => {
-    try {
-      await action()
-    } catch (e) {
-      setError((e as Error).message)
-    }
+  const run = (action: () => Promise<void>) => {
+    action().catch((e) => setError((e as Error).message))
   }
 
   const atLimit = (count: number, limit: number, message: string) => {
@@ -143,7 +139,7 @@ export default function App() {
   const addTask = (title: string) => {
     if (atLimit(tasks.length, limits.tasksPerUser, 'Task limit reached')) return
     if (currentList && listFull(currentList.id)) return
-    return run(async () => {
+    run(async () => {
       const task = await api('POST', '/tasks', {
         title,
         listId: currentList?.id ?? null,
@@ -157,7 +153,7 @@ export default function App() {
     const stepCount = tasks.reduce((sum, task) => sum + task.steps.length, 0)
     if (atLimit(stepCount, limits.stepsPerUser, 'Step limit reached')) return
     if (atLimit(detailSteps.length, limits.stepsPerTask, 'Task step limit reached')) return
-    return run(async () => {
+    run(async () => {
       const step: Step = await api('POST', '/steps', { taskId: detailTask?.id, title })
       setTasks((prev) =>
         prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
@@ -224,7 +220,7 @@ export default function App() {
 
   const createList = (name: string) => {
     if (atLimit(lists.length, limits.listsPerUser, 'List limit reached')) return
-    return run(async () => {
+    run(async () => {
       const newList: TaskList = await api('POST', '/lists', { name })
       setLists((prev) => [...prev, newList])
       selectList(newList.id)
