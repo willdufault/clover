@@ -1,6 +1,6 @@
 import { isCompleted } from '../stages'
 import { TITLE_RENAME_CLASS } from '../styles'
-import { RowKind, type Stage, type Task } from '../types'
+import type { Stage, Task } from '../types'
 import { EditableText } from './EditableText'
 import limits from '../../../backend/limits.json'
 import { StageSelect } from './StageSelect'
@@ -15,7 +15,7 @@ export function TaskSummary({
   task: Task
   heading?: boolean
   onSetStage: (stage: Stage) => void
-  onRename?: (kind: RowKind, id: string, text: string) => void
+  onRename?: (id: string, text: string) => void
   children?: React.ReactNode
 }) {
   const completed = isCompleted(task.stage)
@@ -37,7 +37,7 @@ export function TaskSummary({
           text={task.title}
           maxLength={limits.titleMax}
           editable={heading}
-          onCommit={(name) => onRename?.(RowKind.Task, task.id, name)}
+          onCommit={(name) => onRename?.(task.id, name)}
           className={titleClass}
           inputClassName={TITLE_RENAME_CLASS}
         />

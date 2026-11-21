@@ -366,3 +366,21 @@ describe('limits', () => {
     expect(backend.data.steps).toHaveLength(limits.stepsPerTask)
   })
 })
+
+test('renames a list, a task and a step', async () => {
+  const { user } = await setup()
+  const rename = async (element: HTMLElement, name: string) => {
+    await user.click(element)
+    await user.keyboard(`{Control>}a{/Control}${name}{Enter}`)
+    await flush()
+  }
+  await user.click(within(nav()).getByText('Groceries'))
+  await rename(within(main()).getByRole('heading'), 'Food')
+  await user.click(within(main()).getByText('Milk'))
+  await rename(within(aside()).getByText('Milk'), 'Oat milk')
+  await rename(within(aside()).getByText('2% lactose free'), 'Skim')
+  expect(backend.data.lists.map((l) => l.name)).toContain('Food')
+  expect(backend.data.tasks.map((t) => t.title)).toContain('Oat milk')
+  expect(backend.data.steps.map((s) => s.title)).toContain('Skim')
+  expect(within(nav()).getByText('Food')).toBeInTheDocument()
+})

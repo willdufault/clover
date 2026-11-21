@@ -66,7 +66,8 @@ export default function TaskDetailPane({
   onDeleteStep,
   onUpdate,
   onContextMenu,
-  onRename,
+  onRenameTask,
+  onRenameStep,
 }: {
   task: Task
   selectedIds: string[]
@@ -78,7 +79,8 @@ export default function TaskDetailPane({
   onDeleteStep: (id: string) => void
   onUpdate: (patch: TaskPatch) => void
   onContextMenu: OpenContextMenu
-  onRename: (kind: RowKind, id: string, text: string) => void
+  onRenameTask: (id: string, text: string) => void
+  onRenameStep: (id: string, text: string) => void
 }) {
   const stepRow = (step: Step) => (
     <SortableRow
@@ -106,7 +108,7 @@ export default function TaskDetailPane({
         text={step.title}
         maxLength={limits.titleMax}
         selectOnModifierClick
-        onCommit={(name) => onRename(RowKind.Step, step.id, name)}
+        onCommit={(name) => onRenameStep(step.id, name)}
         className={'min-w-0 flex-1 break-words ' + (step.completed ? 'text-ink-faint line-through' : 'text-ink')}
         inputClassName="min-w-0 flex-1 rounded-lg border border-clover-400 bg-paper px-1 py-0.5 text-sm text-ink outline-none"
       />
@@ -132,7 +134,7 @@ export default function TaskDetailPane({
           task={task}
           heading
           onSetStage={(stage) => onUpdate({ stage })}
-          onRename={onRename}
+          onRename={onRenameTask}
         />
         <button onClick={onClose} aria-label="Close panel" className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}>
           ✕

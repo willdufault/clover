@@ -206,18 +206,16 @@ export default function App() {
     })
   }
 
-  const renameItem = (kind: RowKind, id: string, name: string) =>
+  const renameList = (id: string, name: string) =>
     run(async () => {
-      if (kind === RowKind.List) {
-        const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
-        if (!updated) throw new Error('List rename returned no list')
-        setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
-      } else if (kind === RowKind.Task) {
-        await patchTasks([{ id, title: name }])
-      } else {
-        await patchSteps([{ id, title: name }])
-      }
+      const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
+      if (!updated) throw new Error('List rename returned no list')
+      setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
+
+  const renameTask = (id: string, title: string) => run(() => patchTasks([{ id, title }]))
+
+  const renameStep = (id: string, title: string) => run(() => patchSteps([{ id, title }]))
 
   const createList = (name: string) => {
     if (atLimit(lists.length, limits.listsPerUser, 'List limit reached')) return
@@ -328,7 +326,7 @@ export default function App() {
             selectedListId={selectedListId}
             listName={listName}
             renamable={!!currentList}
-            onRename={renameItem}
+            onRenameList={renameList}
             tasks={listTasks}
             onAddTask={addTask}
             onSort={sortList}
@@ -350,7 +348,8 @@ export default function App() {
               onDeleteStep={(id) => deleteSteps([id])}
               onUpdate={(patch) => updateTask(detailTask.id, patch)}
               onContextMenu={openContextMenu}
-              onRename={renameItem}
+              onRenameTask={renameTask}
+              onRenameStep={renameStep}
             />
           )}
         </div>

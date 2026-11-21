@@ -44,7 +44,7 @@ export default function TaskPane({
   onClearSelection,
   onSetStage,
   onContextMenu,
-  onRename,
+  onRenameList,
 }: {
   selectedListId: string
   listName: string | undefined
@@ -57,7 +57,7 @@ export default function TaskPane({
   onClearSelection: () => void
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
-  onRename: (kind: RowKind, id: string, text: string) => void
+  onRenameList: (id: string, text: string) => void
 }) {
   const doneCount = tasks.filter((task) => isCompleted(task.stage)).length
 
@@ -106,7 +106,7 @@ export default function TaskPane({
           text={listName ?? ''}
           maxLength={limits.listNameMax}
           editable={renamable}
-          onCommit={(name) => onRename(RowKind.List, selectedListId, name)}
+          onCommit={(name) => onRenameList(selectedListId, name)}
           className={
             '-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
             (renamable ? ' transition hover:bg-cream' : '')
