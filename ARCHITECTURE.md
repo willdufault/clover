@@ -27,7 +27,7 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 - Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list).
 - Step: `taskId`, `title`, `completed` (default false). `taskId` is set on create and can't be patched.
 - Every request loads all of a user's items with one strongly consistent Query (`ConsistentRead=True`, no pagination; worst case ~210 items).
-- Writes that change counts or parents (creates, `PATCH /tasks` moving a task into a list, `DELETE /lists`/`/tasks`) bump `META.version` in their transaction, conditioned on it being unchanged since the read (or absent). On mismatch the route re-runs from the read, up to 3 tries. This keeps count limits and parent existence strict under concurrency.
+- Writes that change counts or parents (creates, `PATCH /tasks` changing a task's `listId`, `DELETE /lists`/`/tasks`) bump `META.version` in their transaction, conditioned on it being unchanged since the read (or absent). On mismatch the route re-runs from the read, up to 3 tries. This keeps count limits and parent existence strict under concurrency.
 
 ## API
 

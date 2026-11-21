@@ -175,6 +175,14 @@ def test_update_task_deleted_after_read_is_404(call: Callable, mock_table: Table
     assert mock_table.scan()["Items"] == before
 
 
+def test_move_out_during_list_delete_keeps_task(call: Callable, race: Callable) -> None:
+    lst = call("POST /lists", {"name": "L"})[1]
+    task = call("POST /tasks", {"title": "T", "listId": lst["id"]})[1]
+    race(lambda: call("PATCH /tasks", [{"id": task["id"], "listId": None}]))
+    assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
+    assert call("GET /data")[1]["tasks"] == [{**task, "listId": None}]
+
+
 def test_create_in_list_deleted_after_read_is_404(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L"})[1]
     race(lambda: call("DELETE /lists", {"ids": [lst["id"]]}))

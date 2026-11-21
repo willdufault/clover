@@ -64,10 +64,10 @@ def update_task(event: dict, user_id: str) -> dict:
     targets = set()
     for task_id, data in patches:
         list_id = data.get("listId", list_of[task_id])
-        if list_id is not None and list_id != list_of[task_id]:
+        if list_id != list_of[task_id]:
             targets.add(list_id)
         list_of[task_id] = list_id
-    for list_id in targets:
+    for list_id in targets - {None}:
         if not any(i["SK"] == f"LIST#{list_id}" for i in items):
             raise api.ApiError(404, "List not found")
         if list(list_of.values()).count(list_id) > schema.TASKS_PER_LIST:
