@@ -8,7 +8,7 @@ Run commands from `backend/`.
 
 ### Validation
 
-- Before finishing, run `uv run pytest -q`, `uv run ruff check .`, and `uv run ruff format --check .`.
+- Before finishing, run `uv run pytest -q`, `uv run ruff check --ignore-noqa .`, `uv run ruff format --check .`, and `uv run ty check`.
 
 ## Frontend (`frontend/`)
 

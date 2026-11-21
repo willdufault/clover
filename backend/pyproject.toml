@@ -9,6 +9,7 @@ dev = [
     "boto3>=1.44.3",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
+    "ty>=0.0.107",
 ]
 
 [tool.pytest.ini_options]
@@ -19,5 +20,10 @@ testpaths = ["tests"]
 line-length = 120
 
 [tool.ruff.lint]
-select = ["F", "E", "W", "I", "B", "UP", "SIM", "C4", "RET", "PIE", "C90", "ERA", "PT", "RUF"]
-ignore = ["B904"]
+select = ["E", "W", "F", "I", "B", "UP", "C90", "ERA", "SIM", "C4", "RET", "PIE", "PT", "RUF"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
