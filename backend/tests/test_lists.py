@@ -1,4 +1,4 @@
-from common import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
+from shared.schema import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
 def test_create_and_get(call, mock_table):

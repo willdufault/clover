@@ -13,8 +13,10 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth; fron
 ## Backend code
 
 - `index.py`: `handler` looks up `event["routeKey"]`, reads user id from JWT claim `sub`, maps `ApiError` to `{"error": ...}`.
-- `handlers.py`: one `(event, user_id)` function per route.
-- `common.py`: table client, parsing, validation, storage helpers, limits.
+- `handlers.py`: one `(event, user_id)` function per route, plus limit and parent checks.
+- `shared/api.py`: `ApiError`/`Stale`, responses, JSON body parsing.
+- `shared/schema.py`: limits, field validation, id and patch parsing.
+- `shared/db.py`: table client, item helpers, transactions with retry, create/update/delete.
 - `tests/`: pytest with moto-mocked DynamoDB.
 
 ## Data model
@@ -47,7 +49,7 @@ Errors (`{"error": "..."}`; nothing is written, except list/task deletes may hav
 
 ## Limits
 
-Limits are defined once in `backend/limits.json`, read by `backend/common.py` and imported directly by the frontend (which checks them before calling the API).
+Limits are defined once in `backend/limits.json`, read by `backend/shared/schema.py` and imported directly by the frontend (which checks them before calling the API).
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.

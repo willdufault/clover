@@ -1,7 +1,7 @@
 import traceback
 
-import common
 import handlers
+from shared import api
 
 STALE_RETRIES = 2
 
@@ -22,17 +22,17 @@ ROUTES = {
 def handler(event, context):
     route = ROUTES.get(event["routeKey"])
     if route is None:
-        return common.response(404, {"error": "Not found"})
+        return api.response(404, {"error": "Not found"})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
         for _ in range(STALE_RETRIES):
             try:
                 return route(event, user_id)
-            except common.Stale:
+            except api.Stale:
                 pass
         return route(event, user_id)
-    except common.ApiError as e:
-        return common.response(e.status, {"error": e.message})
+    except api.ApiError as e:
+        return api.response(e.status, {"error": e.message})
     except Exception:
         traceback.print_exc()
-        return common.response(500, {"error": "Internal error"})
+        return api.response(500, {"error": "Internal error"})

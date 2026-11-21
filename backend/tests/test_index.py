@@ -1,4 +1,4 @@
-import common
+from shared import db
 
 
 def test_unknown_route(call):
@@ -30,7 +30,7 @@ def test_unexpected_error_is_500(call, monkeypatch):
     def boom(user_id):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(common, "load_all", boom)
+    monkeypatch.setattr(db, "load_all", boom)
     assert call("GET /data") == (500, {"error": "Internal error"})
 
 
@@ -51,7 +51,7 @@ def test_first_write_after_stale_read_retries(call, mock_table, race):
 
 
 def test_exhausted_stale_retries_is_409(call, monkeypatch):
-    stale = common.load_all("user-1")
+    stale = db.load_all("user-1")
     call("POST /lists", {"name": "A"})
-    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+    monkeypatch.setattr(db, "load_all", lambda user_id: stale)
     assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})

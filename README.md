@@ -9,7 +9,7 @@ frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
   src/          app code (api.ts = auth + API client; limits come from backend/limits.json)
   tests/unit/   Vitest + Testing Library
   tests/e2e/    Playwright, API mocked in-browser
-backend/    Python 3.14 Lambda (index.py router, handlers.py, common.py)
+backend/    Python 3.14 Lambda (index.py router, handlers.py, shared/{api,schema,db}.py)
   tests/        pytest with moto-mocked DynamoDB
 infra/      Terraform: DynamoDB, Cognito, Lambda, HTTP API
 ```

@@ -1,4 +1,4 @@
-from common import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
+from shared.schema import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
 def test_create_defaults(call):

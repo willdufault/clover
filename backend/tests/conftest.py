@@ -9,8 +9,8 @@ os.environ["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] = "true"
 os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 os.environ["TABLE_NAME"] = "test"
 
-import common
 import index
+from shared import db
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def mock_table(monkeypatch):
             ],
             BillingMode="PAY_PER_REQUEST",
         )
-        monkeypatch.setattr(common, "table", mock_table)
+        monkeypatch.setattr(db, "table", mock_table)
         yield mock_table
 
 
@@ -49,9 +49,9 @@ def call(mock_table):
 @pytest.fixture
 def race(monkeypatch):
     def race(concurrent):
-        reads = [common.load_all("user-1")]
+        reads = [db.load_all("user-1")]
         concurrent()
-        real = common.load_all
-        monkeypatch.setattr(common, "load_all", lambda user_id: reads.pop() if reads else real(user_id))
+        real = db.load_all
+        monkeypatch.setattr(db, "load_all", lambda user_id: reads.pop() if reads else real(user_id))
 
     return race
