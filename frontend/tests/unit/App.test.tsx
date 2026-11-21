@@ -48,10 +48,17 @@ const lists = () =>
     .getAllByRole('button')
     .map((button) => (button.textContent ?? '').replace(/\d+$/, '').replace(/^\S+ /, ''))
     .filter((text) => !text.startsWith('+'))
-const row = (name: string, root: HTMLElement = main()) =>
-  rowsIn(root).filter((rowElement) => rowName(rowElement) === name)[0]
+const row = (name: string, root: HTMLElement = main()) => {
+  const match = rowsIn(root).find((rowElement) => rowName(rowElement) === name)
+  if (!match) throw new Error(`No row named ${name}`)
+  return match
+}
 const stageSelect = (name: string) => within(row(name)).getByRole('combobox')
-const last = (elements: HTMLElement[]) => elements[elements.length - 1]
+const last = (elements: HTMLElement[]) => {
+  const element = elements.at(-1)
+  if (!element) throw new Error('No elements')
+  return element
+}
 const dueInput = () => last(within(aside()).getAllByDisplayValue(/^(\d{4}-\d{2}-\d{2})?$/))
 
 type User = ReturnType<typeof userEvent.setup>

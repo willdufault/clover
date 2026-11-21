@@ -38,7 +38,9 @@ test('reorder steps: task order and other tasks untouched', () => {
   const result = applyDrop(makeState(), { ...baseDrop, detailTaskId: 'a1', activeId: 's1', overId: 's3' })
   const expected = makeState()
   expect(ids(result.tasks)).toEqual(ids(expected.tasks))
-  expect(ids(result.tasks[0].steps)).toEqual(['s2', 's3', 's1'])
+  const [task] = result.tasks
+  if (!task) throw new Error('No task')
+  expect(ids(task.steps)).toEqual(['s2', 's3', 's1'])
   expect(result.tasks.slice(1)).toEqual(expected.tasks.slice(1))
 })
 

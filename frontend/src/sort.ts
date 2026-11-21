@@ -22,5 +22,5 @@ export const applySort = (all: Task[], visible: Task[], criteria: SortCriteria) 
   const sorted = sortTasks(visible, criteria)
   const slots = new Set(visible)
   let next = 0
-  return all.map((task) => (slots.has(task) ? sorted[next++] : task))
+  return all.map((task) => (slots.has(task) ? (sorted[next++] ?? task) : task))
 }

@@ -210,6 +210,7 @@ export default function App() {
     run(async () => {
       if (kind === RowKind.List) {
         const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
+        if (!updated) throw new Error('List rename returned no list')
         setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
       } else if (kind === RowKind.Task) {
         await patchTasks([{ id, title: name }])
@@ -367,8 +368,10 @@ export default function App() {
           menu={menu}
           onClose={() => setMenu(null)}
           onDelete={() => {
-            if (menu.kind === RowKind.List) deleteList(menu.ids[0])
-            else if (menu.kind === RowKind.Task) deleteTasks(menu.ids)
+            if (menu.kind === RowKind.List) {
+              const [listId] = menu.ids
+              if (listId) deleteList(listId)
+            } else if (menu.kind === RowKind.Task) deleteTasks(menu.ids)
             else deleteSteps(menu.ids)
           }}
           onUpdate={(patch) => updateTasks(menu.ids, patch)}
