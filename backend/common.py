@@ -53,8 +53,8 @@ def parse_json(event):
         raw = base64.b64decode(raw)
     try:
         return json.loads(raw)
-    except ValueError:
-        raise ApiError(400, "Invalid JSON")
+    except ValueError as e:
+        raise ApiError(400, "Invalid JSON") from e
 
 
 def parse_body(event):
@@ -232,12 +232,12 @@ def transact(writes):
                 if reason == "ConditionalCheckFailed":
                     sk = write["Update"]["Key"]["SK"]
                     if sk == "META":
-                        raise Stale()
-                    raise ApiError(404, f"{sk.split('#')[0].capitalize()} not found")
+                        raise Stale() from e
+                    raise ApiError(404, f"{sk.split('#')[0].capitalize()} not found") from e
             if "TransactionConflict" not in reasons:
                 raise
             if attempt == TRANSACTION_RETRIES:
-                raise ApiError(409, "Concurrent update")
+                raise ApiError(409, "Concurrent update") from e
             time.sleep(delay + random.uniform(0, RETRY_JITTER))
             delay *= 2
 
