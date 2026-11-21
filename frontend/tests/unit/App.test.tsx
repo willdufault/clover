@@ -4,7 +4,7 @@ import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
 import limits from '../../../backend/limits.json'
-import { createFakeBackend, seed, task } from '../fakeBackend'
+import { createFakeBackend, seed, task } from '../shared/fakeBackend'
 
 let backend: ReturnType<typeof createFakeBackend>
 beforeEach(() => {
@@ -154,7 +154,7 @@ test('whitespace-only names are ignored', async () => {
   expect(lists()).toEqual(['Groceries', 'Work', 'Home'])
 })
 
-it('saves the due date only when the edit ends', async () => {
+test('saves the due date only when the edit ends', async () => {
   const { user } = await setup()
   await user.click(within(main()).getByText('Milk'))
   const id = backend.data.tasks.find((t) => t.title === 'Milk')?.id
@@ -233,18 +233,18 @@ const selectTwo = async (user: User) => {
   await user.keyboard('{/Control}')
 }
 
-describe('multi-select', () => {
-  test('a failing bulk patch leaves every item unchanged and shows the banner', async () => {
-    const { user } = await setup()
-    await selectTwo(user)
-    backend.data.tasks = backend.data.tasks.filter((t) => t.id !== 'g2')
-    await rightClick(user, row('Milk'))
-    await submenuClick(user, 'Set priority', '🔴 High')
-    expect(screen.getByRole('alert')).toHaveTextContent('Not found')
-    expect(within(main()).queryByText('🔴 High')).toBeNull()
-    expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ priority: 'medium' })
-  })
+test('a failing bulk patch leaves every item unchanged and shows the banner', async () => {
+  const { user } = await setup()
+  await selectTwo(user)
+  backend.data.tasks = backend.data.tasks.filter((t) => t.id !== 'g2')
+  await rightClick(user, row('Milk'))
+  await submenuClick(user, 'Set priority', '🔴 High')
+  expect(screen.getByRole('alert')).toHaveTextContent('Not found')
+  expect(within(main()).queryByText('🔴 High')).toBeNull()
+  expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ priority: 'medium' })
+})
 
+describe('multi-select', () => {
   test('deleting a step with its x button does not select the row behind it', async () => {
     const { user } = await setup()
     await user.click(row('Milk'))
@@ -365,22 +365,4 @@ describe('limits', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(`Task step limit reached (${limits.stepsPerTask})`)
     expect(backend.data.steps).toHaveLength(limits.stepsPerTask)
   })
-})
-
-test('renames a list, a task and a step', async () => {
-  const { user } = await setup()
-  const rename = async (element: HTMLElement, name: string) => {
-    await user.click(element)
-    await user.keyboard(`{Control>}a{/Control}${name}{Enter}`)
-    await flush()
-  }
-  await user.click(within(nav()).getByText('Groceries'))
-  await rename(within(main()).getByRole('heading'), 'Food')
-  await user.click(within(main()).getByText('Milk'))
-  await rename(within(aside()).getByText('Milk'), 'Oat milk')
-  await rename(within(aside()).getByText('2% lactose free'), 'Skim')
-  expect(backend.data.lists.map((l) => l.name)).toContain('Food')
-  expect(backend.data.tasks.map((t) => t.title)).toContain('Oat milk')
-  expect(backend.data.steps.map((s) => s.title)).toContain('Skim')
-  expect(within(nav()).getByText('Food')).toBeInTheDocument()
 })

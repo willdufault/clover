@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { createFakeBackend, seed } from '../fakeBackend'
+import { createFakeBackend, seed } from '../shared/fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page, data = seed()) => {

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { today } from '../../src/dates'
-import { seed, task as makeTask } from '../fakeBackend'
-import { captureErrors, mockApi, navRow } from './mockApi'
+import { seed, task as makeTask } from '../shared/fakeBackend'
+import { captureErrors, mockApi, navRow } from './helpers'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
   const errors = captureErrors(page)
