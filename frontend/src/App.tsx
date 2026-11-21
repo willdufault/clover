@@ -213,8 +213,6 @@ export default function App() {
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
-  const renameTask = (id: string, title: string) => run(() => patchTasks([{ id, title }]))
-
   const renameStep = (id: string, title: string) => run(() => patchSteps([{ id, title }]))
 
   const createList = (name: string) => {
@@ -348,7 +346,6 @@ export default function App() {
               onDeleteStep={(id) => deleteSteps([id])}
               onUpdate={(patch) => updateTask(detailTask.id, patch)}
               onContextMenu={openContextMenu}
-              onRenameTask={renameTask}
               onRenameStep={renameStep}
             />
           )}

@@ -66,7 +66,6 @@ export default function TaskDetailPane({
   onDeleteStep,
   onUpdate,
   onContextMenu,
-  onRenameTask,
   onRenameStep,
 }: {
   task: Task
@@ -79,7 +78,6 @@ export default function TaskDetailPane({
   onDeleteStep: (id: string) => void
   onUpdate: (patch: TaskPatch) => void
   onContextMenu: OpenContextMenu
-  onRenameTask: (id: string, text: string) => void
   onRenameStep: (id: string, text: string) => void
 }) {
   const stepRow = (step: Step) => (
@@ -134,7 +132,7 @@ export default function TaskDetailPane({
           task={task}
           heading
           onSetStage={(stage) => onUpdate({ stage })}
-          onRename={onRenameTask}
+          onRename={(_id, title) => onUpdate({ title })}
         />
         <button onClick={onClose} aria-label="Close panel" className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}>
           ✕
