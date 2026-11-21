@@ -53,6 +53,11 @@ def children(items: list, kind: str, field: str, parent_ids: Collection) -> list
     return [i for i in items if kind_of(i) == kind and i[field] in parent_ids]
 
 
+def orphan_steps(items: list) -> list:
+    tasks = {id_of(i) for i in items if kind_of(i) == "TASK"}
+    return [i for i in items if kind_of(i) == "STEP" and i["taskId"] not in tasks]
+
+
 def bump(user_id: str, items: list) -> dict:
     seen = next((i["version"] for i in items if i["SK"] == "META"), 0)
     return {
@@ -118,16 +123,17 @@ def update_many(user_id: str, kind: str, patches: list, items: list, checks: Ite
     return [to_api({**found[i], **data}) for i, data in patches]
 
 
-# Groups go children first (steps, tasks, lists), each flushed before the next,
-# so a failure partway never orphans children; retrying the DELETE finishes it.
 def delete(*groups: list) -> None:
     for items in groups:
-        with table.batch_writer() as batch:
+        with table.batch_writer(overwrite_by_pkeys=["PK", "SK"]) as batch:
             for item in items:
                 batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
 
 
+# Parents go first with the META bump, so the children read is current when they
+# commit and no new child can be added after. A crash before the children are
+# deleted orphans them; DELETE /steps sweeps orphan steps.
 def delete_parents(user_id: str, items: list, parents: list, *children: list) -> None:
-    delete(*children)
     deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
     transact([bump(user_id, items), *deletes])
+    delete(*children)

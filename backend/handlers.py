@@ -43,7 +43,7 @@ def delete_list(event: dict, user_id: str) -> dict:
     tasks = db.children(items, "TASK", "listId", ids)
     task_ids = {db.id_of(t) for t in tasks}
     steps = db.children(items, "STEP", "taskId", task_ids)
-    db.delete_parents(user_id, items, lists, steps, tasks)
+    db.delete_parents(user_id, items, lists, tasks, steps)
     return api.response(204)
 
 
@@ -100,6 +100,6 @@ def update_step(event: dict, user_id: str) -> dict:
 
 def delete_step(event: dict, user_id: str) -> dict:
     ids = schema.parse_ids(event)
-    steps = db.matching(db.load_all(user_id), "STEP", ids)
-    db.delete(steps)
+    items = db.load_all(user_id)
+    db.delete(db.matching(items, "STEP", ids) + db.orphan_steps(items))
     return api.response(204)

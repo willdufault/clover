@@ -38,9 +38,9 @@ All JSON. Items are returned as `{id, ...fields}`.
 | `GET /data` | 200 `{"lists": [...], "tasks": [...], "steps": [...]}` |
 | `POST /lists`, `/tasks`, `/steps` | Body: one item's fields (defaults filled). Checks limits and that `listId`/`taskId` exists. One `TransactWriteItems`: Put + META bump. 201 with the item. |
 | `PATCH /lists`, `/tasks`, `/steps` | Body: `[{"id": ..., ...fields}]`, 1–99 unique ids, partial fields. All-or-nothing: one `TransactWriteItems` that SETs only given fields (condition `attribute_exists(PK)`), plus a META bump if any task moves into a list, retried up to 3 times with backoff and jitter on `TransactionConflict`; id-only patches are skipped. 200 with full updated items in request order. |
-| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–99 unique. Cascades list → its tasks → their steps, task → its steps. Lists/tasks: batch delete children first, then one `TransactWriteItems` {META bump, Delete parents}; on mismatch re-read, delete new children, retry. Steps: batch delete. Ids already gone are skipped, so retries are safe. 204. |
+| `DELETE /lists`, `/tasks`, `/steps` | Body: `{"ids": [...]}`, 1–99 unique. Cascades list → its tasks → their steps, task → its steps. Lists/tasks: one `TransactWriteItems` {META bump, Delete parents} first (on mismatch re-read and retry), then batch delete children. Steps: batch delete, plus any orphan steps (task gone, e.g. after a crash mid-cascade). Ids already gone are skipped, so retries are safe. 204. |
 
-Errors (`{"error": "..."}`; nothing is written, except list/task deletes may have removed children):
+Errors (`{"error": "..."}`; nothing is written):
 
 - 400: bad JSON, bad body shape, bad/duplicate ids, unknown, invalid or missing field.
 - 404: unknown route, PATCH id not found, referenced `listId`/`taskId` not found.

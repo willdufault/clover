@@ -55,6 +55,14 @@ def test_delete_after_stale_read_retries(call: Callable, race: Callable) -> None
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
+def test_delete_with_step_added_after_read_removes_step(call: Callable, mock_table: Table, race: Callable) -> None:
+    lst = call("POST /lists", {"name": "A"})[1]
+    task = call("POST /tasks", {"title": "T", "listId": lst["id"]})[1]
+    race(lambda: call("POST /steps", {"title": "S", "taskId": task["id"]}))
+    assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
+    assert [i["SK"] for i in mock_table.scan()["Items"] if i["SK"] != "META"] == []
+
+
 def test_update_does_not_bump_meta(call: Callable, mock_table: Table) -> None:
     lst = call("POST /lists", {"name": "A"})[1]
     version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
@@ -132,7 +140,7 @@ def test_delete_body_validation(call: Callable) -> None:
     assert call("GET /data")[1]["lists"] == [a]
 
 
-def test_delete_goes_children_first(call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_delete_goes_parents_first(call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch) -> None:
     lst = call("POST /lists", {"name": "A"})[1]
     task = call("POST /tasks", {"title": "T", "listId": lst["id"]})[1]
     call("POST /steps", {"taskId": task["id"], "title": "S"})
@@ -152,4 +160,4 @@ def test_delete_goes_children_first(call: Callable, mock_table: Table, monkeypat
     monkeypatch.setattr(client, "batch_write_item", batch)
     monkeypatch.setattr(client, "transact_write_items", transact)
     assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
-    assert order == ["STEP", "TASK", "LIST"]
+    assert order == ["LIST", "TASK", "STEP"]
