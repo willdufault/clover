@@ -314,7 +314,7 @@ test('a task that left the view is not deleted with the selection', async () => 
 test('leading and trailing spaces are not stored', async () => {
   const { user } = await setup()
   await user.type(screen.getByPlaceholderText(/new task/i), '  Bread  {Enter}')
-  expect(tasks()[0]).toBe('Bread')
+  expect(tasks().at(-1)).toBe('Bread')
   await user.click(within(main()).getByText('Bread'))
   await newStep(user, '  Toast  ')
   expect(steps()).toEqual(['Toast'])

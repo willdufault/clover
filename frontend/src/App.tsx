@@ -133,7 +133,7 @@ export default function App() {
         listId: currentList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
       })
-      setTasks((prev) => [{ ...task, steps: [] }, ...prev])
+      setTasks((prev) => [...prev, { ...task, steps: [] }])
     })
 
   const addStep = (title: string) =>

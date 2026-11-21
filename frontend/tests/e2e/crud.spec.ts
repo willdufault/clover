@@ -122,7 +122,7 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await navRow(page, '📋 All').click()
   await page.getByPlaceholder('+ New task').fill('Call mom')
   await page.getByPlaceholder('+ New task').press('Enter')
-  await expect(rows.first()).toContainText('Call mom')
+  await expect(rows.last()).toContainText('Call mom')
   await expect(navRow(page, '📋 All')).toHaveText('📋 All6')
   expect(backend.data.tasks.find((t) => t.title === 'Call mom')).toMatchObject({ listId: null, addedToToday: false })
   for (const list of ['Groceries', 'Work', 'Home']) {
@@ -161,7 +161,7 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await expect(page.locator('aside')).toHaveCount(0)
   expect(backend.data.tasks.some((t) => t.title === 'Review PR')).toBe(false)
 
-  await expect(rows.first()).toContainText('Water plants')
+  await expect(rows.last()).toContainText('Water plants')
   await page.getByRole('button', { name: 'Sort' }).click()
   await page.getByRole('button', { name: 'Stage', exact: true }).click()
   await expect(rows.last()).toContainText('Water plants')
