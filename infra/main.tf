@@ -48,6 +48,10 @@ resource "aws_cognito_user_pool" "users" {
   username_configuration {
     case_sensitive = false
   }
+
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
 }
 
 resource "aws_cognito_user_pool_domain" "users" {
