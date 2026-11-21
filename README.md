@@ -38,7 +38,7 @@ npm run build  # type-check and build
 Run from `backend/` (uses [uv](https://docs.astral.sh/uv/)):
 
 ```sh
-uv sync                          # install dev deps (boto3, pytest, moto, ruff, ty)
+uv sync                          # install dev deps (boto3, pytest, moto, hypothesis, ruff, ty)
 uv run pytest                    # tests
 uv run ruff check --ignore-noqa  # lint
 uv run ruff format               # format
