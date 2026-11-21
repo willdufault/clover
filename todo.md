@@ -2,3 +2,4 @@
 - clickin gin the due date field is kind of weird, it selects the mm/dd/yyyy where you click
 - remove any unnecessary ui elements; minimal, only add more if unclear
 - look into using enums in frontend and backend
+- look into adding video evidence to PRs
