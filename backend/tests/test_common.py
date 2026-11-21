@@ -1,7 +1,9 @@
+import base64
 import json
 from datetime import date
 
 import pytest
+from botocore.exceptions import ClientError
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -28,6 +30,11 @@ def outcome(fn, *args, **kwargs):
 @given(st.text() | st.none(), st.booleans())
 def test_parse_json_only_fails_with_400(body, is_base64):
     outcome(common.parse_json, {"body": body, "isBase64Encoded": is_base64})
+
+
+def test_parse_json_decodes_base64():
+    body = base64.b64encode(b'{"a": 1}').decode()
+    assert common.parse_json({"body": body, "isBase64Encoded": True}) == {"a": 1}
 
 
 @given(json_values)
@@ -95,3 +102,60 @@ def test_optional_date_accepts_every_date(value):
 @pytest.mark.parametrize("value", ["20240101", "2024-1-1", "2024-02-30"])
 def test_optional_date_rejects_non_iso(value):
     assert not common.optional_date(value)
+
+
+def put(mock_table):
+    return {"Put": {"TableName": mock_table.name, "Item": {"PK": "user-1", "SK": "LIST#a"}}}
+
+
+def cancelled(code):
+    error = {
+        "Error": {"Code": "TransactionCanceledException"},
+        "CancellationReasons": [{"Code": code}],
+    }
+    return ClientError(error, "TransactWriteItems")
+
+
+def test_transaction_conflict_is_retried(mock_table, monkeypatch):
+    monkeypatch.setattr(common.time, "sleep", lambda s: None)
+    real = mock_table.meta.client.transact_write_items
+    failures = [cancelled("TransactionConflict")]
+
+    def flaky(TransactItems):
+        if failures:
+            raise failures.pop()
+        return real(TransactItems=TransactItems)
+
+    mock_table.meta.client.transact_write_items = flaky
+    common.transact([put(mock_table)])
+    assert "Item" in mock_table.get_item(Key={"PK": "user-1", "SK": "LIST#a"})
+
+
+def test_transaction_conflict_gives_up_with_409(mock_table, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(common.time, "sleep", sleeps.append)
+
+    def always(TransactItems):
+        raise cancelled("TransactionConflict")
+
+    mock_table.meta.client.transact_write_items = always
+    with pytest.raises(ApiError) as e:
+        common.transact([put(mock_table)])
+    assert (e.value.status, e.value.message) == (409, "Concurrent update")
+    assert len(sleeps) == common.TRANSACTION_RETRIES
+    bases = [common.RETRY_BASE_DELAY * 2**i for i in range(common.TRANSACTION_RETRIES)]
+    for base, slept in zip(bases, sleeps, strict=True):
+        assert base <= slept <= base + common.RETRY_JITTER
+
+
+def test_transaction_other_error_is_raised_without_retry(mock_table, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(common.time, "sleep", sleeps.append)
+
+    def always(TransactItems):
+        raise cancelled("ValidationError")
+
+    mock_table.meta.client.transact_write_items = always
+    with pytest.raises(ClientError):
+        common.transact([put(mock_table)])
+    assert sleeps == []

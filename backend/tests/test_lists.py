@@ -1,4 +1,3 @@
-import common
 from common import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
@@ -15,6 +14,7 @@ def test_create_validation(call):
     assert call("POST /lists", {"name": " "})[0] == 400
     assert call("POST /lists", {"name": "x" * (LIST_NAME_MAX + 1)})[0] == 400
     assert call("POST /lists", {"name": "a", "emoji": "x"})[0] == 400
+    assert call("POST /lists", {"name": "x" * LIST_NAME_MAX})[0] == 201
 
 
 def test_user_limit(call):
@@ -50,22 +50,6 @@ def test_delete_after_stale_read_retries(call, race):
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
 
 
-def test_first_writes_race_retries(call, mock_table, race):
-    race(lambda: call("POST /lists", {"name": "A"}))
-    attempts = []
-    real = mock_table.meta.client.transact_write_items
-
-    def counted(TransactItems):
-        attempts.append(1)
-        return real(TransactItems=TransactItems)
-
-    mock_table.meta.client.transact_write_items = counted
-    assert call("POST /lists", {"name": "B"})[0] == 201
-    assert len(call("GET /data")[1]["lists"]) == 2
-    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 2
-    assert len(attempts) == 2
-
-
 def test_update_does_not_bump_meta(call, mock_table):
     lst = call("POST /lists", {"name": "A"})[1]
     version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
@@ -80,6 +64,7 @@ def test_update(call):
         [{"id": lst["id"], "name": "B"}],
     )
     assert call("PATCH /lists", [{"id": lst["id"], "name": ""}])[0] == 400
+    assert call("PATCH /lists", [{"id": lst["id"], "name": "x" * (LIST_NAME_MAX + 1)}])[0] == 400
     assert call("PATCH /lists", [{"id": "missing", "name": "B"}])[0] == 404
 
 
@@ -163,10 +148,3 @@ def test_delete_goes_children_first(call, mock_table):
     client.transact_write_items = transact
     assert call("DELETE /lists", {"ids": [lst["id"]]}) == (204, None)
     assert order == ["STEP", "TASK", "LIST"]
-
-
-def test_exhausted_stale_retries_is_409(call, monkeypatch):
-    stale = common.load_all("user-1")
-    call("POST /lists", {"name": "A"})
-    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
-    assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})

@@ -19,6 +19,7 @@ def test_create_validation(call, task):
     assert call("POST /steps", {"taskId": task["id"]})[0] == 400
     assert call("POST /steps", {"title": "x" * (TITLE_MAX + 1), "taskId": task["id"]})[0] == 400
     assert call("POST /steps", {"title": "S", "taskId": "missing"})[0] == 404
+    assert call("POST /steps", {"title": "x" * TITLE_MAX, "taskId": task["id"]})[0] == 201
 
 
 def test_task_limit(call, task):
@@ -47,6 +48,7 @@ def test_update(call, task):
     assert call("PATCH /steps", [{"id": step["id"], "taskId": "x"}])[0] == 400
     assert call("PATCH /steps", [{"id": step["id"], "completed": 1}])[0] == 400
     assert call("PATCH /steps", [{"id": "missing", "title": "S"}])[0] == 404
+    assert call("PATCH /steps", [{"id": step["id"], "title": "x" * (TITLE_MAX + 1)}])[0] == 400
 
 
 def test_delete(call, task):
@@ -65,3 +67,11 @@ def test_create_on_task_deleted_after_read_is_404(call, task, race):
         {"error": "Task not found"},
     )
     assert call("GET /data")[1] == {"lists": [], "tasks": [], "steps": []}
+
+
+def test_create_over_task_limit_after_stale_read_is_409(call, task, race):
+    for i in range(STEPS_PER_TASK - 1):
+        call("POST /steps", {"title": f"S{i}", "taskId": task["id"]})
+    race(lambda: call("POST /steps", {"title": "concurrent", "taskId": task["id"]}))
+    assert call("POST /steps", {"title": "too many", "taskId": task["id"]}) == (409, {"error": "Task is full"})
+    assert len(call("GET /data")[1]["steps"]) == STEPS_PER_TASK

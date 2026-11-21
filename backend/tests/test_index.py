@@ -32,3 +32,26 @@ def test_unexpected_error_is_500(call, monkeypatch):
 
     monkeypatch.setattr(common, "load_all", boom)
     assert call("GET /data") == (500, {"error": "Internal error"})
+
+
+def test_first_write_after_stale_read_retries(call, mock_table, race):
+    race(lambda: call("POST /lists", {"name": "A"}))
+    attempts = []
+    real = mock_table.meta.client.transact_write_items
+
+    def counted(TransactItems):
+        attempts.append(1)
+        return real(TransactItems=TransactItems)
+
+    mock_table.meta.client.transact_write_items = counted
+    assert call("POST /lists", {"name": "B"})[0] == 201
+    assert len(call("GET /data")[1]["lists"]) == 2
+    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 2
+    assert len(attempts) == 2
+
+
+def test_exhausted_stale_retries_is_409(call, monkeypatch):
+    stale = common.load_all("user-1")
+    call("POST /lists", {"name": "A"})
+    monkeypatch.setattr(common, "load_all", lambda user_id: stale)
+    assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})
