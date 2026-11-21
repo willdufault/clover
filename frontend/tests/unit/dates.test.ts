@@ -1,7 +1,7 @@
 import * as fc from 'fast-check'
 import { formatDueDate, isOverdue, nextMonday, relativeDayLabel, today, tomorrow } from '../../src/dates'
 
-const now = new Date('2026-11-08T17:00:00Z') // Sunday
+const now = new Date('2026-11-08T17:00:00') // Sunday
 
 test('today and tomorrow', () => {
   expect(today(now)).toBe('2026-11-08')
@@ -10,8 +10,8 @@ test('today and tomorrow', () => {
 
 test('nextMonday is strictly after today', () => {
   expect(nextMonday(now)).toBe('2026-11-09')
-  expect(nextMonday(new Date('2026-11-09T17:00:00Z'))).toBe('2026-11-16')
-  expect(nextMonday(new Date('2026-11-11T17:00:00Z'))).toBe('2026-11-16')
+  expect(nextMonday(new Date('2026-11-09T17:00:00'))).toBe('2026-11-16')
+  expect(nextMonday(new Date('2026-11-11T17:00:00'))).toBe('2026-11-16')
 })
 
 test('formatDueDate', () => {
