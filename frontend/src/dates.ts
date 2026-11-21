@@ -1,0 +1,39 @@
+const utcDate = (date: string) => new Date(`${date}T00:00:00Z`)
+
+const addDays = (date: string, days: number) => {
+  const result = utcDate(date)
+  result.setUTCDate(result.getUTCDate() + days)
+  return result.toISOString().slice(0, 10)
+}
+
+// Local date, not UTC.
+export const today = (now = new Date()) => new Intl.DateTimeFormat('en-CA').format(now)
+
+export const tomorrow = (now = new Date()) => addDays(today(now), 1)
+
+// Always after today.
+export const nextMonday = (now = new Date()) => {
+  const todayDate = today(now)
+  const weekday = utcDate(todayDate).getUTCDay()
+  return addDays(todayDate, (8 - weekday) % 7 || 7)
+}
+
+export const isOverdue = (due: string, now = new Date()) => due < today(now)
+
+export const relativeDayLabel = (due: string, now = new Date()) => {
+  const todayDate = today(now)
+  if (due === addDays(todayDate, -1)) return 'Yesterday'
+  if (due === todayDate) return 'Today'
+  if (due === addDays(todayDate, 1)) return 'Tomorrow'
+}
+
+export const formatDueDate = (due: string, now = new Date()) =>
+  relativeDayLabel(due, now) ??
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+    .format(utcDate(due))
+    .replace(',', '')

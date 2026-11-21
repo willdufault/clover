@@ -1,49 +1,62 @@
 # clover
 
-A small todo app: lists, tasks, steps, due dates, priority, stage, and drag and drop.
+Todo app: lists, tasks, steps, due dates, priority, stage, Today view, drag and drop. React frontend, serverless AWS backend.
 
-## Tech stack
-
-- React 19 + TypeScript
-- Vite
-- Tailwind CSS 4
-- dnd-kit (drag and drop)
-- Vitest + Testing Library (tests)
-- Playwright (browser tests)
-- oxlint (lint)
-
-## Structure
+## Layout
 
 ```
-src/
-  main.tsx, App.tsx        entry point and root component
-  types.ts, seed.ts        types and seed data
-  styles.ts, index.css     styles
-  smartLists, stages,      logic modules
-  drop, dates, labels,
-  selection
-  components/              UI (ListSidebar, TaskPane, TaskDetailPane, ...)
-tests/unit/                unit tests (vitest, jsdom)
-tests/e2e/                 browser tests (Playwright)
-public/                    static assets
+frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
+  src/          app code (api.ts = auth + API client; limits from backend/limits.json)
+  tests/unit/   Vitest + Testing Library
+  tests/e2e/    Playwright, API mocked in-browser
+backend/    Python 3.14 Lambda (index.py router, handlers.py, shared/{api,schema,db}.py)
+  tests/        pytest with moto-mocked DynamoDB
+infra/      Terraform: DynamoDB, Cognito, Lambda, HTTP API
 ```
 
-## Prerequisites
+## Frontend
 
-Node.js and npm.
-
-## Installation
+From `frontend/`:
 
 ```sh
 npm install
+npm run dev    # http://localhost:5173
+npm test       # unit tests (vitest)
+npm run e2e    # browser tests (playwright, starts dev server)
+npm run lint   # oxlint
+npm run build  # type-check and build
 ```
 
-## Run
+`frontend/.env`, values from Terraform outputs:
+
+- `VITE_API_URL`: `api_url`
+- `VITE_COGNITO_URL`: `cognito_url`
+- `VITE_COGNITO_CLIENT_ID`: `client_id`
+
+## Backend
+
+From `backend/` (uses [uv](https://docs.astral.sh/uv/)):
 
 ```sh
-npm run dev    # start dev server
-npm test       # run tests
-npm run e2e    # run browser tests
-npm run build  # type-check and build
-npm run lint   # lint
+uv sync                          # install dev deps (boto3, pytest, moto, hypothesis, ruff, ty)
+uv run pytest                    # tests
+uv run ruff check --ignore-noqa  # lint
+uv run ruff format               # format
+uv run ty check                  # type-check
 ```
+
+## Infra
+
+From `infra/`. State: S3 bucket `wduf-clover-terraform-state` (`us-east-1`, created by hand, native lockfile).
+
+```sh
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan
+terraform apply
+```
+
+Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`; Cognito callback/logout and CORS).
+
+Outputs: `api_url`, `cognito_url`, `client_id`.

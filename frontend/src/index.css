@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+
+  --color-milk: #fbf6e7;
+  --color-cream: #f4ecd4;
+  --color-paper: #fffcf2;
+  --color-line: #ebe1c6;
+  --color-ink: #3b3427;
+  --color-ink-soft: #5f5543;
+  --color-ink-faint: #958970;
+  --color-coral: #c4593f;
+  --color-coral-50: #fbe9e3;
+  --color-sprout: #e2edd3;
+  --color-sprout-deep: #d3e4bf;
+
+  --color-clover-50: #f0f7ea;
+  --color-clover-100: #ebf2d6;
+  --color-clover-200: #c7e2b3;
+  --color-clover-400: #86c06a;
+  --color-clover-500: #5e9f45;
+  --color-clover-700: #3a6a2a;
+
+  --shadow-soft: 0 2px 8px -3px rgba(84, 66, 30, 0.2);
+  --shadow-pop: 0 12px 32px -8px rgba(84, 66, 30, 0.25);
+}
+
+body {
+  background: var(--color-milk);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select {
+  color-scheme: light;
+  accent-color: var(--color-clover-500);
+}
+
+select.field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23958970' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.check {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border: 2px solid var(--color-clover-400);
+  border-radius: 9999px;
+  background: var(--color-paper);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.check:checked {
+  border-color: var(--color-clover-500);
+  background: var(--color-clover-500)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5 7 11l5-6'/%3E%3C/svg%3E")
+    center / 0.75rem no-repeat;
+}
+
+@keyframes pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+.pane-in {
+  animation: pane-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane-in {
+    animation: none;
+  }
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-clover-500);
+  outline-offset: 2px;
+}
