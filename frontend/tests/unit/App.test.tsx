@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
 import { createFakeBackend } from '../shared/fakeBackend'
+import { stubViewport } from './viewport'
 
 let backend: ReturnType<typeof createFakeBackend>
 beforeEach(() => {
@@ -38,7 +39,7 @@ const rowName = (rowElement: HTMLElement) =>
 const rowsIn = (root: HTMLElement) =>
   within(root)
     .queryAllByRole('button')
-    .filter((button) => !/^([✕×›]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
+    .filter((button) => !/^([✕×›☰]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
 const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
@@ -318,4 +319,96 @@ test('leading and trailing spaces are not stored', async () => {
   await user.click(within(main()).getByText('Bread'))
   await newStep(user, '  Toast  ')
   expect(steps()).toEqual(['Toast'])
+})
+
+test('the lists drawer opens from the menu button and closes on X or picking a list', async () => {
+  stubViewport(375)
+  const { user } = await setup()
+  const drawer = () => nav().parentElement
+  expect(drawer()).toHaveClass('invisible')
+  await user.click(screen.getByLabelText('Open lists'))
+  expect(drawer()).not.toHaveClass('invisible')
+  await user.click(screen.getByLabelText('Close lists'))
+  expect(drawer()).toHaveClass('invisible')
+  await user.click(screen.getByLabelText('Open lists'))
+  await user.click(within(nav()).getByText('Work'))
+  expect(drawer()).toHaveClass('invisible')
+  expect(screen.getByRole('heading', { name: 'Work' })).toBeInTheDocument()
+  await user.click(screen.getByLabelText('Open lists'))
+  expect(screen.getByRole('dialog', { name: 'Lists' })).toBeInTheDocument()
+  expect(screen.getByLabelText('Close lists')).toHaveFocus()
+  expect(main()).toHaveAttribute('inert')
+  await user.keyboard('{Escape}')
+  expect(drawer()).toHaveClass('invisible')
+  expect(screen.getByLabelText('Open lists')).toHaveFocus()
+  expect(main()).not.toHaveAttribute('inert')
+})
+
+test('on wide screens the drawer is not modal even if left open', async () => {
+  stubViewport(375)
+  const { user } = await setup()
+  await user.click(screen.getByLabelText('Open lists'))
+  expect(main()).toHaveAttribute('inert')
+  cleanup()
+  stubViewport(1280)
+  await setup()
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test('on phones task detail is a modal dialog that returns focus when closed', async () => {
+  stubViewport(375)
+  const { user } = await setup()
+  const milk = row('Milk')
+  await user.click(milk)
+  const dialog = screen.getByRole('dialog', { name: 'Milk' })
+  expect(within(dialog).getByLabelText('Close panel')).toHaveFocus()
+  expect(main()).toHaveAttribute('inert')
+  expect(nav().parentElement).toHaveAttribute('inert')
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(milk).toHaveFocus()
+})
+
+test('Escape with the drawer open closes only the drawer', async () => {
+  stubViewport(375)
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(screen.getByLabelText('Close panel'))
+  await user.click(screen.getByLabelText('Open lists'))
+  await user.keyboard('{Escape}')
+  expect(nav().parentElement).toHaveClass('invisible')
+})
+
+test('the context menu focuses its first item and returns focus on close', async () => {
+  const { user } = await setup()
+  const milk = row('Milk')
+  milk.focus()
+  await rightClick(user, milk)
+  expect(screen.getByRole('menu')).toBeInTheDocument()
+  expect(screen.getAllByRole('menuitem')[0]).toHaveFocus()
+  await user.keyboard('{Escape}')
+  expect(milk).toHaveFocus()
+})
+
+test('Move to list offers the other lists and moves every selected task', async () => {
+  const { user } = await setup()
+  await rightClick(user, row('Milk'))
+  await user.hover(screen.getByText('Move to list'))
+  const submenu = screen.getAllByRole('menu')[1]
+  if (!submenu) throw new Error('No submenu')
+  expect(
+    within(submenu)
+      .getAllByRole('menuitem')
+      .map((item) => item.textContent),
+  ).toEqual(['Work', 'Home'])
+  await user.keyboard('{Escape}')
+
+  await user.click(row('Milk'))
+  await user.keyboard('{Control>}')
+  await user.click(row('Eggs'))
+  await user.keyboard('{/Control}')
+  await rightClick(user, row('Eggs'))
+  await submenuClick(user, 'Move to list', 'Home')
+  expect(tasks()).toEqual([])
+  expect(backend.data.tasks.filter((task) => task.listId === 'home').map((task) => task.id)).toEqual(['g1', 'g2'])
 })

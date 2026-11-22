@@ -1,7 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
-import { FIELD_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
+import { FIELD_CLASS, SAFE_AREA_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
@@ -10,6 +10,7 @@ import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { TaskSummary } from './TaskSummary'
 import { ignoreRowEvents } from './ignoreRowEvents'
+import { useModalFocus } from '../useModalFocus'
 
 const LABEL_CLASS = 'mt-5 mb-2 px-1 text-xs font-semibold tracking-[0.07em] text-ink-soft uppercase'
 
@@ -67,6 +68,7 @@ export default function TaskDetailPane({
   onUpdate,
   onContextMenu,
   onRenameStep,
+  modal,
 }: {
   task: Task
   selectedIds: string[]
@@ -79,7 +81,9 @@ export default function TaskDetailPane({
   onUpdate: (patch: TaskPatch) => void
   onContextMenu: OpenContextMenu
   onRenameStep: (id: string, text: string) => void
+  modal: boolean
 }) {
+  const closeRef = useModalFocus<HTMLButtonElement>(modal)
   const stepRow = (step: Step) => (
     <SortableRow
       key={step.id}
@@ -90,7 +94,7 @@ export default function TaskDetailPane({
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
       className={
-        'group flex select-none items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition' +
+        'group flex select-none items-center gap-3 rounded-xl px-2.5 py-2 text-base transition pointer-fine:text-sm' +
         (selectedIds.includes(step.id) ? ' ' + SELECTED_ROW_CLASS : ' hover:bg-milk')
       }
     >
@@ -99,7 +103,7 @@ export default function TaskDetailPane({
         checked={step.completed}
         {...ignoreRowEvents}
         onChange={() => onToggleStep(step.id, !step.completed)}
-        className="check"
+        className="check touch-hit"
       />
       <EditableText
         tag="span"
@@ -108,16 +112,16 @@ export default function TaskDetailPane({
         selectOnModifierClick
         onCommit={(name) => onRenameStep(step.id, name)}
         className={'min-w-0 flex-1 break-words ' + (step.completed ? 'text-ink-faint line-through' : 'text-ink')}
-        inputClassName="min-w-0 flex-1 rounded-lg border border-clover-400 bg-paper px-1 py-0.5 text-sm text-ink outline-none"
+        inputClassName="min-w-0 flex-1 rounded-lg border border-clover-400 bg-paper px-1 py-0.5 text-base text-ink outline-none pointer-fine:text-sm"
       />
       <button
-        onPointerDown={ignoreRowEvents.onPointerDown}
+        {...ignoreRowEvents}
         onClick={(event) => {
           event.stopPropagation()
           onDeleteStep(step.id)
         }}
         aria-label="Delete step"
-        className="shrink-0 rounded-full px-1 text-xs leading-none text-ink-faint opacity-0 transition group-hover:opacity-100 hover:text-coral"
+        className="touch-hit shrink-0 rounded-full px-1 text-xs leading-none text-ink-faint transition hover:text-coral pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100"
       >
         ✕
       </button>
@@ -125,8 +129,16 @@ export default function TaskDetailPane({
   )
 
   return (
-    <aside className="pane-in flex w-80 shrink-0 flex-col border-l border-line bg-paper">
-      <div className="flex select-none items-start gap-3 px-5 pt-[3.6rem] pb-2">
+    <aside
+      role={modal ? 'dialog' : undefined}
+      aria-modal={modal || undefined}
+      aria-label={task.title}
+      className={
+        'pane-in fixed inset-0 z-30 flex shrink-0 flex-col bg-paper lg:left-auto lg:w-96 lg:border-l lg:border-line lg:shadow-pop xl:static xl:z-auto xl:w-80 xl:p-0 xl:shadow-none xl:pointer-coarse:w-96 2xl:w-96 ' +
+        SAFE_AREA_CLASS
+      }
+    >
+      <div className="flex select-none items-start gap-3 px-5 pt-4 pb-2 lg:pt-[3.6rem]">
         <TaskSummary
           key={task.id}
           task={task}
@@ -134,7 +146,12 @@ export default function TaskDetailPane({
           onSetStage={(stage) => onUpdate({ stage })}
           onRename={(_id, title) => onUpdate({ title })}
         />
-        <button onClick={onClose} aria-label="Close panel" className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}>
+        <button
+          ref={closeRef}
+          onClick={onClose}
+          aria-label="Close panel"
+          className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
+        >
           ✕
         </button>
       </div>
@@ -167,7 +184,7 @@ export default function TaskDetailPane({
         ) : (
           <button
             onClick={() => onUpdate({ addedToToday: true })}
-            className="mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
+            className="touch-hit mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
           >
             ☀️ Add to Today
           </button>
@@ -200,7 +217,7 @@ export default function TaskDetailPane({
       <div className="shrink-0 border-t border-line px-4 py-2.5">
         <button
           onClick={onDeleteTask}
-          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-coral transition hover:bg-coral-50"
+          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-3 text-sm font-medium text-coral transition hover:bg-coral-50 pointer-fine:py-1.5"
         >
           <svg
             viewBox="0 0 16 16"

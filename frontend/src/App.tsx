@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   pointerWithin,
   useSensor,
   useSensors,
@@ -17,10 +17,12 @@ import { nextSelection } from './selection'
 import { applySort, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
-import ContextMenu, { type ContextMenuState } from './components/ContextMenu'
+import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
+import { SAFE_AREA_CLASS } from './styles'
+import { useOverlays } from './useOverlays'
 
 type DragInfo = { kind: RowKind; text: string }
 
@@ -33,7 +35,7 @@ const soleTask = (tasks: Task[], ids: string[]) =>
   ids.length === 1 ? tasks.find((task) => task.id === ids[0]) : undefined
 
 export default function App() {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }))
   const [lists, setLists] = useState<TaskList[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,6 +53,7 @@ export default function App() {
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
   const detailTask = soleTask(listTasks, selectedTaskIds)
   const detailSteps = detailTask?.steps ?? []
+  const { drawerOpen, setDrawerOpen, detailModal, mainInert } = useOverlays(!!detailTask)
 
   const replaceTaskSelection = (ids: string[]) => {
     setSelectedTaskIds(ids)
@@ -60,6 +63,7 @@ export default function App() {
   const selectList = (id: string) => {
     setSelectedListId(id)
     replaceTaskSelection([])
+    setDrawerOpen(false)
   }
 
   const selectTask = (id: string, event: React.MouseEvent) =>
@@ -101,6 +105,7 @@ export default function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return
       if ((event.target as HTMLElement).closest('input, textarea, select')) return
+      if (drawerOpen) return setDrawerOpen(false)
       setSelectedTaskIds([])
       setSelectedStepIds([])
     }
@@ -108,7 +113,7 @@ export default function App() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [])
+  }, [drawerOpen, setDrawerOpen])
 
   // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
   const patchTasks = async (patches: Partial<Task>[]) => {
@@ -169,13 +174,16 @@ export default function App() {
       setSelectedStepIds([])
     })
 
-  const openContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => {
+  // A touch long-press passes the row title and leaves the selection alone.
+  const openContextMenu: OpenContextMenu = (kind, id) => (event, longPressTitle) => {
     event.preventDefault()
+    if (activeDrag) return
+    const select = longPressTitle === undefined
     const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
     let ids = [id]
     if (kind !== RowKind.List && selected.includes(id)) ids = selected
-    else if (kind === RowKind.Task) replaceTaskSelection(ids)
-    else if (kind === RowKind.Step) setSelectedStepIds(ids)
+    else if (select && kind === RowKind.Task) replaceTaskSelection(ids)
+    else if (select && kind === RowKind.Step) setSelectedStepIds(ids)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
     const allDone = detailTask?.steps.filter((step) => ids.includes(step.id)).every((step) => step.completed)
     setMenu({
@@ -183,6 +191,8 @@ export default function App() {
       y: event.clientY,
       kind,
       ids,
+      title: longPressTitle,
+      moveTargets: lists.filter((list) => !menuTasks.every((task) => task.listId === list.id)),
       hasDue: menuTasks.some((task) => task.due),
       allInToday: menuTasks.every((task) => task.addedToToday),
       allDone,
@@ -242,13 +252,10 @@ export default function App() {
     if (!over) return
     const overId = String(over.id)
     const target = taskDropTarget(over)
-    if (target === TODAY_LIST_ID) {
-      replaceTaskSelection([])
-      updateTask(String(active.id), { addedToToday: true })
-      return
-    }
     if (target) {
+      setDrawerOpen(false)
       replaceTaskSelection([])
+      if (target === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       const dragged = tasks.find((task) => task.id === active.id)
       if (dragged?.listId === target) return
       updateTask(String(active.id), { listId: target })
@@ -279,7 +286,7 @@ export default function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={endDrag}
     >
-      <div className="flex h-screen overflow-hidden flex-col font-sans">
+      <div className={'flex h-dvh overflow-hidden flex-col font-sans ' + SAFE_AREA_CLASS}>
         {error && (
           <div
             role="alert"
@@ -297,9 +304,12 @@ export default function App() {
             tasks={tasks}
             selectedListId={selectedListId}
             dragOverListId={dragOverListId}
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
             onSelectList={selectList}
             onCreateList={createList}
             onContextMenu={openContextMenu}
+            inert={detailModal}
           />
           <TaskPane
             selectedListId={selectedListId}
@@ -314,21 +324,30 @@ export default function App() {
             onClearSelection={() => replaceTaskSelection([])}
             onSetStage={(id, stage) => updateTask(id, { stage })}
             onContextMenu={openContextMenu}
+            onOpenLists={() => setDrawerOpen(true)}
+            inert={mainInert}
           />
           {detailTask && (
-            <TaskDetailPane
-              task={detailTask}
-              selectedIds={selectedStepIds}
-              onSelectStep={selectStep}
-              onClose={() => replaceTaskSelection([])}
-              onDeleteTask={() => deleteTasks([detailTask.id])}
-              onAddStep={addStep}
-              onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
-              onDeleteStep={(id) => deleteSteps([id])}
-              onUpdate={(patch) => updateTask(detailTask.id, patch)}
-              onContextMenu={openContextMenu}
-              onRenameStep={renameStep}
-            />
+            <>
+              <div
+                onClick={() => replaceTaskSelection([])}
+                className="fixed inset-0 z-30 hidden bg-ink/20 lg:block xl:hidden"
+              />
+              <TaskDetailPane
+                task={detailTask}
+                selectedIds={selectedStepIds}
+                onSelectStep={selectStep}
+                onClose={() => replaceTaskSelection([])}
+                onDeleteTask={() => deleteTasks([detailTask.id])}
+                onAddStep={addStep}
+                onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
+                onDeleteStep={(id) => deleteSteps([id])}
+                onUpdate={(patch) => updateTask(detailTask.id, patch)}
+                onContextMenu={openContextMenu}
+                onRenameStep={renameStep}
+                modal={detailModal}
+              />
+            </>
           )}
         </div>
       </div>

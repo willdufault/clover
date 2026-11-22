@@ -15,7 +15,7 @@ export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void 
       <button
         aria-label="Sort"
         onClick={() => setOpen(true)}
-        className="cursor-default rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink-soft transition hover:border-clover-200 hover:text-clover-700"
+        className="touch-hit cursor-default rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink-soft transition hover:border-clover-200 hover:text-clover-700"
       >
         ⇅ Sort
       </button>

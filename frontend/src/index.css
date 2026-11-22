@@ -73,6 +73,18 @@ input[type='date']::-webkit-calendar-picker-indicator {
     center / 0.75rem no-repeat;
 }
 
+@media (pointer: coarse) {
+  .touch-hit {
+    position: relative;
+  }
+
+  .touch-hit::before {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc(50% - 22px));
+  }
+}
+
 @keyframes pane-in {
   from {
     opacity: 0;

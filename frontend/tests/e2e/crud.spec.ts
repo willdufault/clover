@@ -200,24 +200,24 @@ test('bulk range select, menu actions and delete each send one request', async (
 
   await eggs.click({ button: 'right' })
   await page.getByText('Set priority').hover()
-  await page.getByRole('button', { name: '🔴 High' }).click()
+  await page.getByRole('menuitem', { name: '🔴 High' }).click()
   await expect(main.getByText('🔴 High')).toHaveCount(3)
   expect(groceries().map((t) => t.priority)).toEqual(['high', 'high', 'high'])
 
   await eggs.click({ button: 'right' })
   await page.getByText('Set stage').hover()
-  await page.getByRole('button', { name: '⚡ In progress' }).click()
+  await page.getByRole('menuitem', { name: '⚡ In progress' }).click()
   for (const row of [milk, eggs, bread]) await expect(row.getByRole('combobox')).toHaveValue('inProgress')
   expect(groceries().map((t) => t.stage)).toEqual(['inProgress', 'inProgress', 'inProgress'])
 
   await eggs.click({ button: 'right' })
   await page.getByText('Set due date').hover()
-  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Today', exact: true }).click()
   await expect(main.getByText('📅 Today')).toHaveCount(3)
   expect(groceries().map((t) => t.due)).toEqual([today(), today(), today()])
 
   await eggs.click({ button: 'right' })
-  await page.getByRole('button', { name: '☀️ Add to Today' }).click()
+  await page.getByRole('menuitem', { name: '☀️ Add to Today' }).click()
   await expect(main.getByText('☀️ Today')).toHaveCount(3)
   await expect(navRow(page, '☀️ Today')).toHaveText('☀️ Today3')
   expect(groceries().map((t) => t.addedToToday)).toEqual([true, true, true])
@@ -265,4 +265,19 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   await expect(page.getByRole('alert')).toHaveCount(0)
   // The browser logs the expected failed request; nothing else.
   expect(errors.filter((e) => !e.startsWith('Failed to load resource'))).toEqual([])
+})
+
+test('Move to list from the context menu moves the task', async ({ page }) => {
+  const errors = captureErrors(page)
+  const backend = await mockApi(page)
+  await page.goto('./')
+
+  await page.locator('main [data-kind="task"]', { hasText: 'Milk' }).click({ button: 'right' })
+  await page.getByText('Move to list').hover()
+  await expect(page.getByRole('menuitem', { name: 'Groceries' })).toHaveCount(0)
+  await page.getByRole('menuitem', { name: 'Home' }).click()
+
+  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('home')
+  await expect(navRow(page, 'Home')).toHaveText('Home1')
+  expect(errors).toEqual([])
 })
