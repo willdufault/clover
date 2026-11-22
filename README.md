@@ -20,12 +20,14 @@ From `frontend/`:
 
 ```sh
 npm install
-npm run dev    # http://localhost:5173
+npm run dev    # http://localhost:5173/clover/
 npm test       # unit tests (vitest)
 npm run e2e    # browser tests (playwright, starts dev server)
 npm run lint   # oxlint
 npm run build  # type-check and build
 ```
+
+Pushes to `main` deploy to https://willdufault.dev/clover/ via `.github/workflows/pages.yml` (tests, lint, format and build must pass).
 
 `frontend/.env`, values from Terraform outputs:
 
@@ -57,6 +59,6 @@ terraform plan
 terraform apply
 ```
 
-Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_url` (default `http://localhost:5173`; Cognito callback/logout and CORS).
+Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_origins` (default localhost:5173, `willdufault.dev` and `willdufault.github.io`; CORS origins, and Cognito callback/logout at `<origin>/clover/`).
 
 Outputs: `api_url`, `cognito_url`, `client_id`.

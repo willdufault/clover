@@ -19,7 +19,7 @@ test('a failed sign-in shows an error instead of looping', async ({ page }) => {
         headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' },
       }),
   )
-  await page.goto('/?code=bogus')
+  await page.goto('./?code=bogus')
 
   await expect(page.getByRole('alert')).toContainText('Sign-in failed')
   expect(new URL(page.url()).host).toBe('localhost:5173')

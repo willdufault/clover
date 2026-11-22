@@ -3,9 +3,9 @@ variable "cognito_domain_prefix" {
   default = "wduf-clover"
 }
 
-variable "app_url" {
-  type    = string
-  default = "http://localhost:5173"
+variable "app_origins" {
+  type    = list(string)
+  default = ["http://localhost:5173", "https://willdufault.dev", "https://willdufault.github.io"]
 }
 
 variable "region" {

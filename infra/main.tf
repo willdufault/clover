@@ -24,6 +24,11 @@ provider "aws" {
   region = var.region
 }
 
+locals {
+  app_urls = formatlist("%s/clover/", var.app_origins)
+  routes   = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
+}
+
 resource "aws_dynamodb_table" "tasks" {
   name         = "clover-tasks"
   billing_mode = "PAY_PER_REQUEST"
@@ -70,8 +75,8 @@ resource "aws_cognito_user_pool_client" "web" {
   allowed_oauth_scopes                 = ["openid", "email"]
   supported_identity_providers         = ["COGNITO"]
   prevent_user_existence_errors        = "ENABLED"
-  callback_urls                        = [var.app_url]
-  logout_urls                          = [var.app_url]
+  callback_urls                        = local.app_urls
+  logout_urls                          = local.app_urls
   id_token_validity                    = 12
   access_token_validity                = 1
 
@@ -160,16 +165,12 @@ resource "aws_cloudwatch_log_group" "api" {
   retention_in_days = 7
 }
 
-locals {
-  routes = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
-}
-
 resource "aws_apigatewayv2_api" "api" {
   name          = "clover-api"
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = [var.app_url]
+    allow_origins = var.app_origins
     allow_methods = ["GET", "POST", "PATCH", "DELETE"]
     allow_headers = ["authorization", "content-type"]
     max_age       = 3600
