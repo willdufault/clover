@@ -3,6 +3,7 @@ import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 const API_URL = import.meta.env.VITE_API_URL
 const COGNITO_URL = import.meta.env.VITE_COGNITO_URL
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID
+const APP_URL = window.location.origin + import.meta.env.BASE_URL
 
 const userManager = new UserManager({
   authority: COGNITO_URL,
@@ -11,7 +12,7 @@ const userManager = new UserManager({
     token_endpoint: `${COGNITO_URL}/oauth2/token`,
   },
   client_id: CLIENT_ID,
-  redirect_uri: window.location.origin,
+  redirect_uri: APP_URL,
   scope: 'openid email',
   userStore: new WebStorageStateStore({ store: localStorage }),
 })
@@ -22,7 +23,7 @@ export const login = () => userManager.signinRedirect()
 
 export const logout = async () => {
   await userManager.removeUser()
-  const params = new URLSearchParams({ client_id: CLIENT_ID, logout_uri: window.location.origin })
+  const params = new URLSearchParams({ client_id: CLIENT_ID, logout_uri: APP_URL })
   window.location.assign(`${COGNITO_URL}/logout?${params}`)
 }
 

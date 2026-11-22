@@ -4,7 +4,7 @@ import { captureErrors, drag, mockApi, navRow, waitForDropAnimation } from './he
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors = captureErrors(page)
   await mockApi(page)
-  await page.goto('/')
+  await page.goto('./')
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).first().click()
   const input = page.getByPlaceholder('+ New step')
   for (const name of ['aaa', 'bbb', 'ccc']) {
@@ -25,7 +25,7 @@ test('dragging a step keeps the panel open and reorders', async ({ page }) => {
 test('dragging a task onto the last sidebar list moves it, and onto Today adds it', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page)
-  await page.goto('/')
+  await page.goto('./')
   const main = page.locator('main')
   const nav = page.locator('nav')
 
@@ -50,7 +50,7 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
   const handle = backend.handle
   backend.handle = (method, url, body) =>
     method === 'PATCH' ? { status: 409, body: { error: 'List is full' } } : handle(method, url, body)
-  await page.goto('/')
+  await page.goto('./')
 
   await drag(page, page.locator('main').getByText('Milk', { exact: true }), page.locator('nav').getByText('Work'))
 

@@ -5,6 +5,5 @@
 - look into adding video evidence to PRs
 - think about moving limits.json to a shared folder
 - keep typed text when a create fails
-- add CI and a pre-push hook running the AGENTS.md checks
 - make sidebar Today/All rows keyboard accessible (buttons)
 - consider typing api() responses and enabling no-unsafe-* lint rules

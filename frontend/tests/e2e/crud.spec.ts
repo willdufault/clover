@@ -6,7 +6,7 @@ import { captureErrors, mockApi, navRow } from './helpers'
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page)
-  await page.goto('/')
+  await page.goto('./')
 
   const nav = page.locator('nav')
   const main = page.locator('main')
@@ -111,7 +111,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
 test('add in All and Today, row stage, single delete, sort', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page)
-  await page.goto('/')
+  await page.goto('./')
 
   const main = page.locator('main')
   const rows = main.locator('[data-kind="task"]')
@@ -180,7 +180,7 @@ test('bulk range select, menu actions and delete each send one request', async (
     'request',
     (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`),
   )
-  await page.goto('/')
+  await page.goto('./')
 
   const main = page.locator('main')
   const milk = main.locator('[data-kind="task"]', { hasText: 'Milk' })
@@ -238,7 +238,7 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   const data = seed()
   data.tasks = data.tasks.map((t) => (t.id === 'g1' ? { ...t, due: '2030-01-02' } : t))
   const backend = await mockApi(page, data)
-  await page.goto('/')
+  await page.goto('./')
   await page.locator('main').getByText('Milk', { exact: true }).click()
   const aside = page.locator('aside')
   const input = aside.locator('input[type="date"]')

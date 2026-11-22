@@ -1,12 +1,12 @@
 # Clover architecture
 
-Single prod environment in `us-east-1`. Terraform manages the API and auth; frontend hosting is out of scope. Ordering is not persisted.
+Single prod environment in `us-east-1`. Terraform manages the API and auth; the frontend is deployed to GitHub Pages (`https://willdufault.dev/clover/`) from `main` by `.github/workflows/pages.yml`. Ordering is not persisted.
 
 ## Components
 
 - **Frontend**: React SPA. On load `oidc-client-ts` exchanges any `?code=` for tokens, then renders; any API call that returns 401 redirects to login.
-- **Auth**: Cognito user pool (email username, admin-only sign-up via `aws cognito-idp admin-create-user`, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URL `app_url`. `oidc-client-ts` stores the user in `localStorage`, silently renews via the refresh token, and the SPA sends the **access token** as `Authorization: Bearer`; the authorizer matches its `client_id` claim against the audience. Id tokens last 12h, access tokens 1h. A 401 triggers a fresh login.
-- **API**: API Gateway HTTP API, Cognito JWT authorizer on every route requiring the `openid` scope (rejects id tokens, which have no `scope` claim), one Lambda proxy integration (payload v2). CORS allows `app_url`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
+- **Auth**: Cognito user pool (email username, admin-only sign-up via `aws cognito-idp admin-create-user`, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URLs are `<origin>/clover/` for each of `app_origins` (localhost, `willdufault.dev`, `willdufault.github.io`). `oidc-client-ts` stores the user in `localStorage`, silently renews via the refresh token, and the SPA sends the **access token** as `Authorization: Bearer`; the authorizer matches its `client_id` claim against the audience. Id tokens last 12h, access tokens 1h. A 401 triggers a fresh login.
+- **API**: API Gateway HTTP API, Cognito JWT authorizer on every route requiring the `openid` scope (rejects id tokens, which have no `scope` claim), one Lambda proxy integration (payload v2). CORS allows `app_origins`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
 - **Lambda** (`clover-api`): Python 3.14, arm64, 30s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
 - **DynamoDB**: one table (`clover-tasks`), on-demand.
 
