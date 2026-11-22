@@ -1,0 +1,22 @@
+import type { Priority, Stage } from './types'
+
+export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
+  open: { emoji: '⚪', label: 'Open' },
+  inProgress: { emoji: '⚡', label: 'In progress' },
+  waiting: { emoji: '⏳', label: 'Waiting' },
+  done: { emoji: '✅', label: 'Done' },
+  // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
+  cancelled: { emoji: '❌️', label: 'Cancelled' },
+}
+
+export const STAGES = Object.keys(STAGE_LABELS) as Stage[]
+
+export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }> = {
+  high: { emoji: '🔴', label: 'High' },
+  medium: { emoji: '🟡', label: 'Medium' },
+  low: { emoji: '🟢', label: 'Low' },
+}
+
+export const PRIORITIES = Object.keys(PRIORITY_LABELS) as Priority[]
+
+export const labelText = ({ emoji, label }: { emoji: string; label: string }) => `${emoji} ${label}`

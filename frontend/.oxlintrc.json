@@ -1,0 +1,33 @@
+{
+  "plugins": ["unicorn", "typescript", "oxc", "react", "import", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "no-console": "error",
+    "no-alert": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "react/no-array-index-key": "error",
+    "no-nested-ternary": "error",
+    "react/rules-of-hooks": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "max-depth": ["error", 3],
+    "complexity": ["error", 10],
+    "no-else-return": "error",
+    "typescript/no-non-null-assertion": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off",
+    "typescript/no-misused-promises": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/consistent-return": "off",
+    "typescript/no-misused-spread": "off",
+    "vitest/require-mock-type-parameters": "off"
+  }
+}

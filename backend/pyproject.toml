@@ -1,0 +1,32 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "boto3>=1.44.3",
+    "boto3-stubs[dynamodb]>=1.44.9",
+    "hypothesis>=6.170.17",
+    "moto[dynamodb]>=5.2.5",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+    "ty>=0.0.107",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "C90", "ERA", "SIM", "C4", "RET", "PIE", "PT", "RUF", "ANN"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
