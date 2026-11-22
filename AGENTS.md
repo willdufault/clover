@@ -2,6 +2,8 @@
 
 For project details, see @README.md. For backend design, see @ARCHITECTURE.md.
 
+CI (`.github/workflows/ci.yml`) runs all checks below on every push to `stage`.
+
 ## Backend (run from `backend/`)
 
 - Before finishing, run `uv run pytest -q`, `uv run ruff check --ignore-noqa .`, `uv run ruff format --check .`, and `uv run ty check`.
