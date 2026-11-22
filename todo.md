@@ -7,3 +7,4 @@
 - keep typed text when a create fails
 - make sidebar Today/All rows keyboard accessible (buttons)
 - consider typing api() responses and enabling no-unsafe-* lint rules
+- support touch drag-and-drop on mobile (reorder and move to list)
