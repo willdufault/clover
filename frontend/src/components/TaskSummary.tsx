@@ -39,7 +39,7 @@ export function TaskSummary({
           editable={heading}
           onCommit={(name) => onRename?.(task.id, name)}
           className={titleClass}
-          inputClassName={TITLE_RENAME_CLASS}
+          inputClassName={TITLE_RENAME_CLASS + ' text-2xl tracking-tight'}
         />
         {children}
       </div>

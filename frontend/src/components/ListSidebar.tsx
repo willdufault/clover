@@ -96,7 +96,12 @@ export default function ListSidebar({
             ))}
           </SortableContext>
 
-          <AddInput placeholder="+ New list" maxLength={limits.listNameMax} onAdd={onCreateList} className="mt-4" />
+          <AddInput
+            placeholder="+ New list"
+            maxLength={limits.listNameMax}
+            onAdd={onCreateList}
+            className="mt-4 shrink-0"
+          />
         </nav>
         <button
           onClick={() => void logout()}

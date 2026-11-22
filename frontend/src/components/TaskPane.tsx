@@ -125,7 +125,7 @@ export default function TaskPane({
             editable={renamable}
             onCommit={(name) => onRenameList(selectedListId, name)}
             className={
-              '-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
+              '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
               (renamable ? ' transition hover:bg-cream' : '')
             }
             inputClassName={TITLE_RENAME_CLASS + ' text-4xl tracking-tight'}

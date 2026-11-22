@@ -207,3 +207,24 @@ test('long-press Move to list moves the task to another list', async ({ page }) 
   await expect(page.locator('aside')).toHaveCount(0)
   expect(errors).toEqual([])
 })
+
+test('the sort menu stays on screen whether Sort sits right or left', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const menu = page.getByText('Sort by').locator('..')
+  const onScreen = async () => {
+    const box = await menu.boundingBox()
+    return !!box && box.x >= 0 && box.x + box.width <= 375
+  }
+
+  await page.getByRole('button', { name: 'Sort' }).tap()
+  expect(await onScreen()).toBe(true)
+  await page.mouse.click(20, 600)
+
+  await page.getByLabel('Open lists').tap()
+  await page.locator('nav').getByText('Home').tap()
+  await page.getByRole('button', { name: 'Sort' }).tap()
+  expect(await onScreen()).toBe(true)
+  expect(errors).toEqual([])
+})

@@ -10,7 +10,8 @@ export const MENU_CLASS = 'rounded-xl border border-line bg-paper p-1 text-sm sh
 
 export const MENU_LABEL_CLASS = 'px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.07em] text-ink-soft uppercase'
 
-export const MENU_ITEM_CLASS = 'w-full cursor-default rounded-lg px-3 py-3 text-left hover:bg-cream pointer-fine:py-2'
+export const MENU_ITEM_CLASS =
+  'w-full cursor-default break-words rounded-lg px-3 py-3 text-left hover:bg-cream pointer-fine:py-2'
 
 export const SELECTED_ROW_CLASS = 'bg-clover-100'
 

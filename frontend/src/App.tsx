@@ -292,8 +292,8 @@ export default function App() {
             role="alert"
             className="flex items-center justify-between gap-3 bg-coral-50 px-4 py-2 text-sm text-coral"
           >
-            <span>{error}</span>
-            <button onClick={() => setError(null)} aria-label="Dismiss error">
+            <span className="min-w-0 break-words">{error}</span>
+            <button onClick={() => setError(null)} aria-label="Dismiss error" className="shrink-0">
               ×
             </button>
           </div>
