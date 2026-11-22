@@ -23,7 +23,7 @@ npm install
 npm run dev    # http://localhost:5173/clover/
 npm test       # unit tests (vitest)
 npm run e2e    # browser tests (playwright, starts dev server)
-npm run lint   # oxlint + type-check
+npm run lint   # oxlint
 npm run build  # type-check and build
 ```
 
