@@ -1,14 +1,20 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
-import { FIELD_CLASS, SAFE_AREA_CLASS, X_BUTTON_CLASS, SELECTED_ROW_CLASS, dueDateClass } from '../styles'
+import {
+  FIELD_CLASS,
+  SAFE_AREA_CLASS,
+  X_BUTTON_CLASS,
+  SELECTED_ROW_CLASS,
+  TITLE_RENAME_CLASS,
+  dueDateClass,
+} from '../styles'
 import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
 import limits from '../../../backend/limits.json'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
-import { TaskSummary } from './TaskSummary'
 import { ignoreRowEvents } from './ignoreRowEvents'
 import { useModalFocus } from '../useModalFocus'
 
@@ -139,13 +145,17 @@ export default function TaskDetailPane({
       }
     >
       <div className="flex select-none items-start gap-3 px-5 pt-4 pb-2 lg:pt-[3.6rem]">
-        <TaskSummary
-          key={task.id}
-          task={task}
-          heading
-          onSetStage={(stage) => onUpdate({ stage })}
-          onRename={(_id, title) => onUpdate({ title })}
-        />
+        <div className="min-w-0 flex-1">
+          <EditableText
+            key={task.id}
+            tag="h2"
+            text={task.title}
+            maxLength={limits.titleMax}
+            onCommit={(title) => onUpdate({ title })}
+            className="-mx-1.5 w-fit max-w-full rounded-lg px-1.5 text-2xl font-semibold tracking-tight break-words text-ink transition hover:bg-cream"
+            inputClassName={TITLE_RENAME_CLASS + ' text-2xl tracking-tight'}
+          />
+        </div>
         <button
           ref={closeRef}
           onClick={onClose}
