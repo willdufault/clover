@@ -245,10 +245,10 @@ test.describe('phone sheet submenus', () => {
     const menu = page.getByRole('menu')
 
     const f = await finger(page, await center(row))
-    await expect(row).toHaveClass(/bg-cream/)
+    await expect(row).toHaveClass(/scale-\[0\.98\]/)
     await expect(menu).toBeVisible()
     await f.up()
-    await expect(row).not.toHaveClass(/bg-cream/)
+    await expect(row).not.toHaveClass(/scale-\[0\.98\]/)
 
     await menu.getByRole('menuitem', { name: 'Set due date' }).tap()
     await expect(menu.getByLabel('Back')).toBeVisible()

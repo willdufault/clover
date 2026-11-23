@@ -29,7 +29,7 @@ npm run build  # type-check and build
 
 Pushes to `main` deploy to https://willdufault.dev/clover/ via `.github/workflows/pages.yml` (tests, lint, format and build must pass).
 
-`frontend/.env`, values from Terraform outputs:
+`frontend/.env` values come from Terraform outputs:
 
 - `VITE_API_URL`: `api_url`
 - `VITE_COGNITO_URL`: `cognito_url`

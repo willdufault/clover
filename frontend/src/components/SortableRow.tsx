@@ -79,7 +79,7 @@ export function SortableRow({
       className={
         'touch-manipulation transition [-webkit-touch-callout:none] ' +
         (isDragging ? 'opacity-60 shadow-lg ' : '') +
-        (pressing ? 'bg-cream duration-500 ease-out motion-safe:scale-[0.98] ' : '') +
+        (pressing ? 'duration-500 ease-out motion-safe:scale-[0.98] ' : '') +
         className
       }
       {...longPress}

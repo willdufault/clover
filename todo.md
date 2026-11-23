@@ -1,12 +1,11 @@
 - fix drag clone (remove or make match original)
-- clickin gin the due date field is kind of weird, it selects the mm/dd/yyyy where you click
-- remove any unnecessary ui elements; minimal, only add more if unclear
-- look into using enums in frontend and backend
-- look into adding video evidence to PRs
-- think about moving limits.json to a shared folder
+- clicking the due date field is weird: it selects the mm/dd/yyyy where you click
+- remove unnecessary UI elements; keep minimal, add more only if unclear
+- look into enums in frontend and backend
+- look into video evidence for PRs
+- consider moving limits.json to a shared folder
 - keep typed text when a create fails
 - make sidebar Today/All rows keyboard accessible (buttons)
 - consider typing api() responses and enabling no-unsafe-* lint rules
 - support touch drag-and-drop on mobile (reorder and move to list)
-- cancelled subtracts from total?
-- hold to open menu on mobile ux
+- install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
