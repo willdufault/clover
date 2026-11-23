@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @custom-variant phone (@media (pointer: coarse) and (width < 64rem));
+@custom-variant sheet (@media (pointer: coarse) and (width < 40rem));
 
 @theme {
   --font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
@@ -98,8 +99,30 @@ input[type='date']::-webkit-calendar-picker-indicator {
   animation: pane-in 0.18s ease-out;
 }
 
+@keyframes slide-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+.slide-from-right {
+  animation: slide-from-right 0.18s ease-out;
+}
+
+.slide-from-left {
+  animation: slide-from-left 0.18s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pane-in {
+  .pane-in,
+  .slide-from-right,
+  .slide-from-left {
     animation: none;
   }
 }

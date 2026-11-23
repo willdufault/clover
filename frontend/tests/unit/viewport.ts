@@ -1,6 +1,6 @@
-export const stubViewport = (width: number) =>
+export const stubViewport = (width: number, coarse = false) =>
   vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: width >= Number(/\d+/.exec(query)?.[0]),
+    matches: query.includes('coarse') ? coarse : width >= Number(/\d+/.exec(query)?.[0]),
     addEventListener: () => {},
     removeEventListener: () => {},
   }))
