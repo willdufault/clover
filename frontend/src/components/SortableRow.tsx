@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import type { RowKind } from '../types'
+import { RowKind } from '../types'
 
 type Press = { x: number; y: number; timer: number; fired: boolean }
 
@@ -61,15 +60,32 @@ export function SortableRow({
   onContextMenu: (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
   children: React.ReactNode
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const rowClass = 'touch-manipulation transition [-webkit-touch-callout:none] ' + className
+  const clone = (
+    <div
+      inert
+      data-overlay
+      className={
+        'pointer-events-none h-full overflow-hidden rounded-xl shadow-pop ' +
+        (kind === RowKind.List ? 'bg-sprout' : 'bg-paper')
+      }
+    >
+      <Tag className={rowClass}>{children}</Tag>
+    </div>
+  )
+  const { attributes, listeners, setNodeRef, isDragging, isOver, index, activeIndex } = useSortable({
     id,
-    data: { kind, text },
+    data: { kind, clone },
   })
+  const line =
+    !isOver || activeIndex === -1
+      ? ''
+      : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover-500 ' +
+        (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
   const { pressing, ...longPress } = useLongPress((event) => onContextMenu(event, text))
   return (
     <Tag
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
       data-kind={kind}
       onClick={onClick}
       onContextMenu={(event) => {
@@ -77,10 +93,9 @@ export function SortableRow({
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}
       className={
-        'touch-manipulation transition [-webkit-touch-callout:none] ' +
-        (isDragging ? 'opacity-60 shadow-lg ' : '') +
+        (isDragging ? 'hidden! ' : line) +
         (pressing ? 'duration-500 ease-out motion-safe:scale-[0.98] ' : '') +
-        className
+        rowClass
       }
       {...longPress}
       {...attributes}
