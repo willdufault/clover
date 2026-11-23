@@ -11,7 +11,7 @@ import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { TaskSummary } from './TaskSummary'
+import { StageSelect } from './StageSelect'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -45,6 +45,8 @@ export default function TaskPane({
   onSetStage,
   onContextMenu,
   onRenameList,
+  onOpenLists,
+  inert,
 }: {
   selectedListId: string
   listName: string | undefined
@@ -58,6 +60,8 @@ export default function TaskPane({
   onSetStage: (id: string, stage: Stage) => void
   onContextMenu: OpenContextMenu
   onRenameList: (id: string, text: string) => void
+  onOpenLists: () => void
+  inert: boolean
 }) {
   const doneCount = tasks.filter((task) => isCompleted(task.stage)).length
 
@@ -65,6 +69,7 @@ export default function TaskPane({
     const meta = metaItems(task)
     const selected = selectedIds.includes(task.id)
     const rowTint = selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70'
+    const completed = isCompleted(task.stage)
     return (
       <SortableRow
         key={task.id}
@@ -90,30 +95,55 @@ export default function TaskPane({
           <circle cx="6" cy="12" r="1.2" />
           <circle cx="10" cy="12" r="1.2" />
         </svg>
-        <TaskSummary task={task} onSetStage={(stage) => onSetStage(task.id, stage)}>
-          {meta.length > 0 && <div className="mt-1 flex gap-3 text-[13.5px] text-ink-soft">{meta}</div>}
-        </TaskSummary>
+        <div className="flex min-w-0 flex-1 items-center gap-3.5">
+          <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span
+              className={
+                'text-base break-words ' +
+                (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+              }
+            >
+              {task.title}
+            </span>
+            {meta.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
+            )}
+          </div>
+        </div>
       </SortableRow>
     )
   }
 
   return (
-    <main className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-8 pt-14 pb-10">
-      <div className="w-full max-w-[50rem]">
-        <EditableText
-          key={selectedListId}
-          tag="h1"
-          text={listName ?? ''}
-          maxLength={limits.listNameMax}
-          editable={renamable}
-          onCommit={(name) => onRenameList(selectedListId, name)}
-          className={
-            '-mx-1.5 w-fit max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
-            (renamable ? ' transition hover:bg-cream' : '')
-          }
-          inputClassName={TITLE_RENAME_CLASS + ' text-4xl tracking-tight'}
-        />
-        <div className="mt-3 flex items-center gap-2">
+    <main
+      inert={inert}
+      className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-6 pb-10 sm:px-8 lg:pt-14"
+    >
+      <div className="mx-auto w-full max-w-[50rem] 2xl:max-w-[64rem]">
+        <div className="flex items-start gap-2">
+          <button
+            onClick={onOpenLists}
+            aria-label="Open lists"
+            className={X_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
+          >
+            ☰
+          </button>
+          <EditableText
+            key={selectedListId}
+            tag="h1"
+            text={listName ?? ''}
+            maxLength={limits.listNameMax}
+            editable={renamable}
+            onCommit={(name) => onRenameList(selectedListId, name)}
+            className={
+              '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
+              (renamable ? ' transition hover:bg-cream' : '')
+            }
+            inputClassName={TITLE_RENAME_CLASS + ' text-4xl tracking-tight'}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {tasks.length > 0 && (
             <span className="mr-2 flex items-center gap-2.5 text-sm font-medium text-ink-soft">
               <span className="h-2 w-24 overflow-hidden rounded-full bg-line">
@@ -152,7 +182,8 @@ export default function TaskPane({
 
         {tasks.length > 1 && (
           <p className="mt-2.5 pl-[15px] text-[13px] text-ink-soft">
-            Drag to reorder. Right-click a task for more actions.
+            <span className="pointer-coarse:hidden">Drag to reorder. Right-click a task for more actions.</span>
+            <span className="hidden pointer-coarse:inline">Long-press a task for more actions.</span>
           </p>
         )}
 

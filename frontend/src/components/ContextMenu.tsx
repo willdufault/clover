@@ -2,22 +2,25 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
-import { RowKind, type TaskPatch } from '../types'
+import { RowKind, type TaskList, type TaskPatch } from '../types'
 
 const MENU_WIDTH = 208
 
-type MenuItem = { label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
+type MenuItem = { key?: string; label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
 
 function SubmenuRow({
   label,
   submenu,
+  open,
+  setOpen,
   renderItems,
 }: {
   label: string
   submenu: MenuItem[]
+  open: boolean
+  setOpen: (open: boolean) => void
   renderItems: (items: MenuItem[]) => React.ReactNode
 }) {
-  const [open, setOpen] = useState(false)
   const [flip, setFlip] = useState(false)
   const [shift, setShift] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -25,20 +28,27 @@ function SubmenuRow({
     if (!open || !panelRef.current) return setShift(0)
     setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
   }, [open])
+  const show = (row: HTMLElement) => {
+    setFlip(row.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
+    setOpen(true)
+  }
   return (
     <div
       className="relative"
-      onMouseEnter={(event) => {
-        setFlip(event.currentTarget.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
-        setOpen(true)
-      }}
-      onMouseLeave={() => setOpen(false)}
+      onPointerEnter={(event) => event.pointerType === 'mouse' && show(event.currentTarget)}
+      onPointerLeave={(event) => event.pointerType === 'mouse' && setOpen(false)}
     >
-      <button className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}>
+      <button
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(event) => (open ? setOpen(false) : show(event.currentTarget))}
+        className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}
+      >
         <span>{label}</span>
         <svg
           viewBox="0 0 16 16"
-          className="size-3.5 self-center text-ink-faint"
+          className={'size-3.5 self-center text-ink-faint transition' + (open ? ' phone:rotate-90' : '')}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -51,8 +61,14 @@ function SubmenuRow({
       {open && (
         <div
           ref={panelRef}
+          role="menu"
           style={{ top: shift, width: MENU_WIDTH }}
-          className={'absolute -mt-1 ' + MENU_CLASS + ' ' + (flip ? 'right-full' : 'left-full')}
+          className={
+            'absolute -mt-1 ' +
+            MENU_CLASS +
+            ' phone:static phone:mt-0 phone:w-auto! phone:border-0 phone:p-0 phone:pl-3 phone:shadow-none ' +
+            (flip ? 'right-full' : 'left-full')
+          }
         >
           {renderItems(submenu)}
         </div>
@@ -61,17 +77,36 @@ function SubmenuRow({
   )
 }
 
+const moveItems = (lists: TaskList[], onUpdate: (patch: TaskPatch) => void): MenuItem[] =>
+  lists.length
+    ? [
+        {
+          label: 'Move to list',
+          submenu: lists.map((list) => ({
+            key: list.id,
+            label: list.name,
+            action: () => onUpdate({ listId: list.id }),
+          })),
+        },
+      ]
+    : []
+
 export type ContextMenuState = {
   x: number
   y: number
   kind: RowKind
   ids: string[]
+  title?: string
+  moveTargets: TaskList[]
   hasDue: boolean
   allInToday: boolean
   allDone?: boolean
 }
 
-export type OpenContextMenu = (kind: RowKind, id: string) => (event: React.MouseEvent) => void
+export type OpenContextMenu = (
+  kind: RowKind,
+  id: string,
+) => (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
 
 export default function ContextMenu({
   menu,
@@ -88,9 +123,16 @@ export default function ContextMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [top, setTop] = useState(menu.y)
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
   useLayoutEffect(() => {
     if (ref.current) setTop(Math.min(menu.y, window.innerHeight - ref.current.offsetHeight))
   }, [menu.y])
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    ref.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+    return () => previous?.focus()
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -123,6 +165,7 @@ export default function ContextMenu({
         ...(menu.hasDue ? [{ label: 'Remove', action: () => onUpdate({ due: null }), danger: true }] : []),
       ],
     },
+    ...moveItems(menu.moveTargets, onUpdate),
     {
       label: 'Set priority',
       submenu: PRIORITIES.map((priority) => ({
@@ -135,10 +178,18 @@ export default function ContextMenu({
   const renderItems = (items: MenuItem[]): React.ReactNode =>
     items.map((item) =>
       item.submenu ? (
-        <SubmenuRow key={item.label} label={item.label} submenu={item.submenu} renderItems={renderItems} />
+        <SubmenuRow
+          key={item.label}
+          label={item.label}
+          submenu={item.submenu}
+          open={openSubmenu === item.label}
+          setOpen={(open) => setOpenSubmenu(open ? item.label : null)}
+          renderItems={renderItems}
+        />
       ) : (
         <button
-          key={item.label}
+          key={item.key ?? item.label}
+          role="menuitem"
           onClick={() => {
             item.action?.()
             onClose()
@@ -153,7 +204,7 @@ export default function ContextMenu({
   return (
     <>
       <div
-        className="fixed inset-0"
+        className="fixed inset-0 phone:z-40 phone:bg-ink/20"
         onClick={onClose}
         onContextMenu={(event) => {
           event.preventDefault()
@@ -162,13 +213,21 @@ export default function ContextMenu({
       />
       <div
         ref={ref}
-        className={'fixed z-50 ' + MENU_CLASS}
+        role="menu"
+        className={
+          'fixed z-50 ' +
+          MENU_CLASS +
+          ' phone:max-h-[calc(100dvh-1rem)] phone:overflow-y-auto phone:inset-x-2! phone:top-auto! phone:bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] phone:mx-auto phone:w-auto! phone:max-w-sm'
+        }
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
           top,
           width: MENU_WIDTH,
         }}
       >
+        {menu.ids.length === 1 && menu.title && (
+          <p className="truncate px-3 pt-2 pb-1 text-xs text-ink-soft pointer-fine:hidden">{menu.title}</p>
+        )}
         {menu.ids.length > 1 && (
           <p className={MENU_LABEL_CLASS}>
             {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}

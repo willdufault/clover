@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant phone (@media (pointer: coarse) and (width < 64rem));
+
 @theme {
   --font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
 
@@ -71,6 +73,18 @@ input[type='date']::-webkit-calendar-picker-indicator {
   background: var(--color-clover-500)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5 7 11l5-6'/%3E%3C/svg%3E")
     center / 0.75rem no-repeat;
+}
+
+@media (pointer: coarse) {
+  .touch-hit {
+    position: relative;
+  }
+
+  .touch-hit::before {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc(50% - 22px));
+  }
 }
 
 @keyframes pane-in {

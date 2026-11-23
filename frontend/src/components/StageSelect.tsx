@@ -9,7 +9,7 @@ export function StageSelect({ value, onChange }: { value: Stage; onChange: (stag
       title={STAGE_LABELS[value].label}
       {...ignoreRowEvents}
       onChange={(event) => onChange(event.target.value as Stage)}
-      className="w-6 shrink-0 cursor-pointer appearance-none bg-transparent text-center text-base"
+      className="-m-2.5 size-11 shrink-0 cursor-pointer pointer-fine:m-0 pointer-fine:h-auto pointer-fine:w-6 appearance-none bg-transparent text-center text-base"
     >
       {STAGES.map((stage) => (
         <option key={stage} value={stage} title={STAGE_LABELS[stage].label}>
