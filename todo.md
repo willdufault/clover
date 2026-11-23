@@ -1,9 +1,12 @@
-- fix drag clone (remove or make match original)
 - clicking the due date field is weird: it selects the mm/dd/yyyy where you click
 - remove unnecessary UI elements; keep minimal, add more only if unclear
-- look into enums in frontend and backend
-- consider moving limits.json to a shared folder
 - keep typed text when a create fails
 - consider typing api() responses and enabling no-unsafe-* lint rules
 - support touch drag-and-drop on mobile (reorder and move to list)
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
+- drag multiple selected tasks at once (match "Move to list")
+- confirm or undo list/task delete
+- keyboard select and drag for lists and tasks
+- silently refresh expired token instead of redirecting to login
+- revoke refresh token on logout
+- self-host the Google font
