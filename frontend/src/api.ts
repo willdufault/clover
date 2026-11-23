@@ -17,7 +17,7 @@ const userManager = new UserManager({
   userStore: new WebStorageStateStore({ store: localStorage }),
 })
 
-let signinFailed = false
+let justSignedIn = false
 
 export const login = () => userManager.signinRedirect()
 
@@ -28,10 +28,10 @@ export const logout = async () => {
 }
 
 export const handleRedirect = async () => {
-  if (!new URLSearchParams(window.location.search).has('code')) return
-  await userManager.signinCallback().catch(() => {
-    signinFailed = true
-  })
+  const params = new URLSearchParams(window.location.search)
+  if (!params.has('code') && !params.has('error')) return
+  justSignedIn = true
+  await userManager.signinCallback().catch(() => {})
   window.history.replaceState(null, '', window.location.pathname)
 }
 
@@ -45,7 +45,7 @@ export const api = async (method: string, path: string, body?: object) => {
     body: body && JSON.stringify(body),
   })
   if (response.status === 401) {
-    if (signinFailed) throw new Error('Sign-in failed')
+    if (justSignedIn) throw new Error('Sign-in failed')
     await login()
     throw new Error('Session expired')
   }

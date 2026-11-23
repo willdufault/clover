@@ -60,3 +60,35 @@ test('api throws instead of redirecting after a failed callback', async () => {
   await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
   expect(signinRedirect).not.toHaveBeenCalled()
 })
+
+test('api returns null on 204', async () => {
+  vi.stubGlobal('fetch', async () => ({ status: 204, ok: true }))
+  await expect(api('DELETE', '/lists/1')).resolves.toBeNull()
+})
+
+test('api throws a generic error when the response has no error field', async () => {
+  vi.stubGlobal('fetch', async () => ({ status: 500, ok: false, json: async () => ({}) }))
+  await expect(api('GET', '/data')).rejects.toThrow('Request failed (500)')
+})
+
+test('api throws instead of redirecting after a successful callback', async () => {
+  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
+  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  vi.spyOn(UserManager.prototype, 'signinCallback').mockResolvedValue(undefined)
+  await handleRedirect()
+  vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
+  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
+  await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
+  expect(signinRedirect).not.toHaveBeenCalled()
+})
+
+test('handleRedirect strips a Cognito error and blocks a second redirect', async () => {
+  vi.stubGlobal('location', { ...window.location, search: '?error=access_denied', pathname: '/' })
+  const replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  await handleRedirect()
+  expect(replaceState).toHaveBeenCalledWith(null, '', '/')
+  vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
+  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
+  await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
+  expect(signinRedirect).not.toHaveBeenCalled()
+})
