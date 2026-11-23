@@ -8,29 +8,17 @@ const MENU_WIDTH = 208
 
 type MenuItem = { key?: string; label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
 
-const chevron = (
-  <svg
-    viewBox="0 0 16 16"
-    className="size-3.5 self-center text-ink-faint"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M6 4l4 4-4 4" />
-  </svg>
-)
-
 function SubmenuRow({
   label,
   submenu,
+  touch,
   open,
   setOpen,
   renderItems,
 }: {
   label: string
   submenu: MenuItem[]
+  touch: boolean
   open: boolean
   setOpen: (open: boolean) => void
   renderItems: (items: MenuItem[]) => React.ReactNode
@@ -49,8 +37,8 @@ function SubmenuRow({
   return (
     <div
       className="relative"
-      onPointerEnter={(event) => event.pointerType === 'mouse' && show(event.currentTarget)}
-      onPointerLeave={(event) => event.pointerType === 'mouse' && setOpen(false)}
+      onPointerEnter={(event) => !touch && event.pointerType === 'mouse' && show(event.currentTarget)}
+      onPointerLeave={(event) => !touch && event.pointerType === 'mouse' && setOpen(false)}
     >
       <button
         role="menuitem"
@@ -60,7 +48,17 @@ function SubmenuRow({
         className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}
       >
         <span>{label}</span>
-        {chevron}
+        <svg
+          viewBox="0 0 16 16"
+          className="size-3.5 self-center text-ink-faint"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 4l4 4-4 4" />
+        </svg>
       </button>
       {open && (
         <div
@@ -204,27 +202,17 @@ export default function ContextMenu({
 
   const renderItem = (item: MenuItem) => {
     const submenu = item.submenu
-    if (submenu && touch)
-      return (
-        <button
-          key={item.label}
-          role="menuitem"
-          aria-haspopup="menu"
-          onClick={() => setSheet({ label: item.label, submenu })}
-          className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}
-        >
-          <span>{item.label}</span>
-          {chevron}
-        </button>
-      )
-    if (item.submenu)
+    if (submenu)
       return (
         <SubmenuRow
           key={item.label}
           label={item.label}
-          submenu={item.submenu}
-          open={openSubmenu === item.label}
-          setOpen={(open) => setOpenSubmenu(open ? item.label : null)}
+          submenu={submenu}
+          touch={touch}
+          open={!touch && openSubmenu === item.label}
+          setOpen={(open) =>
+            touch ? setSheet({ label: item.label, submenu }) : setOpenSubmenu(open ? item.label : null)
+          }
           renderItems={renderItems}
         />
       )
