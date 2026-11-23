@@ -6,7 +6,7 @@ import { createFakeBackend, seed } from '../shared/fakeBackend'
 export const mockApi = async (page: Page, data = seed()) => {
   const backend = createFakeBackend(data)
   const env = loadEnv('development', process.cwd())
-  const key = `oidc.user:${env.VITE_COGNITO_URL}:${env.VITE_COGNITO_CLIENT_ID}`
+  const key = `oidc.user:${env.VITE_COGNITO_ISSUER}:${env.VITE_COGNITO_CLIENT_ID}`
   const user = JSON.stringify({
     access_token: 'x',
     token_type: 'Bearer',

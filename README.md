@@ -34,6 +34,7 @@ Pushes to `main` deploy to https://willdufault.dev/clover/ via `.github/workflow
 
 - `VITE_API_URL`: `api_url`
 - `VITE_COGNITO_URL`: `cognito_url`
+- `VITE_COGNITO_ISSUER`: `cognito_issuer`
 - `VITE_COGNITO_CLIENT_ID`: `client_id`
 
 ## Backend
@@ -62,4 +63,4 @@ terraform apply
 
 Variables: `region` (default `us-east-1`), `cognito_domain_prefix` (default `wduf-clover`), `app_origins` (default localhost:5173, `willdufault.dev` and `willdufault.github.io`; CORS origins, and Cognito callback/logout at `<origin>/clover/`).
 
-Outputs: `api_url`, `cognito_url`, `client_id`.
+Outputs: `api_url`, `cognito_url`, `cognito_issuer`, `client_id`.

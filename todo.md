@@ -7,6 +7,4 @@
 - drag multiple selected tasks at once (match "Move to list")
 - confirm or undo list/task delete
 - keyboard select and drag for lists and tasks
-- silently refresh expired token instead of redirecting to login
-- revoke refresh token on logout
 - self-host the Google font
