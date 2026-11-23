@@ -1,6 +1,9 @@
+import enums from '../../shared/enums.json'
 import type { Priority, Stage } from './types'
 
-export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
+type Label = { emoji: string; label: string }
+
+export const STAGE_LABELS: Record<Stage, Label> = {
   open: { emoji: '⚪', label: 'Open' },
   inProgress: { emoji: '⚡', label: 'In progress' },
   waiting: { emoji: '⏳', label: 'Waiting' },
@@ -9,14 +12,18 @@ export const STAGE_LABELS: Record<Stage, { emoji: string; label: string }> = {
   cancelled: { emoji: '❌️', label: 'Cancelled' },
 }
 
-export const STAGES = Object.keys(STAGE_LABELS) as Stage[]
+export const STAGES = enums.stages
 
-export const PRIORITY_LABELS: Record<Priority, { emoji: string; label: string }> = {
+export const stageLabel = (stage: Stage) => STAGE_LABELS[stage] ?? { emoji: '', label: stage }
+
+const PRIORITY_LABELS: Record<Priority, Label> = {
   high: { emoji: '🔴', label: 'High' },
   medium: { emoji: '🟡', label: 'Medium' },
   low: { emoji: '🟢', label: 'Low' },
 }
 
-export const PRIORITIES = Object.keys(PRIORITY_LABELS) as Priority[]
+export const PRIORITIES = enums.priorities
 
-export const labelText = ({ emoji, label }: { emoji: string; label: string }) => `${emoji} ${label}`
+export const priorityLabel = (priority: Priority) => PRIORITY_LABELS[priority] ?? { emoji: '', label: priority }
+
+export const labelText = ({ emoji, label }: Label) => `${emoji} ${label}`

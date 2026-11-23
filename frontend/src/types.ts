@@ -1,5 +1,6 @@
-export type Priority = 'low' | 'medium' | 'high'
-export type Stage = 'open' | 'inProgress' | 'waiting' | 'done' | 'cancelled'
+// TS widens JSON arrays to string[], so values from shared/enums.json can't be literal unions.
+export type Priority = string
+export type Stage = string
 export type Step = { id: string; taskId: string; title: string; completed: boolean }
 export type Task = {
   id: string

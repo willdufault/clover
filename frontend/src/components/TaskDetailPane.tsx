@@ -1,6 +1,6 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
+import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
 import {
   FIELD_CLASS,
   SAFE_AREA_CLASS,
@@ -9,10 +9,10 @@ import {
   TITLE_RENAME_CLASS,
   dueDateClass,
 } from '../styles'
-import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
+import { RowKind, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
-import limits from '../../../backend/limits.json'
+import limits from '../../../shared/limits.json'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { ignoreRowEvents } from './ignoreRowEvents'
@@ -204,24 +204,24 @@ export default function TaskDetailPane({
           <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
           <select
             value={task.stage}
-            onChange={(event) => onUpdate({ stage: event.target.value as Stage })}
+            onChange={(event) => onUpdate({ stage: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {STAGES.map((stage) => (
               <option key={stage} value={stage}>
-                {labelText(STAGE_LABELS[stage])}
+                {labelText(stageLabel(stage))}
               </option>
             ))}
           </select>
           <h3 className={LABEL_CLASS}>Priority</h3>
           <select
             value={task.priority}
-            onChange={(event) => onUpdate({ priority: event.target.value as Priority })}
+            onChange={(event) => onUpdate({ priority: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
-                {labelText(PRIORITY_LABELS[priority])}
+                {labelText(priorityLabel(priority))}
               </option>
             ))}
           </select>

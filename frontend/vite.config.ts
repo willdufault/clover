@@ -7,7 +7,7 @@ export const base = '/clover/'
 export default defineConfig({
   base,
   plugins: [react(), tailwindcss()],
-  // Allow importing backend/limits.json.
+  // Allow importing the top-level shared/ folder.
   server: { fs: { allow: ['..'] } },
   test: {
     environment: 'jsdom',

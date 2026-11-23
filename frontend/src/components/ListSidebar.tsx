@@ -6,7 +6,7 @@ import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../sm
 import { logout } from '../api'
 import { TaskCountBadge } from './TaskCountBadge'
 import { AddInput } from './AddInput'
-import limits from '../../../backend/limits.json'
+import limits from '../../../shared/limits.json'
 import { SortableRow } from './SortableRow'
 import { useModalFocus } from '../useModalFocus'
 import type { OpenContextMenu } from './ContextMenu'

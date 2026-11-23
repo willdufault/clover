@@ -49,7 +49,7 @@ Errors (`{"error": "..."}`; nothing is written):
 
 ## Limits
 
-Defined once in `backend/limits.json`. Read by `backend/shared/schema.py` and imported directly by the frontend, which uses the text limits as input `maxLength`.
+Defined once in `shared/limits.json`. Read by `backend/shared/schema.py` (via the `backend/limits.json` symlink, so the Lambda zip includes it) and imported directly by the frontend, which uses the text limits as input `maxLength`. Stage and priority values live in `shared/enums.json` the same way.
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.

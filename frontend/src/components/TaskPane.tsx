@@ -1,12 +1,12 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { formatDueDate } from '../dates'
-import { PRIORITY_LABELS, labelText } from '../labels'
+import { priorityLabel, labelText } from '../labels'
 import { isCompleted } from '../stages'
 import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } from '../styles'
 import type { SortCriteria } from '../sort'
 import { RowKind, type Stage, type Task } from '../types'
 import { AddInput } from './AddInput'
-import limits from '../../../backend/limits.json'
+import limits from '../../../shared/limits.json'
 import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -28,7 +28,7 @@ const metaItems = (task: Task) => {
         📅 {formatDueDate(task.due)}
       </span>,
     )
-  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(PRIORITY_LABELS[task.priority])}</span>)
+  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(priorityLabel(task.priority))}</span>)
   return items
 }
 

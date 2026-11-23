@@ -10,8 +10,8 @@ from tests.helpers import json_values, outcome
 
 field_sets = st.sampled_from([schema.LIST_FIELDS, schema.TASK_FIELDS, schema.STEP_FIELDS, schema.STEP_EDITABLE])
 field_names = sorted({*schema.LIST_FIELDS, *schema.TASK_FIELDS, *schema.STEP_FIELDS})
-STAGES = ["open", "inProgress", "waiting", "done", "cancelled"]
-PRIORITIES = ["low", "medium", "high"]
+STAGES = schema.ENUMS["stages"]
+PRIORITIES = schema.ENUMS["priorities"]
 field_values = st.one_of(
     st.text(),
     st.booleans(),

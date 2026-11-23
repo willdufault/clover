@@ -6,11 +6,12 @@ Todo app: lists, tasks, steps, due dates, priority, stage, Today view, drag and 
 
 ```
 frontend/   React 19 + TypeScript SPA (Vite, Tailwind 4, dnd-kit)
-  src/          app code (api.ts = auth + API client; limits from backend/limits.json)
+  src/          app code (api.ts = auth + API client; limits and enums from shared/)
   tests/unit/   Vitest + Testing Library
   tests/e2e/    Playwright, API mocked in-browser
 backend/    Python 3.14 Lambda (index.py router, handlers.py, shared/{api,schema,db}.py)
   tests/        pytest with moto-mocked DynamoDB
+shared/     limits.json, enums.json (used by frontend and backend; backend symlinks them)
 infra/      Terraform: DynamoDB, Cognito, Lambda, HTTP API
 ```
 

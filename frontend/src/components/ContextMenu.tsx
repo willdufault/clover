@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
-import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
+import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS, X_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 
@@ -165,7 +165,7 @@ export default function ContextMenu({
     {
       label: 'Set stage',
       submenu: STAGES.map((stage) => ({
-        label: labelText(STAGE_LABELS[stage]),
+        label: labelText(stageLabel(stage)),
         action: () => onUpdate({ stage }),
       })),
     },
@@ -182,7 +182,7 @@ export default function ContextMenu({
     {
       label: 'Set priority',
       submenu: PRIORITIES.map((priority) => ({
-        label: labelText(PRIORITY_LABELS[priority]),
+        label: labelText(priorityLabel(priority)),
         action: () => onUpdate({ priority }),
       })),
     },
