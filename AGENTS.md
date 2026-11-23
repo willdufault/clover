@@ -12,7 +12,7 @@ CI (`.github/workflows/ci.yml`) runs all checks below on every push to `stage`.
 
 - Before finishing, run `npm test`, `npm run lint`, `npm run format:check`, and `npm run build` (type-check).
 - Add or update tests when behavior changes (new logic, state, interactions, bug fixes). Skip for copy, styling, and layout-only changes.
-- UI changes: run `npm run e2e`, exercising the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors. Screenshot the changed UI and check it.
+- UI changes: run `npm run e2e`, exercising the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors. Screenshot the changed UI and check it. Record a GIF of the changed behavior for PR evidence: record with Playwright `video: 'on'`, then `$(node -p "require('ffmpeg-static')") -i video.webm -vf "fps=25,scale=<width>:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" <name>.gif`.
 
 ## Infra (run from `infra/`)
 
