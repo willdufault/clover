@@ -45,7 +45,7 @@ export function EditableText({
             event.preventDefault()
             const name = draft.trim()
             setDraft(null)
-            if (name) onCommit(name)
+            if (name && name !== text) onCommit(name)
           }
           if (event.key === 'Escape') cancel()
         }}
