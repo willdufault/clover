@@ -33,15 +33,15 @@ describe('SortableRow long press', () => {
 
   test('shows pressing state during a hold', () => {
     const row = renderRow()
-    expect(row).not.toHaveClass('bg-cream')
+    expect(row).not.toHaveClass('motion-safe:scale-[0.98]')
     fireEvent.touchStart(row, touch(0, 0))
-    expect(row).toHaveClass('bg-cream')
+    expect(row).toHaveClass('motion-safe:scale-[0.98]')
   })
   test('clears pressing state when the touch moves away', () => {
     const row = renderRow()
     fireEvent.touchStart(row, touch(0, 0))
     fireEvent.touchMove(row, touch(20, 0))
-    expect(row).not.toHaveClass('bg-cream')
+    expect(row).not.toHaveClass('motion-safe:scale-[0.98]')
   })
   test('clears pressing state when the long press fires', () => {
     const onContextMenu = vi.fn()
@@ -51,6 +51,6 @@ describe('SortableRow long press', () => {
       vi.advanceTimersByTime(500)
     })
     expect(onContextMenu).toHaveBeenCalledWith({ clientX: 5, clientY: 6 }, 'Row')
-    expect(row).not.toHaveClass('bg-cream')
+    expect(row).not.toHaveClass('motion-safe:scale-[0.98]')
   })
 })
