@@ -135,114 +135,117 @@ export default function TaskDetailPane({
   )
 
   return (
-    <aside
-      role={modal ? 'dialog' : undefined}
-      aria-modal={modal || undefined}
-      aria-label={task.title}
-      className={
-        'pane-in fixed inset-0 z-30 flex shrink-0 flex-col bg-paper lg:left-auto lg:w-96 lg:border-l lg:border-line lg:shadow-pop xl:static xl:z-auto xl:w-80 xl:p-0 xl:shadow-none xl:pointer-coarse:w-96 2xl:w-96 ' +
-        SAFE_AREA_CLASS
-      }
-    >
-      <div className="flex select-none items-start gap-3 px-5 pt-4 pb-2 lg:pt-[3.6rem]">
-        <div className="min-w-0 flex-1">
-          <EditableText
-            key={task.id}
-            tag="h2"
-            text={task.title}
-            maxLength={limits.titleMax}
-            onCommit={(title) => onUpdate({ title })}
-            className="-mx-1.5 w-fit max-w-full rounded-lg px-1.5 text-2xl font-semibold tracking-tight break-words text-ink transition hover:bg-cream"
-            inputClassName={TITLE_RENAME_CLASS + ' text-2xl tracking-tight'}
-          />
-        </div>
-        <button
-          ref={closeRef}
-          onClick={onClose}
-          aria-label="Close panel"
-          className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-1 pb-4">
-        <h3 className={LABEL_CLASS}>Steps</h3>
-        <SortableContext items={task.steps} strategy={verticalListSortingStrategy}>
-          <ul className="w-full">{task.steps.map(stepRow)}</ul>
-        </SortableContext>
-
-        <AddInput
-          placeholder="+ New step"
-          maxLength={limits.titleMax}
-          onAdd={onAddStep}
-          className={task.steps.length > 0 ? 'mt-2' : undefined}
-        />
-        <h3 className={LABEL_CLASS + ' mt-7'}>Schedule</h3>
-        <DueDateField task={task} onUpdate={onUpdate} />
-        {task.addedToToday ? (
-          <div className="mt-2.5 flex h-9 w-fit items-center gap-1 rounded-full border border-clover-200 bg-clover-100 pr-1.5 pl-4 text-sm font-medium text-clover-700">
-            <span>☀️ Added to Today</span>
-            <button
-              onClick={() => onUpdate({ addedToToday: false })}
-              aria-label="Remove from Today"
-              className={X_BUTTON_CLASS + ' text-clover-700'}
-            >
-              ×
-            </button>
+    <>
+      <div onClick={onClose} className="fixed inset-0 z-30 hidden bg-ink/20 lg:block xl:hidden" />
+      <aside
+        role={modal ? 'dialog' : undefined}
+        aria-modal={modal || undefined}
+        aria-label={task.title}
+        className={
+          'pane-in fixed inset-0 z-30 flex shrink-0 flex-col bg-paper lg:left-auto lg:w-96 lg:border-l lg:border-line lg:shadow-pop xl:static xl:z-auto xl:w-80 xl:p-0 xl:shadow-none xl:pointer-coarse:w-96 2xl:w-96 ' +
+          SAFE_AREA_CLASS
+        }
+      >
+        <div className="flex select-none items-start gap-3 px-5 pt-4 pb-2 lg:pt-[3.6rem]">
+          <div className="min-w-0 flex-1">
+            <EditableText
+              key={task.id}
+              tag="h2"
+              text={task.title}
+              maxLength={limits.titleMax}
+              onCommit={(title) => onUpdate({ title })}
+              className="-mx-1.5 w-fit max-w-full rounded-lg px-1.5 text-2xl font-semibold tracking-tight break-words text-ink transition hover:bg-cream"
+              inputClassName={TITLE_RENAME_CLASS + ' text-2xl tracking-tight'}
+            />
           </div>
-        ) : (
           <button
-            onClick={() => onUpdate({ addedToToday: true })}
-            className="touch-hit mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
+            ref={closeRef}
+            onClick={onClose}
+            aria-label="Close panel"
+            className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
           >
-            ☀️ Add to Today
+            ✕
           </button>
-        )}
-        <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
-        <select
-          value={task.stage}
-          onChange={(event) => onUpdate({ stage: event.target.value as Stage })}
-          className={FIELD_CLASS + ' field'}
-        >
-          {STAGES.map((stage) => (
-            <option key={stage} value={stage}>
-              {labelText(STAGE_LABELS[stage])}
-            </option>
-          ))}
-        </select>
-        <h3 className={LABEL_CLASS}>Priority</h3>
-        <select
-          value={task.priority}
-          onChange={(event) => onUpdate({ priority: event.target.value as Priority })}
-          className={FIELD_CLASS + ' field'}
-        >
-          {PRIORITIES.map((priority) => (
-            <option key={priority} value={priority}>
-              {labelText(PRIORITY_LABELS[priority])}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="shrink-0 border-t border-line px-4 py-2.5">
-        <button
-          onClick={onDeleteTask}
-          className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-3 text-sm font-medium text-coral transition hover:bg-coral-50 pointer-fine:py-1.5"
-        >
-          <svg
-            viewBox="0 0 16 16"
-            className="size-3.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        </div>
+
+        <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-1 pb-4">
+          <h3 className={LABEL_CLASS}>Steps</h3>
+          <SortableContext items={task.steps} strategy={verticalListSortingStrategy}>
+            <ul className="w-full">{task.steps.map(stepRow)}</ul>
+          </SortableContext>
+
+          <AddInput
+            placeholder="+ New step"
+            maxLength={limits.titleMax}
+            onAdd={onAddStep}
+            className={task.steps.length > 0 ? 'mt-2' : undefined}
+          />
+          <h3 className={LABEL_CLASS + ' mt-7'}>Schedule</h3>
+          <DueDateField task={task} onUpdate={onUpdate} />
+          {task.addedToToday ? (
+            <div className="mt-2.5 flex h-9 w-fit items-center gap-1 rounded-full border border-clover-200 bg-clover-100 pr-1.5 pl-4 text-sm font-medium text-clover-700">
+              <span>☀️ Added to Today</span>
+              <button
+                onClick={() => onUpdate({ addedToToday: false })}
+                aria-label="Remove from Today"
+                className={X_BUTTON_CLASS + ' text-clover-700'}
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onUpdate({ addedToToday: true })}
+              className="touch-hit mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
+            >
+              ☀️ Add to Today
+            </button>
+          )}
+          <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
+          <select
+            value={task.stage}
+            onChange={(event) => onUpdate({ stage: event.target.value as Stage })}
+            className={FIELD_CLASS + ' field'}
           >
-            <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" />
-          </svg>
-          Delete task
-        </button>
-      </div>
-    </aside>
+            {STAGES.map((stage) => (
+              <option key={stage} value={stage}>
+                {labelText(STAGE_LABELS[stage])}
+              </option>
+            ))}
+          </select>
+          <h3 className={LABEL_CLASS}>Priority</h3>
+          <select
+            value={task.priority}
+            onChange={(event) => onUpdate({ priority: event.target.value as Priority })}
+            className={FIELD_CLASS + ' field'}
+          >
+            {PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {labelText(PRIORITY_LABELS[priority])}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="shrink-0 border-t border-line px-4 py-2.5">
+          <button
+            onClick={onDeleteTask}
+            className="-ml-1 flex items-center gap-1.5 rounded-lg px-2 py-3 text-sm font-medium text-coral transition hover:bg-coral-50 pointer-fine:py-1.5"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              className="size-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" />
+            </svg>
+            Delete task
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }

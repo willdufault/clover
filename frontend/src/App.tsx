@@ -176,8 +176,6 @@ export default function App() {
 
   // A touch long-press passes the row title and leaves the selection alone.
   const openContextMenu: OpenContextMenu = (kind, id) => (event, longPressTitle) => {
-    event.preventDefault()
-    if (activeDrag) return
     const select = longPressTitle === undefined
     const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
     let ids = [id]
@@ -253,7 +251,6 @@ export default function App() {
     const overId = String(over.id)
     const target = taskDropTarget(over)
     if (target) {
-      setDrawerOpen(false)
       replaceTaskSelection([])
       if (target === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       const dragged = tasks.find((task) => task.id === active.id)
@@ -328,26 +325,20 @@ export default function App() {
             inert={mainInert}
           />
           {detailTask && (
-            <>
-              <div
-                onClick={() => replaceTaskSelection([])}
-                className="fixed inset-0 z-30 hidden bg-ink/20 lg:block xl:hidden"
-              />
-              <TaskDetailPane
-                task={detailTask}
-                selectedIds={selectedStepIds}
-                onSelectStep={selectStep}
-                onClose={() => replaceTaskSelection([])}
-                onDeleteTask={() => deleteTasks([detailTask.id])}
-                onAddStep={addStep}
-                onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
-                onDeleteStep={(id) => deleteSteps([id])}
-                onUpdate={(patch) => updateTask(detailTask.id, patch)}
-                onContextMenu={openContextMenu}
-                onRenameStep={renameStep}
-                modal={detailModal}
-              />
-            </>
+            <TaskDetailPane
+              task={detailTask}
+              selectedIds={selectedStepIds}
+              onSelectStep={selectStep}
+              onClose={() => replaceTaskSelection([])}
+              onDeleteTask={() => deleteTasks([detailTask.id])}
+              onAddStep={addStep}
+              onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
+              onDeleteStep={(id) => deleteSteps([id])}
+              onUpdate={(patch) => updateTask(detailTask.id, patch)}
+              onContextMenu={openContextMenu}
+              onRenameStep={renameStep}
+              modal={detailModal}
+            />
           )}
         </div>
       </div>

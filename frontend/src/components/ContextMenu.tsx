@@ -48,9 +48,7 @@ function SubmenuRow({
         <span>{label}</span>
         <svg
           viewBox="0 0 16 16"
-          className={
-            'size-3.5 self-center text-ink-faint transition' + (open ? ' max-lg:pointer-coarse:rotate-90' : '')
-          }
+          className={'size-3.5 self-center text-ink-faint transition' + (open ? ' phone:rotate-90' : '')}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -68,7 +66,7 @@ function SubmenuRow({
           className={
             'absolute -mt-1 ' +
             MENU_CLASS +
-            ' max-lg:pointer-coarse:static max-lg:pointer-coarse:mt-0 max-lg:pointer-coarse:w-auto! max-lg:pointer-coarse:border-0 max-lg:pointer-coarse:p-0 max-lg:pointer-coarse:pl-3 max-lg:pointer-coarse:shadow-none ' +
+            ' phone:static phone:mt-0 phone:w-auto! phone:border-0 phone:p-0 phone:pl-3 phone:shadow-none ' +
             (flip ? 'right-full' : 'left-full')
           }
         >
@@ -105,9 +103,10 @@ export type ContextMenuState = {
   allDone?: boolean
 }
 
-export type MenuEvent = { clientX: number; clientY: number; preventDefault: () => void }
-
-export type OpenContextMenu = (kind: RowKind, id: string) => (event: MenuEvent, longPressTitle?: string) => void
+export type OpenContextMenu = (
+  kind: RowKind,
+  id: string,
+) => (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
 
 export default function ContextMenu({
   menu,
@@ -205,7 +204,7 @@ export default function ContextMenu({
   return (
     <>
       <div
-        className="fixed inset-0 max-lg:pointer-coarse:z-40 max-lg:pointer-coarse:bg-ink/20"
+        className="fixed inset-0 phone:z-40 phone:bg-ink/20"
         onClick={onClose}
         onContextMenu={(event) => {
           event.preventDefault()
@@ -218,7 +217,7 @@ export default function ContextMenu({
         className={
           'fixed z-50 ' +
           MENU_CLASS +
-          ' max-lg:pointer-coarse:max-h-[calc(100dvh-1rem)] max-lg:pointer-coarse:overflow-y-auto max-lg:pointer-coarse:inset-x-2! max-lg:pointer-coarse:top-auto! max-lg:pointer-coarse:bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] max-lg:pointer-coarse:mx-auto max-lg:pointer-coarse:w-auto! max-lg:pointer-coarse:max-w-sm'
+          ' phone:max-h-[calc(100dvh-1rem)] phone:overflow-y-auto phone:inset-x-2! phone:top-auto! phone:bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] phone:mx-auto phone:w-auto! phone:max-w-sm'
         }
         style={{
           left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),

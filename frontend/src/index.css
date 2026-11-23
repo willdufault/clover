@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant phone (@media (pointer: coarse) and (width < 64rem));
+
 @theme {
   --font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
 

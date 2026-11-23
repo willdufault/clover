@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGE_LABELS } from '../../src/labels'
@@ -342,17 +342,6 @@ test('the lists drawer opens from the menu button and closes on X or picking a l
   expect(drawer()).toHaveClass('invisible')
   expect(screen.getByLabelText('Open lists')).toHaveFocus()
   expect(main()).not.toHaveAttribute('inert')
-})
-
-test('on wide screens the drawer is not modal even if left open', async () => {
-  stubViewport(375)
-  const { user } = await setup()
-  await user.click(screen.getByLabelText('Open lists'))
-  expect(main()).toHaveAttribute('inert')
-  cleanup()
-  stubViewport(1280)
-  await setup()
-  expect(screen.queryByRole('dialog')).toBeNull()
 })
 
 test('on phones task detail is a modal dialog that returns focus when closed', async () => {

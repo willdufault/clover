@@ -2,12 +2,11 @@ import { useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { RowKind } from '../types'
-import type { MenuEvent } from './ContextMenu'
 
 type Press = { x: number; y: number; timer: number; fired: boolean }
 
 // iOS never fires contextmenu on long-press, so touch long-press is timed here and the native one is ignored.
-const useLongPress = (onLongPress: (event: MenuEvent) => void) => {
+const useLongPress = (onLongPress: (event: { clientX: number; clientY: number }) => void) => {
   const press = useRef<Press | null>(null)
   const cancel = () => {
     if (press.current) clearTimeout(press.current.timer)
@@ -21,7 +20,7 @@ const useLongPress = (onLongPress: (event: MenuEvent) => void) => {
       const state: Press = { x: clientX, y: clientY, fired: false, timer: 0 }
       state.timer = window.setTimeout(() => {
         state.fired = true
-        onLongPress({ clientX, clientY, preventDefault: () => {} })
+        onLongPress({ clientX, clientY })
       }, 500)
       press.current = state
     },
@@ -54,7 +53,7 @@ export function SortableRow({
   tag: 'li' | 'div'
   className: string
   onClick: (event: React.MouseEvent) => void
-  onContextMenu: (event: MenuEvent, longPressTitle?: string) => void
+  onContextMenu: (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
   children: React.ReactNode
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -68,9 +67,10 @@ export function SortableRow({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       data-kind={kind}
       onClick={onClick}
-      onContextMenu={(event) =>
-        (event.nativeEvent as PointerEvent).pointerType === 'touch' ? event.preventDefault() : onContextMenu(event)
-      }
+      onContextMenu={(event) => {
+        event.preventDefault()
+        if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
+      }}
       className={
         'touch-manipulation [-webkit-touch-callout:none] ' + (isDragging ? 'opacity-60 shadow-lg ' : '') + className
       }

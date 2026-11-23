@@ -11,7 +11,7 @@ import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { TaskSummary } from './TaskSummary'
+import { StageSelect } from './StageSelect'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -69,6 +69,7 @@ export default function TaskPane({
     const meta = metaItems(task)
     const selected = selectedIds.includes(task.id)
     const rowTint = selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70'
+    const completed = isCompleted(task.stage)
     return (
       <SortableRow
         key={task.id}
@@ -94,11 +95,22 @@ export default function TaskPane({
           <circle cx="6" cy="12" r="1.2" />
           <circle cx="10" cy="12" r="1.2" />
         </svg>
-        <TaskSummary task={task} onSetStage={(stage) => onSetStage(task.id, stage)}>
-          {meta.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
-          )}
-        </TaskSummary>
+        <div className="flex min-w-0 flex-1 items-center gap-3.5">
+          <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span
+              className={
+                'text-base break-words ' +
+                (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+              }
+            >
+              {task.title}
+            </span>
+            {meta.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
+            )}
+          </div>
+        </div>
       </SortableRow>
     )
   }
