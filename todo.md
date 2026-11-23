@@ -8,5 +8,4 @@
 - make sidebar Today/All rows keyboard accessible (buttons)
 - consider typing api() responses and enabling no-unsafe-* lint rules
 - support touch drag-and-drop on mobile (reorder and move to list)
-- cancelled subtracts from total?
-- hold to open menu on mobile ux
+- install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
