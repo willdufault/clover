@@ -165,6 +165,15 @@ test('saves the due date only when the edit ends', async () => {
   expect(backend.data.tasks.find((t) => t.id === id)?.due).toBe('2030-01-02')
 })
 
+test('clicking the due date opens the picker', async () => {
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  const showPicker = vi.fn()
+  ;(dueInput() as HTMLInputElement).showPicker = showPicker
+  fireEvent.click(dueInput())
+  expect(showPicker).toHaveBeenCalled()
+})
+
 test('closing and reopening a task keeps position', async () => {
   const { user } = await setup()
   await user.click(within(nav()).getByText('Work'))

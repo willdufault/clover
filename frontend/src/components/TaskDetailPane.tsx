@@ -44,6 +44,7 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           event.target.value = task.due ?? ''
           if (!partial && value !== (task.due ?? '')) onUpdate({ due: value || null })
         }}
+        onClick={(event) => event.currentTarget.showPicker()}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
       />

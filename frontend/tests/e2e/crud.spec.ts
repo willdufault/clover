@@ -243,8 +243,8 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   const aside = page.locator('aside')
   const input = aside.locator('input[type="date"]')
 
-  // Backspace the day segment (mm/dd/yyyy), then blur.
-  await input.click()
+  // Backspace the day segment (mm/dd/yyyy), then blur. Focus, since a click opens the picker.
+  await input.focus()
   await input.press('ArrowRight')
   await input.press('Backspace')
   expect(await input.evaluate((el: HTMLInputElement) => el.validity.badInput)).toBe(true)
