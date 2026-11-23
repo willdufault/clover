@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../shared/fakeBackend'
+import { tomorrow } from '../../src/dates'
 import { captureErrors, mockApi } from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
@@ -77,7 +78,7 @@ test('task detail opens full screen and closes', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
-test('long-press opens the context menu on screen and its submenus expand on tap', async ({ page }) => {
+test('long-press opens the context menu on screen and a submenu replaces it in place', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page)
   await page.goto('./')
@@ -89,8 +90,12 @@ test('long-press opens the context menu on screen and its submenus expand on tap
   await page.getByRole('menuitem', { name: 'Set stage' }).tap()
   const done = page.getByRole('menuitem', { name: '✅ Done' })
   await expect(done).toBeVisible()
-  const box = await done.boundingBox()
-  expect(box && box.x >= 0 && box.x + box.width <= 375 && box.y + box.height <= 667).toBe(true)
+  await expect
+    .poll(async () => {
+      const box = await done.boundingBox()
+      return !!box && box.x >= 0 && box.x + box.width <= 375 && box.y + box.height <= 667
+    })
+    .toBe(true)
   await done.tap()
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.stage).toBe('done')
   await expect(remove).toBeHidden()
@@ -162,7 +167,7 @@ test.describe('iPad portrait', () => {
     expect(menu && rowBox && Math.abs(menu.y - (rowBox.y + rowBox.height / 2)) < 10).toBe(true)
     await page.getByRole('menuitem', { name: 'Set stage' }).tap()
     await expect(page.getByRole('menuitem', { name: '✅ Done' })).toBeVisible()
-    await page.getByRole('menuitem', { name: 'Set stage' }).tap()
+    await page.getByLabel('Back').tap()
     await expect(page.getByRole('menuitem', { name: '✅ Done' })).toHaveCount(0)
     expect(errors).toEqual([])
   })
@@ -227,4 +232,75 @@ test('the sort menu stays on screen whether Sort sits right or left', async ({ p
   await page.getByRole('button', { name: 'Sort' }).tap()
   expect(await onScreen()).toBe(true)
   expect(errors).toEqual([])
+})
+
+test.describe('phone sheet submenus', () => {
+  test.use({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+
+  test('long-press shows press feedback, then due date submenu replaces the sheet', async ({ page }) => {
+    const errors = captureErrors(page)
+    const backend = await mockApi(page)
+    await page.goto('./')
+    const row = page.locator('[data-kind="task"]', { hasText: 'Eggs' })
+    const menu = page.getByRole('menu')
+
+    const f = await finger(page, await center(row))
+    await expect(row).toHaveClass(/bg-cream/)
+    await expect(menu).toBeVisible()
+    await f.up()
+    await expect(row).not.toHaveClass(/bg-cream/)
+
+    await menu.getByRole('menuitem', { name: 'Set due date' }).tap()
+    await expect(menu.getByLabel('Back')).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
+    await menu.getByRole('menuitem', { name: 'Tomorrow' }).tap()
+    await expect(menu).toHaveCount(0)
+    await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.due).toBe(tomorrow())
+    expect(errors).toEqual([])
+  })
+})
+
+test.describe('tablet', () => {
+  test.use({ viewport: { width: 820, height: 1180 }, reducedMotion: 'reduce' })
+
+  test('long-press menu floats at the press point and Move to list replaces it in place', async ({ page }) => {
+    const errors = captureErrors(page)
+    const data = seed()
+    for (let i = 1; i <= 20; i++) data.lists.push({ id: `l${i}`, name: `List ${i}` })
+    const backend = await mockApi(page, data)
+    await page.goto('./')
+    const row = page.locator('main [data-kind="task"]', { hasText: 'Eggs' })
+    const menu = page.getByRole('menu')
+    const press = await center(row)
+    const onScreen = async () => {
+      const box = await menu.boundingBox()
+      return !!box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 820 && box.y + box.height <= 1180
+    }
+
+    await longPress(page, row)
+    await expect(menu.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+    const box = await menu.boundingBox()
+    expect(box && Math.abs(box.x - press.x) < 10 && Math.abs(box.y - press.y) < 10 && box.width < 300).toBe(true)
+    expect(await onScreen()).toBe(true)
+
+    await menu.getByRole('menuitem', { name: 'Move to list' }).tap()
+    const back = menu.getByLabel('Back')
+    await expect(back).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
+    expect(await onScreen()).toBe(true)
+    expect((await menu.boundingBox())?.height).toBeLessThanOrEqual(320)
+    expect(await menu.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+
+    await menu.evaluate((el) => (el.scrollTop = el.scrollHeight))
+    await expect.poll(() => menu.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+    const menuBox = await menu.boundingBox()
+    const backBox = await back.boundingBox()
+    expect(menuBox && backBox && backBox.y >= menuBox.y && backBox.y - menuBox.y < 12).toBe(true)
+    const last = menu.getByRole('menuitem', { name: 'List 20' })
+    await expect(last).toBeInViewport()
+    await last.tap()
+    await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.listId).toBe('l20')
+    await expect(menu).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
 })

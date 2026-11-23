@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { RowKind } from '../types'
@@ -8,11 +8,14 @@ type Press = { x: number; y: number; timer: number; fired: boolean }
 // iOS never fires contextmenu on long-press, so touch long-press is timed here and the native one is ignored.
 const useLongPress = (onLongPress: (event: { clientX: number; clientY: number }) => void) => {
   const press = useRef<Press | null>(null)
+  const [pressing, setPressing] = useState(false)
   const cancel = () => {
     if (press.current) clearTimeout(press.current.timer)
     press.current = null
+    setPressing(false)
   }
   return {
+    pressing,
     onTouchStart: (event: React.TouchEvent) => {
       const touch = event.touches[0]
       if (!touch || event.touches.length > 1) return cancel()
@@ -20,9 +23,11 @@ const useLongPress = (onLongPress: (event: { clientX: number; clientY: number })
       const state: Press = { x: clientX, y: clientY, fired: false, timer: 0 }
       state.timer = window.setTimeout(() => {
         state.fired = true
+        setPressing(false)
         onLongPress({ clientX, clientY })
       }, 500)
       press.current = state
+      setPressing(true)
     },
     onTouchMove: (event: React.TouchEvent) => {
       const touch = event.touches[0]
@@ -60,7 +65,7 @@ export function SortableRow({
     id,
     data: { kind, text },
   })
-  const longPress = useLongPress((event) => onContextMenu(event, text))
+  const { pressing, ...longPress } = useLongPress((event) => onContextMenu(event, text))
   return (
     <Tag
       ref={setNodeRef}
@@ -72,7 +77,10 @@ export function SortableRow({
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}
       className={
-        'touch-manipulation [-webkit-touch-callout:none] ' + (isDragging ? 'opacity-60 shadow-lg ' : '') + className
+        'touch-manipulation transition [-webkit-touch-callout:none] ' +
+        (isDragging ? 'opacity-60 shadow-lg ' : '') +
+        (pressing ? 'bg-cream duration-500 ease-out motion-safe:scale-[0.98] ' : '') +
+        className
       }
       {...longPress}
       {...attributes}
