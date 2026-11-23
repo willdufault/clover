@@ -108,7 +108,7 @@ export default function TaskPane({
       inert={inert}
       className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-6 pb-10 sm:px-8 lg:pt-14"
     >
-      <div className="w-full max-w-[50rem] 2xl:max-w-[64rem]">
+      <div className="mx-auto w-full max-w-[50rem] 2xl:max-w-[64rem]">
         <div className="flex items-start gap-2">
           <button
             onClick={onOpenLists}
