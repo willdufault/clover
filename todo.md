@@ -6,5 +6,3 @@
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
 - drag multiple selected tasks at once (match "Move to list")
 - confirm or undo list/task delete
-- keyboard select and drag for lists and tasks
-- self-host the Google font
