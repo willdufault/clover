@@ -1,14 +1,11 @@
-// TS widens JSON arrays to string[], so values from shared/enums.json can't be literal unions.
-export type Priority = string
-export type Stage = string
 export type Step = { id: string; taskId: string; title: string; completed: boolean }
 export type Task = {
   id: string
   title: string
   steps: Step[]
   due: string | null
-  priority: Priority
-  stage: Stage
+  priority: string
+  stage: string
   listId: string | null
   addedToToday: boolean
 }

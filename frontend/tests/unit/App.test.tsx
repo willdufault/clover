@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { STAGE_LABELS } from '../../src/labels'
+import { STAGES, stageLabel } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
 import { createFakeBackend } from '../shared/fakeBackend'
 import { stubViewport } from './viewport'
@@ -28,9 +28,7 @@ const setup = async () => {
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGE_EMOJIS = Object.values(STAGE_LABELS)
-  .map((s) => s.emoji)
-  .join('')
+const STAGE_EMOJIS = STAGES.map((stage) => stageLabel(stage).emoji).join('')
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '')
     .replace(STAGE_EMOJIS, '')

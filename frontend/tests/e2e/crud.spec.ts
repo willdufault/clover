@@ -89,7 +89,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
 
   await nav.getByText('📚 Books').click()
   await task.click()
-  await aside.getByRole('button', { name: '×', exact: true }).click()
+  await aside.getByRole('button', { name: 'Clear due date' }).click()
   await expect(task).not.toContainText('📅')
   await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Dune Messiah')?.due).toBeNull()
   await aside.getByRole('button', { name: 'Remove from Today' }).click()

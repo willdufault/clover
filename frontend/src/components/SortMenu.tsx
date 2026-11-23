@@ -21,7 +21,7 @@ export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void 
           setFlip(event.currentTarget.getBoundingClientRect().left + MENU_WIDTH > window.innerWidth)
           setOpen(true)
         }}
-        className="touch-hit cursor-default rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink-soft transition hover:border-clover-200 hover:text-clover-700"
+        className="touch-hit rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink-soft transition hover:border-clover-200 hover:text-clover-700"
       >
         ⇅ Sort
       </button>

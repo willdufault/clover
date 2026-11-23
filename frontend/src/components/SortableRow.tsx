@@ -60,9 +60,10 @@ export function SortableRow({
   onContextMenu: (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
   children: React.ReactNode
 }) {
-  const rowClass = 'touch-manipulation transition [-webkit-touch-callout:none] ' + className
+  const rowClass = 'touch-manipulation [-webkit-touch-callout:none] ' + className
+  const Wrapper = Tag === 'li' ? 'ul' : 'div'
   const clone = (
-    <div
+    <Wrapper
       inert
       data-overlay
       className={
@@ -71,7 +72,7 @@ export function SortableRow({
       }
     >
       <Tag className={rowClass}>{children}</Tag>
-    </div>
+    </Wrapper>
   )
   const { attributes, listeners, setNodeRef, isDragging, isOver, index, activeIndex } = useSortable({
     id,

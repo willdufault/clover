@@ -10,7 +10,7 @@ const moveById = <T extends { id: string }>(items: T[], activeId: string, overId
 
 type DropEvent = {
   selectedListId: string
-  detailTaskId: string | null
+  detailTask: Task | undefined
   activeId: string
   overId: string
 }
@@ -20,7 +20,7 @@ export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 // Local-only (not persisted). Reorder only within the container holding both the dragged item and the drop target.
 export const applyDrop = (
   state: ListsAndTasks,
-  { selectedListId, detailTaskId, activeId, overId }: DropEvent,
+  { selectedListId, detailTask, activeId, overId }: DropEvent,
 ): ListsAndTasks => {
   const { lists, tasks } = state
   if (activeId === overId) return state
@@ -32,7 +32,6 @@ export const applyDrop = (
   const containsBoth = (items: { id: string }[]) =>
     items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(visibleInList)) return { lists, tasks: moveById(tasks, activeId, overId) }
-  const detailTask = visibleInList.find((task) => task.id === detailTaskId)
   if (detailTask && containsBoth(detailTask.steps)) {
     return {
       lists,

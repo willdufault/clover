@@ -124,11 +124,6 @@ export default function App() {
   }, [drawerOpen, setDrawerOpen])
 
   // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
-  const patchTasks = async (patches: Partial<Task>[]) => {
-    const updated: Omit<Task, 'steps'>[] = await api('PATCH', '/tasks', patches)
-    setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
-  }
-
   const patchSteps = async (patches: Partial<Step>[]) => {
     const updated: Step[] = await api('PATCH', '/steps', patches)
     setTasks((prev) =>
@@ -164,7 +159,15 @@ export default function App() {
       replaceTaskSelection([])
     })
 
-  const updateTasks = (ids: string[], patch: TaskPatch) => run(() => patchTasks(ids.map((id) => ({ id, ...patch }))))
+  const updateTasks = (ids: string[], patch: TaskPatch) =>
+    run(async () => {
+      const updated: Omit<Task, 'steps'>[] = await api(
+        'PATCH',
+        '/tasks',
+        ids.map((id) => ({ id, ...patch })),
+      )
+      setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
+    })
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
@@ -207,8 +210,7 @@ export default function App() {
 
   const renameList = (id: string, name: string) =>
     run(async () => {
-      const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
-      if (!updated) throw new Error('List rename returned no list')
+      const [updated]: [TaskList] = await api('PATCH', '/lists', [{ id, name }])
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
@@ -270,7 +272,7 @@ export default function App() {
       { lists, tasks },
       {
         selectedListId,
-        detailTaskId: detailTask?.id ?? null,
+        detailTask,
         activeId: String(active.id),
         overId,
       },
