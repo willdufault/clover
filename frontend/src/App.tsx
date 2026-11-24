@@ -254,7 +254,6 @@ export default function App() {
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     endDrag()
     if (!over) return
-    const overId = String(over.id)
     const target = taskDropTarget(over)
     if (target) {
       replaceTaskSelection([])
@@ -270,7 +269,7 @@ export default function App() {
         selectedListId,
         detailTask,
         activeId: String(active.id),
-        overId,
+        overId: String(over.id),
       },
     )
     setLists(nextState.lists)

@@ -82,12 +82,8 @@ def test_create_over_task_limit_after_stale_read_is_409(call: Callable, task: di
     assert len(call("GET /data")[1]["steps"]) == STEPS_PER_TASK
 
 
-def orphan(mock_table: Table) -> None:
-    mock_table.put_item(Item={"PK": "user-1", "SK": "STEP#orphan", "taskId": "gone", "title": "O", "completed": False})
-
-
 def test_delete_removes_orphan_steps(call: Callable, task: dict, mock_table: Table) -> None:
     step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
-    orphan(mock_table)
+    mock_table.put_item(Item={"PK": "user-1", "SK": "STEP#orphan", "taskId": "gone", "title": "O", "completed": False})
     assert call("DELETE /steps", {"ids": [step["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}

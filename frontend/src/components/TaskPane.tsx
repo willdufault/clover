@@ -67,8 +67,6 @@ export default function TaskPane({
   const taskRow = (task: Task) => {
     const meta = metaItems(task)
     const selected = selectedIds.includes(task.id)
-    const rowTint = selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70'
-    const completed = isCompleted(task.stage)
     return (
       <SortableRow
         key={task.id}
@@ -80,7 +78,7 @@ export default function TaskPane({
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
         className={
           'group relative flex select-none items-center gap-3.5 border-b border-line/70 px-5 py-3.5 transition last:border-b-0 ' +
-          rowTint
+          (selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70')
         }
       >
         {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
@@ -102,7 +100,7 @@ export default function TaskPane({
           <span
             className={
               'text-base break-words ' +
-              (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+              (isCompleted(task.stage) ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
             }
           >
             {task.title}

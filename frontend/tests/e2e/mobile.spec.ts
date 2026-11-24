@@ -1,15 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, mockApi } from './helpers'
+import { captureErrors, center, mockApi } from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
-
-const center = async (locator: Locator) => {
-  const bounds = await locator.boundingBox()
-  if (!bounds) throw new Error('Element is not visible')
-  return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
-}
 
 type Point = { x: number; y: number }
 
@@ -21,9 +15,8 @@ const finger = async (page: Page, from: Point) => {
   await send('touchStart', [from])
   return {
     move: async (to: Point) => {
-      const a = at
       for (let i = 1; i <= 10; i++)
-        await send('touchMove', [{ x: a.x + (to.x - a.x) * (i / 10), y: a.y + (to.y - a.y) * (i / 10) }])
+        await send('touchMove', [{ x: at.x + (to.x - at.x) * (i / 10), y: at.y + (to.y - at.y) * (i / 10) }])
       at = to
     },
     up: () => send('touchEnd', []),

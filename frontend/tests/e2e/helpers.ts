@@ -43,7 +43,7 @@ export const box = async (locator: Locator) => {
   return bounds
 }
 
-const center = async (locator: Locator) => {
+export const center = async (locator: Locator) => {
   const b = await box(locator)
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
 }

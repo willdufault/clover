@@ -23,7 +23,7 @@ const setup = async () => {
   const user = userEvent.setup()
   render(<App />)
   await screen.findByRole('navigation')
-  return { user }
+  return user
 }
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
@@ -76,17 +76,10 @@ const newList = async (user: User, name: string) => {
 const newStep = async (user: User, name: string) => {
   await user.type(within(aside()).getByPlaceholderText('+ New step'), `${name}{Enter}`)
 }
-const toggle = (user: User, name: string, root: HTMLElement) =>
-  user.click(within(row(name, root)).getByRole('checkbox'))
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
-const setDue = async (value: string) => {
-  fireEvent.change(dueInput(), { target: { value } })
-  fireEvent.blur(dueInput())
-  await flush()
-}
 
 test('opening the context menu cancels an in-progress rename', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   for (const target of [() => within(aside()).getByText('2% lactose free'), () => within(main()).getByText('Milk')]) {
     await user.click(within(aside()).getByText('2% lactose free'))
@@ -99,7 +92,7 @@ test('opening the context menu cancels an in-progress rename', async () => {
 })
 
 test('deleting every list falls back to the All view with no tasks', async () => {
-  const { user } = await setup()
+  const user = await setup()
   for (const name of ['Groceries', 'Work', 'Home']) {
     await deleteViaMenu(user, within(nav()).getByText(name))
   }
@@ -108,7 +101,7 @@ test('deleting every list falls back to the All view with no tasks', async () =>
 })
 
 test('deleting a list that is not selected keeps the current list and the open panel', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   await deleteViaMenu(user, within(nav()).getByText('Home'))
   expect(within(nav()).queryByText('Home')).toBeNull()
@@ -117,7 +110,7 @@ test('deleting a list that is not selected keeps the current list and the open p
 })
 
 test('a list created while a delete is in flight survives and stays selected', async () => {
-  const { user } = await setup()
+  const user = await setup()
   let release!: () => void
   const gate = new Promise<void>((resolve) => (release = resolve))
   const realFetch = fetch
@@ -137,7 +130,7 @@ test('a list created while a delete is in flight survives and stays selected', a
 })
 
 test('whitespace-only names are ignored', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.type(screen.getByPlaceholderText(/new task/i), '   {Enter}')
   expect(tasks()).toEqual(['Milk', 'Eggs'])
 
@@ -150,7 +143,7 @@ test('whitespace-only names are ignored', async () => {
 })
 
 test('saves the due date only when the edit ends', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   const id = backend.data.tasks.find((t) => t.title === 'Milk')?.id
   act(() => dueInput().focus())
@@ -163,7 +156,7 @@ test('saves the due date only when the edit ends', async () => {
 })
 
 test('clicking the due date opens the picker', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   const showPicker = vi.fn()
   ;(dueInput() as HTMLInputElement).showPicker = showPicker
@@ -172,7 +165,7 @@ test('clicking the due date opens the picker', async () => {
 })
 
 test('closing and reopening a task keeps position', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(nav()).getByText('Work'))
   await user.selectOptions(stageSelect('Reply to emails'), 'done')
   expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
@@ -181,9 +174,11 @@ test('closing and reopening a task keeps position', async () => {
 })
 
 test("detail pane shows the selected task's own values", async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
-  await setDue('2000-01-01')
+  fireEvent.change(dueInput(), { target: { value: '2000-01-01' } })
+  fireEvent.blur(dueInput())
+  await flush()
   await user.selectOptions(stageSelect('Milk'), 'inProgress')
   await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
   await user.click(within(main()).getByText('Eggs'))
@@ -192,10 +187,10 @@ test("detail pane shows the selected task's own values", async () => {
 })
 
 test('step menu shows Mark as done unless every selected step is done', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   await newStep(user, 'Oat')
-  await toggle(user, 'Oat', aside())
+  await user.click(within(row('Oat', aside())).getByRole('checkbox'))
   await user.click(row('2% lactose free', aside()))
   await user.keyboard('{Control>}')
   await user.click(row('Oat', aside()))
@@ -213,7 +208,7 @@ test('step menu shows Mark as done unless every selected step is done', async ()
 })
 
 test('mixed selection offers Add, all-in-Today offers Remove', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await rightClick(user, row('Milk'))
   await user.click(last(screen.getAllByText('☀️ Add to Today')))
   await user.click(row('Milk'))
@@ -238,7 +233,7 @@ const selectTwo = async (user: User) => {
 }
 
 test('a failing bulk patch leaves every item unchanged and shows the banner', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await selectTwo(user)
   backend.data.tasks = backend.data.tasks.filter((t) => t.id !== 'g2')
   await rightClick(user, row('Milk'))
@@ -250,7 +245,7 @@ test('a failing bulk patch leaves every item unchanged and shows the banner', as
 
 describe('multi-select', () => {
   test('deleting a step with its x button does not select the row behind it', async () => {
-    const { user } = await setup()
+    const user = await setup()
     await user.click(row('Milk'))
     await newStep(user, 'Skim')
     await newStep(user, 'Oat')
@@ -263,7 +258,7 @@ describe('multi-select', () => {
   })
 
   test('modifier-click on step text selects without renaming', async () => {
-    const { user } = await setup()
+    const user = await setup()
     await user.click(row('Milk'))
     await newStep(user, 'Skim')
     await user.click(row('Skim', aside()))
@@ -281,7 +276,7 @@ describe('multi-select', () => {
 })
 
 test('Escape in the add-step input or with the context menu open keeps the panel', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   await user.type(within(aside()).getByPlaceholderText('+ New step'), 'x{Escape}')
   expect(aside()).toBeInTheDocument()
@@ -297,7 +292,7 @@ test('Escape in the add-step input or with the context menu open keeps the panel
 })
 
 test('a task that left the view is not deleted with the selection', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.click(screen.getByText('Milk'))
   await user.click(within(aside()).getByText('☀️ Add to Today'))
   await user.click(within(nav()).getByText('Work'))
@@ -317,7 +312,7 @@ test('a task that left the view is not deleted with the selection', async () => 
 })
 
 test('leading and trailing spaces are not stored', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await user.type(screen.getByPlaceholderText(/new task/i), '  Bread  {Enter}')
   expect(tasks().at(-1)).toBe('Bread')
   await user.click(within(main()).getByText('Bread'))
@@ -327,7 +322,7 @@ test('leading and trailing spaces are not stored', async () => {
 
 test('the lists drawer opens from the menu button and closes on X or picking a list', async () => {
   stubViewport(375)
-  const { user } = await setup()
+  const user = await setup()
   const drawer = () => nav().parentElement
   expect(drawer()).toHaveClass('invisible')
   await user.click(screen.getByLabelText('Open lists'))
@@ -350,7 +345,7 @@ test('the lists drawer opens from the menu button and closes on X or picking a l
 
 test('on phones task detail is a modal dialog that returns focus when closed', async () => {
   stubViewport(375)
-  const { user } = await setup()
+  const user = await setup()
   const milk = row('Milk')
   await user.click(milk)
   const dialog = screen.getByRole('dialog', { name: 'Milk' })
@@ -364,7 +359,7 @@ test('on phones task detail is a modal dialog that returns focus when closed', a
 
 test('Escape with the drawer open closes only the drawer', async () => {
   stubViewport(375)
-  const { user } = await setup()
+  const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   await user.click(screen.getByLabelText('Close panel'))
   await user.click(screen.getByLabelText('Open lists'))
@@ -373,7 +368,7 @@ test('Escape with the drawer open closes only the drawer', async () => {
 })
 
 test('the context menu focuses its first item and returns focus on close', async () => {
-  const { user } = await setup()
+  const user = await setup()
   const milk = row('Milk')
   milk.focus()
   await rightClick(user, milk)
@@ -384,7 +379,7 @@ test('the context menu focuses its first item and returns focus on close', async
 })
 
 test('Move to list offers the other lists and moves every selected task', async () => {
-  const { user } = await setup()
+  const user = await setup()
   await rightClick(user, row('Milk'))
   await user.hover(screen.getByText('Move to list'))
   const submenu = screen.getAllByRole('menu')[1]
@@ -408,7 +403,7 @@ test('Move to list offers the other lists and moves every selected task', async 
 
 test('on phones a submenu replaces the sheet and Back returns to the main list', async () => {
   stubViewport(375, true)
-  const { user } = await setup()
+  const user = await setup()
   await rightClick(user, row('Milk'))
   await user.click(screen.getByText('Set due date'))
   const menu = screen.getByRole('menu')
@@ -424,7 +419,7 @@ test('on phones a submenu replaces the sheet and Back returns to the main list',
 
 test('on phones Escape in a submenu goes back to the main list', async () => {
   stubViewport(375, true)
-  const { user } = await setup()
+  const user = await setup()
   await rightClick(user, row('Milk'))
   await user.click(screen.getByText('Set priority'))
   await user.keyboard('{Escape}')
@@ -436,7 +431,7 @@ test('on phones Escape in a submenu goes back to the main list', async () => {
 
 test('on phones choosing a submenu item runs it and closes the menu', async () => {
   stubViewport(375, true)
-  const { user } = await setup()
+  const user = await setup()
   await rightClick(user, row('Milk'))
   await user.click(screen.getByText('Move to list'))
   await user.click(screen.getByRole('menuitem', { name: 'Home' }))

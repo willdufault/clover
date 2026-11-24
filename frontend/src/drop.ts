@@ -24,13 +24,12 @@ export const applyDrop = (
   const { lists, tasks } = state
   if (activeId === overId) return state
   const isList = (id: string) => lists.some((list) => list.id === id)
-  const visibleInList = tasksInList(tasks, selectedListId)
 
   if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
   const containsBoth = (items: { id: string }[]) =>
     items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
-  if (containsBoth(visibleInList)) return { lists, tasks: moveById(tasks, activeId, overId) }
+  if (containsBoth(tasksInList(tasks, selectedListId))) return { lists, tasks: moveById(tasks, activeId, overId) }
   if (detailTask && containsBoth(detailTask.steps)) {
     return {
       lists,

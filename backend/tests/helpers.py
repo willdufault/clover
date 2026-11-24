@@ -15,6 +15,6 @@ def outcome(fn: Callable, *args: object, **kwargs: object) -> tuple:
     try:
         return True, fn(*args, **kwargs)
     except ApiError as e:
-        error = e
-    assert error.status == 400
-    return False, None
+        if e.status != 400:
+            raise
+        return False, None

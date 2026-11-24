@@ -1,7 +1,5 @@
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 
-const API_URL = import.meta.env.VITE_API_URL
-const COGNITO_URL = import.meta.env.VITE_COGNITO_URL
 const CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID
 const APP_URL = window.location.origin + import.meta.env.BASE_URL
 
@@ -22,7 +20,7 @@ export const logout = async () => {
   await userManager.revokeTokens().catch(() => {})
   await userManager.removeUser()
   const params = new URLSearchParams({ client_id: CLIENT_ID, logout_uri: APP_URL })
-  window.location.assign(`${COGNITO_URL}/logout?${params}`)
+  window.location.assign(`${import.meta.env.VITE_COGNITO_URL}/logout?${params}`)
 }
 
 export const handleRedirect = async () => {
@@ -40,7 +38,7 @@ const accessToken = async () => {
 }
 
 export const api = async (method: string, path: string, body?: object) => {
-  const response = await fetch(API_URL + path, {
+  const response = await fetch(import.meta.env.VITE_API_URL + path, {
     method,
     headers: {
       authorization: `Bearer ${await accessToken()}`,
