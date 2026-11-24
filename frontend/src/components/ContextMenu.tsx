@@ -106,7 +106,7 @@ export type ContextMenuState = {
 export type OpenContextMenu = (
   kind: RowKind,
   id: string,
-) => (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
+) => (event: { clientX: number; clientY: number }, longPress?: { title: string }) => void
 
 export default function ContextMenu({
   menu,

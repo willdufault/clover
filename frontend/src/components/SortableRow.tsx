@@ -57,7 +57,7 @@ export function SortableRow({
   tag: 'li' | 'div'
   className: string
   onClick: (event: React.MouseEvent) => void
-  onContextMenu: (event: { clientX: number; clientY: number }, longPressTitle?: string) => void
+  onContextMenu: (event: { clientX: number; clientY: number }, longPress?: { title: string }) => void
   children: React.ReactNode
 }) {
   const rowClass = 'touch-manipulation [-webkit-touch-callout:none] ' + className
@@ -83,7 +83,7 @@ export function SortableRow({
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover-500 ' +
         (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
-  const { pressing, ...longPress } = useLongPress((event) => onContextMenu(event, text))
+  const { pressing, ...longPress } = useLongPress((event) => onContextMenu(event, { title: text }))
   return (
     <Tag
       ref={setNodeRef}

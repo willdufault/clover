@@ -184,13 +184,12 @@ export default function App() {
       setSelectedStepIds([])
     })
 
-  const openContextMenu: OpenContextMenu = (kind, id) => (event, longPressTitle) => {
-    const select = longPressTitle === undefined
+  const openContextMenu: OpenContextMenu = (kind, id) => (event, longPress) => {
     const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
     let ids = [id]
     if (kind !== RowKind.List && selected.includes(id)) ids = selected
-    else if (select && kind === RowKind.Task) replaceTaskSelection(ids)
-    else if (select && kind === RowKind.Step) setSelectedStepIds(ids)
+    else if (!longPress && kind === RowKind.Task) replaceTaskSelection(ids)
+    else if (!longPress && kind === RowKind.Step) setSelectedStepIds(ids)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
     const allDone = detailTask?.steps.filter((step) => ids.includes(step.id)).every((step) => step.completed)
     setMenu({
@@ -198,12 +197,18 @@ export default function App() {
       y: event.clientY,
       kind,
       ids,
-      title: longPressTitle,
+      title: longPress?.title,
       moveTargets: lists.filter((list) => !menuTasks.every((task) => task.listId === list.id)),
       hasDue: menuTasks.some((task) => task.due),
       allInToday: menuTasks.every((task) => task.addedToToday),
       allDone,
     })
+  }
+
+  const deleteMenuItems = ({ kind, ids }: ContextMenuState) => {
+    if (kind === RowKind.List) ids.forEach(deleteList)
+    else if (kind === RowKind.Task) deleteTasks(ids)
+    else deleteSteps(ids)
   }
 
   const renameList = (id: string, name: string) =>
@@ -354,13 +359,7 @@ export default function App() {
         <ContextMenu
           menu={menu}
           onClose={() => setMenu(null)}
-          onDelete={() => {
-            if (menu.kind === RowKind.List) {
-              const [listId] = menu.ids
-              if (listId) deleteList(listId)
-            } else if (menu.kind === RowKind.Task) deleteTasks(menu.ids)
-            else deleteSteps(menu.ids)
-          }}
+          onDelete={() => deleteMenuItems(menu)}
           onUpdate={(patch) => updateTasks(menu.ids, patch)}
           onSetStepCompleted={(completed) =>
             setStepsCompleted(
