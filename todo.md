@@ -6,5 +6,4 @@
 - drag multiple selected tasks at once (match "Move to list")
 - readability and overengineering audit (see PR #19 for examples)
 - PR body: describe behavior before and after
-- remove unnecessary abstractions and variables
 - prose audit
