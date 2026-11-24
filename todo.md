@@ -5,5 +5,4 @@
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
 - drag multiple selected tasks at once (match "Move to list")
 - readability and overengineering audit (see PR #19 for examples)
-- PR body: describe behavior before and after
 - prose audit
