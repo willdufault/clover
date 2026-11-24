@@ -1,4 +1,3 @@
-// Last selected item is the shift-click range anchor.
 export const nextSelection = (
   selected: string[],
   visibleIds: string[],

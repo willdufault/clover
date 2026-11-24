@@ -111,7 +111,6 @@ def test_update_batch_move_overflow(call: Callable) -> None:
     tasks = {t["id"]: t for t in call("GET /data")[1]["tasks"]}
     assert tasks[a["id"]] == a
     assert tasks[b["id"]] == b
-    # Swapping one task out makes room for both.
     inside = next(t for t in tasks.values() if t["listId"] == target["id"])
     status, _ = call("PATCH /tasks", [{"id": inside["id"], "listId": None}, *body])
     assert status == 200

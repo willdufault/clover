@@ -149,11 +149,10 @@ export default function ContextMenu({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      event.preventDefault() // tells App's Escape handler this one is taken
+      event.preventDefault()
       if (sheet) goBack()
       else onClose()
     }
-    // Capture so this runs before App's bubbling listener.
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   })

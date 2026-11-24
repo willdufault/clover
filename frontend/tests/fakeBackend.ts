@@ -1,6 +1,5 @@
 import limits from '../src/shared/limits.json' with { type: 'json' }
 
-// In-memory stand-in for the backend API, shared by unit and e2e tests.
 type Item = Record<string, unknown> & { id: string }
 type Kind = 'lists' | 'tasks' | 'steps'
 
@@ -45,7 +44,6 @@ const update = (items: Item[], patches: Item[]) => {
 
 export const createFakeBackend = (data = seed()) => {
   let nextId = 1
-  // Responses are copies, like JSON over the wire.
   const handle = (method: string, url: string, body?: unknown) => {
     const { status, body: response } = route(method, url, body)
     return { status, body: response && structuredClone(response) }
@@ -54,7 +52,6 @@ export const createFakeBackend = (data = seed()) => {
     const kind = new URL(url).pathname.split('/')[1] as Kind | 'data'
     if (kind === 'data') return { status: 200, body: data }
     if (method === 'POST') return create(kind, body)
-    // PATCH and DELETE are batch and all-or-nothing.
     const batch = method === 'PATCH' ? body : (body as { ids?: unknown } | undefined)?.ids
     if (!Array.isArray(batch) || !batchSizeOk(batch.length)) return BAD_REQUEST
     const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch

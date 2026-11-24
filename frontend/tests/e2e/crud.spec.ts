@@ -42,7 +42,6 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await expect(task).toContainText('Dune Messiah')
   expect(patches.filter((b) => b.includes('Nope'))).toEqual([])
 
-  // Focus stays in the input, so the next steps are typed straight in.
   await page.getByPlaceholder('+ New step').fill('Chapter 1')
   await page.getByPlaceholder('+ New step').press('Enter')
   await page.keyboard.type('Chapter 2')
@@ -243,7 +242,6 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   const aside = page.locator('aside')
   const input = aside.locator('input[type="date"]')
 
-  // Backspace the day segment (mm/dd/yyyy), then blur. Focus, since a click opens the picker.
   await input.focus()
   await input.press('ArrowRight')
   await input.press('Backspace')
@@ -263,7 +261,6 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   expect(backend.data.tasks.find((t) => t.id === 'g1')?.due).toBe('2030-01-02')
   await page.getByRole('button', { name: 'Dismiss error' }).click()
   await expect(page.getByRole('alert')).toHaveCount(0)
-  // The browser logs the expected failed request; nothing else.
   expect(errors.filter((e) => !e.startsWith('Failed to load resource'))).toEqual([])
 })
 

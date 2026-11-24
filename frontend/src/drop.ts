@@ -17,7 +17,6 @@ type DropEvent = {
 
 export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 
-// Local-only (not persisted). Reorder only within the container holding both the dragged item and the drop target.
 export const applyDrop = (
   state: ListsAndTasks,
   { selectedListId, detailTask, activeId, overId }: DropEvent,

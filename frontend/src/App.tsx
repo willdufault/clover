@@ -123,7 +123,6 @@ export default function App() {
     }
   }, [drawerOpen, setDrawerOpen])
 
-  // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
   const patchSteps = async (patches: Partial<Step>[]) => {
     const updated: Step[] = await api('PATCH', '/steps', patches)
     setTasks((prev) =>
@@ -185,7 +184,6 @@ export default function App() {
       setSelectedStepIds([])
     })
 
-  // A touch long-press passes the row title and leaves the selection alone.
   const openContextMenu: OpenContextMenu = (kind, id) => (event, longPressTitle) => {
     const select = longPressTitle === undefined
     const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
@@ -223,7 +221,6 @@ export default function App() {
       selectList(newList.id)
     })
 
-  // The server also deletes the list's tasks and their steps.
   const deleteList = (id: string) =>
     run(async () => {
       const remaining = lists.filter((list) => list.id !== id)
@@ -232,7 +229,6 @@ export default function App() {
       await api('DELETE', '/lists', { ids: [id] })
       setLists((prev) => prev.filter((list) => list.id !== id))
       setTasks((prev) => prev.filter((task) => task.listId !== id))
-      // The deleted list's tasks and steps are gone, so stale task/step selection is harmless.
       setSelectedListId((current) => (current === id ? neighborId : current))
     })
 

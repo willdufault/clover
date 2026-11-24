@@ -30,7 +30,6 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
   const main = page.locator('main')
   const nav = page.locator('nav')
 
-  // Regression: the last list was not a drop target.
   await drag(page, main.getByText('Milk', { exact: true }), nav.getByText('Home'))
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('home')
   await expect(main.getByText('Milk', { exact: true })).toHaveCount(0)

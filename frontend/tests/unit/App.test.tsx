@@ -78,7 +78,6 @@ const newStep = async (user: User, name: string) => {
 }
 const toggle = (user: User, name: string, root: HTMLElement) =>
   user.click(within(row(name, root)).getByRole('checkbox'))
-// Lets pending API calls settle after a synchronous fireEvent.
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 const setDue = async (value: string) => {
   fireEvent.change(dueInput(), { target: { value } })
@@ -108,11 +107,9 @@ test('deleting every list falls back to the All view with no tasks', async () =>
   expect(tasks()).toHaveLength(0)
 })
 
-// Regression (04ff05c): deleting another list used to change the selected list.
 test('deleting a list that is not selected keeps the current list and the open panel', async () => {
   const { user } = await setup()
   await user.click(within(main()).getByText('Milk'))
-  // Home's neighbour is Work, so a wrong fallback would switch away from Groceries.
   await deleteViaMenu(user, within(nav()).getByText('Home'))
   expect(within(nav()).queryByText('Home')).toBeNull()
   expect(screen.getByRole('heading', { name: 'Groceries' })).toBeInTheDocument()

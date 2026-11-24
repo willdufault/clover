@@ -40,7 +40,6 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           // A partly cleared date reads as '' but sets badInput; skip it so it doesn't delete the date.
           const { value } = event.target
           const partial = event.target.validity.badInput
-          // Show the saved date until the save succeeds; then the key changes and the input remounts.
           event.target.value = task.due ?? ''
           if (!partial && value !== (task.due ?? '')) onUpdate({ due: value || null })
         }}

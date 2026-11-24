@@ -5,7 +5,6 @@ from datetime import date
 
 from api import ApiError, parse_body, parse_json
 
-# Shared with the frontend.
 with open(os.path.join(os.path.dirname(__file__), "shared", "limits.json")) as f:
     LIMITS = json.load(f)
 with open(os.path.join(os.path.dirname(__file__), "shared", "enums.json")) as f:

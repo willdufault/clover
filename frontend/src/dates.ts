@@ -6,12 +6,10 @@ const addDays = (date: string, days: number) => {
   return result.toISOString().slice(0, 10)
 }
 
-// Local date, not UTC.
 export const today = (now = new Date()) => new Intl.DateTimeFormat('en-CA').format(now)
 
 export const tomorrow = (now = new Date()) => addDays(today(now), 1)
 
-// Always after today.
 export const nextMonday = (now = new Date()) => {
   const todayDate = today(now)
   const weekday = utcDate(todayDate).getUTCDay()
