@@ -25,8 +25,9 @@ provider "aws" {
 }
 
 locals {
-  app_urls = formatlist("%s/clover/", var.app_origins)
-  routes   = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
+  app_urls       = formatlist("%s/clover/", var.app_origins)
+  cognito_issuer = "https://${aws_cognito_user_pool.users.endpoint}"
+  routes         = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
 }
 
 resource "aws_dynamodb_table" "tasks" {
@@ -92,17 +93,11 @@ data "archive_file" "api" {
   output_path = "${path.module}/build/api.zip"
   excludes = [
     ".venv",
-    ".venv/**",
     "tests",
-    "tests/**",
     ".pytest_cache",
-    ".pytest_cache/**",
     ".hypothesis",
-    ".hypothesis/**",
     ".ruff_cache",
-    ".ruff_cache/**",
     "**/__pycache__",
-    "**/__pycache__/**",
     "pyproject.toml",
     "uv.lock",
   ]
@@ -184,7 +179,7 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
   identity_sources = ["$request.header.Authorization"]
 
   jwt_configuration {
-    issuer   = "https://${aws_cognito_user_pool.users.endpoint}"
+    issuer   = local.cognito_issuer
     audience = [aws_cognito_user_pool_client.web.id]
   }
 }
