@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { seed, task as makeTask } from '../shared/fakeBackend'
+import { seed, task as makeTask } from '../fakeBackend'
 import { box, captureErrors, drag, glide, grab, mockApi, navRow, waitForDropAnimation } from './helpers'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {

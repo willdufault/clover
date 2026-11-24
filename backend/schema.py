@@ -3,12 +3,12 @@ import os
 from collections.abc import Callable
 from datetime import date
 
-from shared.api import ApiError, parse_body, parse_json
+from api import ApiError, parse_body, parse_json
 
 # Shared with the frontend.
-with open(os.path.join(os.path.dirname(__file__), "..", "limits.json")) as f:
+with open(os.path.join(os.path.dirname(__file__), "shared", "limits.json")) as f:
     LIMITS = json.load(f)
-with open(os.path.join(os.path.dirname(__file__), "..", "enums.json")) as f:
+with open(os.path.join(os.path.dirname(__file__), "shared", "enums.json")) as f:
     ENUMS = json.load(f)
 USER_LIMITS = {
     "LIST": LIMITS["listsPerUser"],

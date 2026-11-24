@@ -13,7 +13,7 @@ import {
 import { RowKind, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
-import limits from '../../../shared/limits.json'
+import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { ignoreRowEvents } from './ignoreRowEvents'

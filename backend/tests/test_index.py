@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
-from shared import db
+import db
 
 
 def test_unknown_route(call: Callable) -> None:

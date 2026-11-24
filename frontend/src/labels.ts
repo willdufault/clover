@@ -1,4 +1,4 @@
-import enums from '../../shared/enums.json'
+import enums from './shared/enums.json'
 
 type Label = { emoji: string; label: string }
 

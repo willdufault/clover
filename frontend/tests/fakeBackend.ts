@@ -1,4 +1,4 @@
-import limits from '../../../shared/limits.json' with { type: 'json' }
+import limits from '../src/shared/limits.json' with { type: 'json' }
 
 // In-memory stand-in for the backend API, shared by unit and e2e tests.
 type Item = Record<string, unknown> & { id: string }

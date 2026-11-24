@@ -14,9 +14,9 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth. The 
 
 - `index.py`: `handler` looks up `event["routeKey"]`, reads user id from JWT claim `sub`, maps `ApiError` to `{"error": ...}`.
 - `handlers.py`: one `(event, user_id)` function per route, plus limit and parent checks.
-- `shared/api.py`: `ApiError`/`Stale`, responses, JSON body parsing.
-- `shared/schema.py`: limits, field validation, id and patch parsing.
-- `shared/db.py`: table client, item helpers, transactions with retry, create/update/delete.
+- `api.py`: `ApiError`/`Stale`, responses, JSON body parsing.
+- `schema.py`: limits, field validation, id and patch parsing.
+- `db.py`: table client, item helpers, transactions with retry, create/update/delete.
 - `tests/`: pytest with moto-mocked DynamoDB.
 
 ## Data model
@@ -49,7 +49,7 @@ Errors (`{"error": "..."}`; nothing is written):
 
 ## Limits
 
-Defined once in `shared/limits.json`. Read by `backend/shared/schema.py` (via the `backend/limits.json` symlink, so the Lambda zip includes it) and imported directly by the frontend, which uses the text limits as input `maxLength`. Stage and priority values live in `shared/enums.json` the same way.
+Defined once in `shared/limits.json`. Both apps reach it through a `shared` folder symlink (`backend/shared`, `frontend/src/shared`), so the Lambda zip includes it. `backend/schema.py` reads it; the frontend uses the text limits as input `maxLength`. Stage and priority values live in `shared/enums.json` the same way.
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.

@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test'
 import { loadEnv } from 'vite'
-import { createFakeBackend, seed } from '../shared/fakeBackend'
+import { createFakeBackend, seed } from '../fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page, data = seed()) => {

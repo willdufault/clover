@@ -2,8 +2,8 @@ import json
 import os
 import traceback
 
+import api
 import handlers
-from shared import api
 
 STALE_RETRIES = 2
 

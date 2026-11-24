@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
-from shared.schema import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
+from schema import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
 
 
 def test_create_defaults(call: Callable) -> None:

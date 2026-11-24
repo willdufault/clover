@@ -1,4 +1,6 @@
-from shared import api, db, schema
+import api
+import db
+import schema
 
 
 def check_user_limit(items: list, kind: str) -> None:

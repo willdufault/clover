@@ -4,7 +4,7 @@ import json
 from hypothesis import given
 from hypothesis import strategies as st
 
-from shared import api
+import api
 from tests.helpers import json_values, outcome
 
 

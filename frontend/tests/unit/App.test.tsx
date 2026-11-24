@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
 import { STAGES, stageLabel } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
-import { createFakeBackend } from '../shared/fakeBackend'
+import { createFakeBackend } from '../fakeBackend'
 import { stubViewport } from './viewport'
 
 let backend: ReturnType<typeof createFakeBackend>

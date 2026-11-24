@@ -5,7 +5,7 @@ import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } 
 import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { AddInput } from './AddInput'
-import limits from '../../../shared/limits.json'
+import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
