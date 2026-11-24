@@ -11,8 +11,8 @@ os.environ["AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"] = "true"
 os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 os.environ["TABLE_NAME"] = "test"
 
+import db
 import index
-from shared import db
 
 
 @pytest.fixture

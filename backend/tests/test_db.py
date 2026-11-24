@@ -2,8 +2,8 @@ import pytest
 from botocore.exceptions import ClientError
 from mypy_boto3_dynamodb.service_resource import Table
 
-from shared import db
-from shared.api import ApiError
+import db
+from api import ApiError
 
 
 def put(mock_table: Table) -> dict:

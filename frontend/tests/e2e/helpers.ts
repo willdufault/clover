@@ -1,12 +1,12 @@
 import type { Locator, Page } from '@playwright/test'
 import { loadEnv } from 'vite'
-import { createFakeBackend, seed } from '../shared/fakeBackend'
+import { createFakeBackend, seed } from '../fakeBackend'
 
 // Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page, data = seed()) => {
   const backend = createFakeBackend(data)
   const env = loadEnv('development', process.cwd())
-  const key = `oidc.user:${env.VITE_COGNITO_URL}:${env.VITE_COGNITO_CLIENT_ID}`
+  const key = `oidc.user:${env.VITE_COGNITO_ISSUER}:${env.VITE_COGNITO_CLIENT_ID}`
   const user = JSON.stringify({
     access_token: 'x',
     token_type: 'Bearer',
@@ -38,20 +38,32 @@ export const captureErrors = (page: Page) => {
   return errors
 }
 
-const box = async (locator: Locator) => {
+export const box = async (locator: Locator) => {
   const bounds = await locator.boundingBox()
   if (!bounds) throw new Error('Element is not visible')
   return bounds
 }
 
-export const drag = async (page: Page, from: Locator, to: Locator) => {
-  const a = await box(from)
-  const b = await box(to)
-  const [x0, y0] = [a.x + a.width / 2, a.y + a.height / 2]
-  const [x1, y1] = [b.x + b.width / 2, b.y + b.height / 2]
-  await page.mouse.move(x0, y0)
+const center = async (locator: Locator) => {
+  const b = await box(locator)
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+}
+
+export const grab = async (page: Page, from: Locator) => {
+  const start = await center(from)
+  await page.mouse.move(start.x, start.y)
   await page.mouse.down()
-  for (let i = 1; i <= 10; i++) await page.mouse.move(x0 + (x1 - x0) * (i / 10), y0 + (y1 - y0) * (i / 10))
+  return start
+}
+
+export const glide = async (page: Page, start: { x: number; y: number }, to: Locator) => {
+  const end = await center(to)
+  for (let i = 1; i <= 10; i++)
+    await page.mouse.move(start.x + (end.x - start.x) * (i / 10), start.y + (end.y - start.y) * (i / 10))
+}
+
+export const drag = async (page: Page, from: Locator, to: Locator) => {
+  await glide(page, await grab(page, from), to)
   await page.mouse.up()
 }
 

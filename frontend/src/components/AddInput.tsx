@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { FIELD_CLASS } from '../styles'
 
 export function AddInput({
   placeholder,
@@ -28,8 +27,7 @@ export function AddInput({
       placeholder={placeholder}
       maxLength={maxLength}
       className={
-        FIELD_CLASS +
-        ' border-dashed border-clover-400/70! bg-transparent! placeholder:text-clover-700! hover:border-clover-400! focus:border-solid focus:border-clover-400! focus:bg-paper!' +
+        'flex h-11 w-full items-center rounded-xl border border-dashed border-clover-400/70 bg-transparent px-3.5 text-base text-ink pointer-fine:h-10 pointer-fine:text-sm outline-none transition placeholder:text-clover-700 hover:border-clover-400 focus:border-solid focus:border-clover-400 focus:bg-paper focus:ring-3 focus:ring-clover-100' +
         (className ? ' ' + className : '')
       }
     />

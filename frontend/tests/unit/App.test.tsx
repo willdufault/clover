@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { STAGE_LABELS } from '../../src/labels'
+import { STAGES, stageLabel } from '../../src/labels'
 import { SELECTED_ROW_CLASS } from '../../src/styles'
-import { createFakeBackend } from '../shared/fakeBackend'
+import { createFakeBackend } from '../fakeBackend'
 import { stubViewport } from './viewport'
 
 let backend: ReturnType<typeof createFakeBackend>
@@ -28,9 +28,7 @@ const setup = async () => {
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGE_EMOJIS = Object.values(STAGE_LABELS)
-  .map((s) => s.emoji)
-  .join('')
+const STAGE_EMOJIS = STAGES.map((stage) => stageLabel(stage).emoji).join('')
 const rowName = (rowElement: HTMLElement) =>
   (rowElement.textContent ?? '')
     .replace(STAGE_EMOJIS, '')
@@ -165,6 +163,15 @@ test('saves the due date only when the edit ends', async () => {
   fireEvent.keyDown(dueInput(), { key: 'Enter' })
   await flush()
   expect(backend.data.tasks.find((t) => t.id === id)?.due).toBe('2030-01-02')
+})
+
+test('clicking the due date opens the picker', async () => {
+  const { user } = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  const showPicker = vi.fn()
+  ;(dueInput() as HTMLInputElement).showPicker = showPicker
+  fireEvent.click(dueInput())
+  expect(showPicker).toHaveBeenCalled()
 })
 
 test('closing and reopening a task keeps position', async () => {

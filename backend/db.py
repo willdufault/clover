@@ -8,7 +8,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from shared.api import ApiError, Stale
+from api import ApiError, Stale
 
 table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 

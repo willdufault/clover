@@ -1,12 +1,11 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { formatDueDate } from '../dates'
-import { PRIORITY_LABELS, labelText } from '../labels'
-import { isCompleted } from '../stages'
+import { isCompleted, priorityLabel, labelText } from '../labels'
 import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } from '../styles'
 import type { SortCriteria } from '../sort'
-import { RowKind, type Stage, type Task } from '../types'
+import { RowKind, type Task } from '../types'
 import { AddInput } from './AddInput'
-import limits from '../../../backend/limits.json'
+import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import type { OpenContextMenu } from './ContextMenu'
 import { SortableRow } from './SortableRow'
@@ -28,7 +27,7 @@ const metaItems = (task: Task) => {
         📅 {formatDueDate(task.due)}
       </span>,
     )
-  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(PRIORITY_LABELS[task.priority])}</span>)
+  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(priorityLabel(task.priority))}</span>)
   return items
 }
 
@@ -57,7 +56,7 @@ export default function TaskPane({
   onSort: (criteria: SortCriteria) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
   onClearSelection: () => void
-  onSetStage: (id: string, stage: Stage) => void
+  onSetStage: (id: string, stage: string) => void
   onContextMenu: OpenContextMenu
   onRenameList: (id: string, text: string) => void
   onOpenLists: () => void
@@ -79,7 +78,10 @@ export default function TaskPane({
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
-        className={'group relative select-none border-b border-line/70 px-5 py-3.5 last:border-b-0 ' + rowTint}
+        className={
+          'group relative flex select-none items-center gap-3.5 border-b border-line/70 px-5 py-3.5 transition last:border-b-0 ' +
+          rowTint
+        }
       >
         {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
         <svg
@@ -95,21 +97,19 @@ export default function TaskPane({
           <circle cx="6" cy="12" r="1.2" />
           <circle cx="10" cy="12" r="1.2" />
         </svg>
-        <div className="flex min-w-0 flex-1 items-center gap-3.5">
-          <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span
-              className={
-                'text-base break-words ' +
-                (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
-              }
-            >
-              {task.title}
-            </span>
-            {meta.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
-            )}
-          </div>
+        <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span
+            className={
+              'text-base break-words ' +
+              (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+            }
+          >
+            {task.title}
+          </span>
+          {meta.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
+          )}
         </div>
       </SortableRow>
     )

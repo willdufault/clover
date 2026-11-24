@@ -3,11 +3,13 @@ import os
 from collections.abc import Callable
 from datetime import date
 
-from shared.api import ApiError, parse_body, parse_json
+from api import ApiError, parse_body, parse_json
 
 # Shared with the frontend.
-with open(os.path.join(os.path.dirname(__file__), "..", "limits.json")) as f:
+with open(os.path.join(os.path.dirname(__file__), "shared", "limits.json")) as f:
     LIMITS = json.load(f)
+with open(os.path.join(os.path.dirname(__file__), "shared", "enums.json")) as f:
+    ENUMS = json.load(f)
 USER_LIMITS = {
     "LIST": LIMITS["listsPerUser"],
     "TASK": LIMITS["tasksPerUser"],
@@ -80,9 +82,9 @@ def optional_date(v: object) -> bool:
 LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED)}
 TASK_FIELDS = {
     "title": (text(TITLE_MAX), REQUIRED),
-    "stage": (one_of("open", "inProgress", "waiting", "done", "cancelled"), "open"),
+    "stage": (one_of(*ENUMS["stages"]), "open"),
     "due": (optional_date, None),
-    "priority": (one_of("low", "medium", "high"), "medium"),
+    "priority": (one_of(*ENUMS["priorities"]), "medium"),
     "addedToToday": (is_bool, False),
     "listId": (optional_str, None),
 }

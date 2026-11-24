@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { seed, task as makeTask } from '../shared/fakeBackend'
+import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
 import { captureErrors, mockApi } from './helpers'
 

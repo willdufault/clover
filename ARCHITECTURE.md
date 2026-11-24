@@ -4,8 +4,8 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth. The 
 
 ## Components
 
-- **Frontend**: React SPA. On load, `oidc-client-ts` exchanges any `?code=` for tokens, then renders. Any API call returning 401 redirects to login.
-- **Auth**: Cognito user pool (email username, admin-only sign-up via `aws cognito-idp admin-create-user`, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URLs `<origin>/clover/` for each of `app_origins` (localhost, `willdufault.dev`, `willdufault.github.io`). `oidc-client-ts` stores the user in `localStorage` and silently renews via the refresh token. The SPA sends the **access token** as `Authorization: Bearer`; the authorizer matches its `client_id` claim against the audience. Id tokens last 12h, access tokens 1h. A 401 triggers a fresh login.
+- **Frontend**: React SPA. On load, `oidc-client-ts` exchanges any `?code=` for tokens, then renders. An expired access token is refreshed before the API call; a 401 redirects to login.
+- **Auth**: Cognito user pool (email username, admin-only sign-up via `aws cognito-idp admin-create-user`, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URLs `<origin>/clover/` for each of `app_origins` (localhost, `willdufault.dev`, `willdufault.github.io`). `oidc-client-ts` uses the user pool issuer for discovery, stores the user in `localStorage`, renews an expired access token via the refresh token, and revokes the refresh token on logout. The SPA sends the **access token** as `Authorization: Bearer`; the authorizer matches its `client_id` claim against the audience. Id tokens last 12h, access tokens 1h. A 401 triggers a fresh login.
 - **API**: API Gateway HTTP API. Cognito JWT authorizer on every route requiring the `openid` scope (rejects id tokens, which have no `scope` claim). One Lambda proxy integration (payload v2). CORS allows `app_origins`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
 - **Lambda** (`clover-api`): Python 3.14, arm64, 30s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
 - **DynamoDB**: one table (`clover-tasks`), on-demand.
@@ -14,9 +14,9 @@ Single prod environment in `us-east-1`. Terraform manages the API and auth. The 
 
 - `index.py`: `handler` looks up `event["routeKey"]`, reads user id from JWT claim `sub`, maps `ApiError` to `{"error": ...}`.
 - `handlers.py`: one `(event, user_id)` function per route, plus limit and parent checks.
-- `shared/api.py`: `ApiError`/`Stale`, responses, JSON body parsing.
-- `shared/schema.py`: limits, field validation, id and patch parsing.
-- `shared/db.py`: table client, item helpers, transactions with retry, create/update/delete.
+- `api.py`: `ApiError`/`Stale`, responses, JSON body parsing.
+- `schema.py`: limits, field validation, id and patch parsing.
+- `db.py`: table client, item helpers, transactions with retry, create/update/delete.
 - `tests/`: pytest with moto-mocked DynamoDB.
 
 ## Data model
@@ -49,7 +49,7 @@ Errors (`{"error": "..."}`; nothing is written):
 
 ## Limits
 
-Defined once in `backend/limits.json`. Read by `backend/shared/schema.py` and imported directly by the frontend, which uses the text limits as input `maxLength`.
+Defined once in `shared/limits.json`. Both apps reach it through a `shared` folder symlink (`backend/shared`, `frontend/src/shared`), so the Lambda zip includes it. `backend/schema.py` reads it; the frontend uses the text limits as input `maxLength`. Stage and priority values live in `shared/enums.json` the same way.
 
 - Per user: 10 lists, 99 tasks, 100 steps.
 - Per parent: 20 tasks per list, 10 steps per task. Tasks with no list count only toward the user cap.

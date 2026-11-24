@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
+  getClientRect,
   MouseSensor,
   pointerWithin,
   useSensor,
@@ -24,7 +25,14 @@ import TaskPane from './components/TaskPane'
 import { SAFE_AREA_CLASS } from './styles'
 import { useOverlays } from './useOverlays'
 
-type DragInfo = { kind: RowKind; text: string }
+type DragInfo = { kind: RowKind; clone: React.ReactNode }
+
+// The dragged row collapses once dragging starts, so keep its last visible rect for the overlay.
+const lastRects = new WeakMap<HTMLElement, ReturnType<typeof getClientRect>>()
+const measureDraggable = (node: HTMLElement) => {
+  if (node.offsetParent) lastRects.set(node, getClientRect(node))
+  return lastRects.get(node) ?? getClientRect(node)
+}
 
 const clickModifiers = (event: React.MouseEvent) => ({
   ctrl: event.ctrlKey || event.metaKey,
@@ -116,11 +124,6 @@ export default function App() {
   }, [drawerOpen, setDrawerOpen])
 
   // PATCH and DELETE take a batch and save all or nothing, so each action is one request.
-  const patchTasks = async (patches: Partial<Task>[]) => {
-    const updated: Omit<Task, 'steps'>[] = await api('PATCH', '/tasks', patches)
-    setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
-  }
-
   const patchSteps = async (patches: Partial<Step>[]) => {
     const updated: Step[] = await api('PATCH', '/steps', patches)
     setTasks((prev) =>
@@ -156,7 +159,15 @@ export default function App() {
       replaceTaskSelection([])
     })
 
-  const updateTasks = (ids: string[], patch: TaskPatch) => run(() => patchTasks(ids.map((id) => ({ id, ...patch }))))
+  const updateTasks = (ids: string[], patch: TaskPatch) =>
+    run(async () => {
+      const updated: Omit<Task, 'steps'>[] = await api(
+        'PATCH',
+        '/tasks',
+        ids.map((id) => ({ id, ...patch })),
+      )
+      setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
+    })
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
@@ -199,8 +210,7 @@ export default function App() {
 
   const renameList = (id: string, name: string) =>
     run(async () => {
-      const [updated]: TaskList[] = await api('PATCH', '/lists', [{ id, name }])
-      if (!updated) throw new Error('List rename returned no list')
+      const [updated]: [TaskList] = await api('PATCH', '/lists', [{ id, name }])
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
@@ -262,7 +272,7 @@ export default function App() {
       { lists, tasks },
       {
         selectedListId,
-        detailTaskId: detailTask?.id ?? null,
+        detailTask,
         activeId: String(active.id),
         overId,
       },
@@ -277,6 +287,7 @@ export default function App() {
     <DndContext
       // Cursor hit-test; the wide dragged row would otherwise overlap task rows instead of sidebar lists.
       collisionDetection={pointerWithin}
+      measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -342,13 +353,7 @@ export default function App() {
           )}
         </div>
       </div>
-      <DragOverlay>
-        {activeDrag && (
-          <div className="cursor-default select-none rounded-xl border border-clover-200 bg-paper px-3.5 py-2 text-sm text-ink shadow-pop">
-            {activeDrag.text}
-          </div>
-        )}
-      </DragOverlay>
+      <DragOverlay>{activeDrag?.clone}</DragOverlay>
 
       {menu && (
         <ContextMenu

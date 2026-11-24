@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
-from shared.schema import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
+from schema import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 
 
 def test_create_and_get(call: Callable, mock_table: Table) -> None:

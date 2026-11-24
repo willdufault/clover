@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { today } from '../../src/dates'
-import { seed, task as makeTask } from '../shared/fakeBackend'
+import { seed, task as makeTask } from '../fakeBackend'
 import { captureErrors, mockApi, navRow } from './helpers'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
@@ -89,7 +89,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
 
   await nav.getByText('📚 Books').click()
   await task.click()
-  await aside.getByRole('button', { name: '×', exact: true }).click()
+  await aside.getByRole('button', { name: 'Clear due date' }).click()
   await expect(task).not.toContainText('📅')
   await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Dune Messiah')?.due).toBeNull()
   await aside.getByRole('button', { name: 'Remove from Today' }).click()
@@ -243,8 +243,8 @@ test('a partly cleared due date is not saved, and a failed save shows the saved 
   const aside = page.locator('aside')
   const input = aside.locator('input[type="date"]')
 
-  // Backspace the day segment (mm/dd/yyyy), then blur.
-  await input.click()
+  // Backspace the day segment (mm/dd/yyyy), then blur. Focus, since a click opens the picker.
+  await input.focus()
   await input.press('ArrowRight')
   await input.press('Backspace')
   expect(await input.evaluate((el: HTMLInputElement) => el.validity.badInput)).toBe(true)

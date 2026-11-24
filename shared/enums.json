@@ -1,0 +1,4 @@
+{
+  "stages": ["open", "inProgress", "waiting", "done", "cancelled"],
+  "priorities": ["high", "medium", "low"]
+}

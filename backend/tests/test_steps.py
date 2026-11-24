@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
-from shared.schema import STEPS_PER_TASK, TITLE_MAX, USER_LIMITS
+from schema import STEPS_PER_TASK, TITLE_MAX, USER_LIMITS
 
 
 @pytest.fixture

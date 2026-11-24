@@ -1,18 +1,19 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITIES, PRIORITY_LABELS, STAGES, STAGE_LABELS, labelText } from '../labels'
+import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
 import {
   FIELD_CLASS,
+  RENAME_CLASS,
   SAFE_AREA_CLASS,
   X_BUTTON_CLASS,
   SELECTED_ROW_CLASS,
   TITLE_RENAME_CLASS,
   dueDateClass,
 } from '../styles'
-import { RowKind, type Priority, type Stage, type Step, type Task, type TaskPatch } from '../types'
+import { RowKind, type Step, type Task, type TaskPatch } from '../types'
 import type { OpenContextMenu } from './ContextMenu'
 import { AddInput } from './AddInput'
-import limits from '../../../backend/limits.json'
+import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import { SortableRow } from './SortableRow'
 import { ignoreRowEvents } from './ignoreRowEvents'
@@ -43,13 +44,18 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           event.target.value = task.due ?? ''
           if (!partial && value !== (task.due ?? '')) onUpdate({ due: value || null })
         }}
+        onClick={(event) => event.currentTarget.showPicker()}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         className={'min-w-0 flex-1 bg-transparent outline-none' + (task.due ? '' : ' text-transparent focus:text-ink')}
       />
       {task.due ? (
         <>
           {dueLabel && <span className={'shrink-0 ' + dueDateClass(task.due)}>{dueLabel}</span>}
-          <button onClick={() => onUpdate({ due: null })} className={X_BUTTON_CLASS + ' text-ink-soft'}>
+          <button
+            onClick={() => onUpdate({ due: null })}
+            aria-label="Clear due date"
+            className={X_BUTTON_CLASS + ' text-ink-soft'}
+          >
             ×
           </button>
         </>
@@ -100,7 +106,7 @@ export default function TaskDetailPane({
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
       className={
-        'group flex select-none items-center gap-3 rounded-xl px-2.5 py-2 text-base transition pointer-fine:text-sm' +
+        'group flex select-none items-center gap-3 rounded-xl px-2.5 py-2 text-base pointer-fine:text-sm' +
         (selectedIds.includes(step.id) ? ' ' + SELECTED_ROW_CLASS : ' hover:bg-milk')
       }
     >
@@ -118,7 +124,7 @@ export default function TaskDetailPane({
         selectOnModifierClick
         onCommit={(name) => onRenameStep(step.id, name)}
         className={'min-w-0 flex-1 break-words ' + (step.completed ? 'text-ink-faint line-through' : 'text-ink')}
-        inputClassName="min-w-0 flex-1 rounded-lg border border-clover-400 bg-paper px-1 py-0.5 text-base text-ink outline-none pointer-fine:text-sm"
+        inputClassName={RENAME_CLASS + ' min-w-0 flex-1 px-1 py-0.5 text-base pointer-fine:text-sm'}
       />
       <button
         {...ignoreRowEvents}
@@ -204,24 +210,24 @@ export default function TaskDetailPane({
           <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
           <select
             value={task.stage}
-            onChange={(event) => onUpdate({ stage: event.target.value as Stage })}
+            onChange={(event) => onUpdate({ stage: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {STAGES.map((stage) => (
               <option key={stage} value={stage}>
-                {labelText(STAGE_LABELS[stage])}
+                {labelText(stageLabel(stage))}
               </option>
             ))}
           </select>
           <h3 className={LABEL_CLASS}>Priority</h3>
           <select
             value={task.priority}
-            onChange={(event) => onUpdate({ priority: event.target.value as Priority })}
+            onChange={(event) => onUpdate({ priority: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
-                {labelText(PRIORITY_LABELS[priority])}
+                {labelText(priorityLabel(priority))}
               </option>
             ))}
           </select>
