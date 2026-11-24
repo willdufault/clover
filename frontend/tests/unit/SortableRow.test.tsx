@@ -11,7 +11,7 @@ const renderRow = (onContextMenu = vi.fn()) => {
         <SortableRow
           id="a"
           kind={RowKind.Task}
-          text="Row"
+          menuTitle="Row"
           tag="div"
           className=""
           onClick={() => {}}

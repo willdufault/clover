@@ -53,13 +53,13 @@ export default function App() {
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([])
   const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
-  const [menu, setMenu] = useState<ContextMenuState | null>(null)
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
-  const listTasks = tasksInList(tasks, selectedListId)
-  const currentList = lists.find((list) => list.id === selectedListId)
-  const listName = SMART_LIST_NAMES[selectedListId] ?? currentList?.name
-  const selectedTaskIds = rawSelectedTaskIds.filter((id) => listTasks.some((task) => task.id === id))
-  const detailTask = soleTask(listTasks, selectedTaskIds)
+  const visibleTasks = tasksInList(tasks, selectedListId)
+  const selectedList = lists.find((list) => list.id === selectedListId)
+  const listName = SMART_LIST_NAMES[selectedListId] ?? selectedList?.name
+  const selectedTaskIds = rawSelectedTaskIds.filter((id) => visibleTasks.some((task) => task.id === id))
+  const detailTask = soleTask(visibleTasks, selectedTaskIds)
   const detailSteps = detailTask?.steps ?? []
   const { drawerOpen, setDrawerOpen, detailModal, mainInert } = useOverlays(!!detailTask)
 
@@ -78,7 +78,7 @@ export default function App() {
     replaceTaskSelection(
       nextSelection(
         selectedTaskIds,
-        listTasks.map((task) => task.id),
+        visibleTasks.map((task) => task.id),
         id,
         clickModifiers(event),
       ),
@@ -94,7 +94,7 @@ export default function App() {
       ),
     )
 
-  const run = (action: () => Promise<void>) => {
+  const runReportingErrors = (action: () => Promise<void>) => {
     action().catch((e) => setError((e as Error).message))
   }
 
@@ -123,7 +123,7 @@ export default function App() {
     }
   }, [drawerOpen, setDrawerOpen])
 
-  const patchSteps = async (patches: Partial<Step>[]) => {
+  const updateSteps = async (patches: Partial<Step>[]) => {
     const updated: Step[] = await api('PATCH', '/steps', patches)
     setTasks((prev) =>
       prev.map((task) => ({
@@ -134,17 +134,17 @@ export default function App() {
   }
 
   const addTask = (title: string) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const task = await api('POST', '/tasks', {
         title,
-        listId: currentList?.id ?? null,
+        listId: selectedList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
       })
       setTasks((prev) => [...prev, { ...task, steps: [] }])
     })
 
   const addStep = (title: string) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const step: Step = await api('POST', '/steps', { taskId: detailTask?.id, title })
       setTasks((prev) =>
         prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
@@ -152,14 +152,14 @@ export default function App() {
     })
 
   const deleteTasks = (ids: string[]) =>
-    run(async () => {
+    runReportingErrors(async () => {
       await api('DELETE', '/tasks', { ids })
       setTasks((prev) => prev.filter((task) => !ids.includes(task.id)))
       replaceTaskSelection([])
     })
 
   const updateTasks = (ids: string[], patch: TaskPatch) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const updated: Omit<Task, 'steps'>[] = await api(
         'PATCH',
         '/tasks',
@@ -170,64 +170,64 @@ export default function App() {
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
-  const sortList = (criteria: SortCriteria) => setTasks((prev) => applySort(prev, listTasks, criteria))
+  const sortList = (criteria: SortCriteria) => setTasks((prev) => applySort(prev, visibleTasks, criteria))
 
   const setStepsCompleted = (ids: string[], completed: boolean) =>
-    run(async () => {
-      if (ids.length) await patchSteps(ids.map((id) => ({ id, completed })))
+    runReportingErrors(async () => {
+      if (ids.length) await updateSteps(ids.map((id) => ({ id, completed })))
     })
 
   const deleteSteps = (ids: string[]) =>
-    run(async () => {
+    runReportingErrors(async () => {
       await api('DELETE', '/steps', { ids })
       setTasks((prev) => prev.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })))
       setSelectedStepIds([])
     })
 
   const openContextMenu: OpenContextMenu = (kind, id) => (event, longPress) => {
-    const selected = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
+    const selectedIds = kind === RowKind.Task ? selectedTaskIds : selectedStepIds
     let ids = [id]
-    if (kind !== RowKind.List && selected.includes(id)) ids = selected
+    if (kind !== RowKind.List && selectedIds.includes(id)) ids = selectedIds
     else if (!longPress && kind === RowKind.Task) replaceTaskSelection(ids)
     else if (!longPress && kind === RowKind.Step) setSelectedStepIds(ids)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
-    const allDone = detailTask?.steps.filter((step) => ids.includes(step.id)).every((step) => step.completed)
-    setMenu({
+    const allStepsDone = detailTask?.steps.filter((step) => ids.includes(step.id)).every((step) => step.completed)
+    setContextMenu({
       x: event.clientX,
       y: event.clientY,
       kind,
       ids,
       title: longPress?.title,
       moveTargets: lists.filter((list) => !menuTasks.every((task) => task.listId === list.id)),
-      hasDue: menuTasks.some((task) => task.due),
+      anyHasDue: menuTasks.some((task) => task.due),
       allInToday: menuTasks.every((task) => task.addedToToday),
-      allDone,
+      allStepsDone,
     })
   }
 
-  const deleteMenuItems = ({ kind, ids }: ContextMenuState) => {
+  const deleteMenuTargets = ({ kind, ids }: ContextMenuState) => {
     if (kind === RowKind.List) ids.forEach(deleteList)
     else if (kind === RowKind.Task) deleteTasks(ids)
     else deleteSteps(ids)
   }
 
   const renameList = (id: string, name: string) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const [updated]: [TaskList] = await api('PATCH', '/lists', [{ id, name }])
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
-  const renameStep = (id: string, title: string) => run(() => patchSteps([{ id, title }]))
+  const renameStep = (id: string, title: string) => runReportingErrors(() => updateSteps([{ id, title }]))
 
   const createList = (name: string) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const newList: TaskList = await api('POST', '/lists', { name })
       setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
 
   const deleteList = (id: string) =>
-    run(async () => {
+    runReportingErrors(async () => {
       const remaining = lists.filter((list) => list.id !== id)
       const index = lists.findIndex((list) => list.id === id)
       const neighborId = (remaining[index - 1] ?? remaining[0])?.id ?? ALL_LIST_ID
@@ -241,31 +241,31 @@ export default function App() {
     setActiveDrag(active.data.current as DragInfo)
   }
 
-  const taskDropTarget = (over: Over | null) => {
+  const taskDropListId = (over: Over | null) => {
     if (!over || activeDrag?.kind !== RowKind.Task) return null
     const id = String(over.id)
     return id === TODAY_LIST_ID || lists.some((list) => list.id === id) ? id : null
   }
 
   const handleDragOver = ({ over }: DragOverEvent) => {
-    setDragOverListId(taskDropTarget(over))
+    setDragOverListId(taskDropListId(over))
   }
 
-  const endDrag = () => {
+  const resetDragState = () => {
     setActiveDrag(null)
     setDragOverListId(null)
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    endDrag()
+    resetDragState()
     if (!over) return
-    const target = taskDropTarget(over)
-    if (target) {
+    const targetListId = taskDropListId(over)
+    if (targetListId) {
       replaceTaskSelection([])
-      if (target === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
+      if (targetListId === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       const dragged = tasks.find((task) => task.id === active.id)
-      if (dragged?.listId === target) return
-      updateTask(String(active.id), { listId: target })
+      if (dragged?.listId === targetListId) return
+      updateTask(String(active.id), { listId: targetListId })
       return
     }
     const nextState = applyDrop(
@@ -292,7 +292,7 @@ export default function App() {
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={endDrag}
+      onDragCancel={resetDragState}
     >
       <div className={'flex h-dvh overflow-hidden flex-col font-sans ' + SAFE_AREA_CLASS}>
         {error && (
@@ -312,7 +312,7 @@ export default function App() {
             tasks={tasks}
             selectedListId={selectedListId}
             dragOverListId={dragOverListId}
-            open={drawerOpen}
+            drawerOpen={drawerOpen}
             onClose={() => setDrawerOpen(false)}
             onSelectList={selectList}
             onCreateList={createList}
@@ -322,9 +322,9 @@ export default function App() {
           <TaskPane
             selectedListId={selectedListId}
             listName={listName}
-            renamable={!!currentList}
+            renamable={!!selectedList}
             onRenameList={renameList}
-            tasks={listTasks}
+            tasks={visibleTasks}
             onAddTask={addTask}
             onSort={sortList}
             selectedIds={selectedTaskIds}
@@ -345,7 +345,7 @@ export default function App() {
               onAddStep={addStep}
               onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
               onDeleteStep={(id) => deleteSteps([id])}
-              onUpdate={(patch) => updateTask(detailTask.id, patch)}
+              onUpdateTask={(patch) => updateTask(detailTask.id, patch)}
               onContextMenu={openContextMenu}
               onRenameStep={renameStep}
               modal={detailModal}
@@ -355,16 +355,16 @@ export default function App() {
       </div>
       <DragOverlay>{activeDrag?.clone}</DragOverlay>
 
-      {menu && (
+      {contextMenu && (
         <ContextMenu
-          menu={menu}
-          onClose={() => setMenu(null)}
-          onDelete={() => deleteMenuItems(menu)}
-          onUpdate={(patch) => updateTasks(menu.ids, patch)}
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onDelete={() => deleteMenuTargets(contextMenu)}
+          onUpdateTasks={(patch) => updateTasks(contextMenu.ids, patch)}
           onSetStepCompleted={(completed) =>
             setStepsCompleted(
               detailSteps
-                .filter((step) => menu.ids.includes(step.id) && step.completed !== completed)
+                .filter((step) => contextMenu.ids.includes(step.id) && step.completed !== completed)
                 .map((step) => step.id),
               completed,
             )

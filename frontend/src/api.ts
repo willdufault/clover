@@ -31,7 +31,7 @@ export const handleRedirect = async () => {
   window.history.replaceState(null, '', window.location.pathname)
 }
 
-const accessToken = async () => {
+const getAccessToken = async () => {
   const user = await userManager.getUser()
   if (!user?.expired) return user?.access_token
   return (await userManager.signinSilent().catch(() => null))?.access_token
@@ -41,7 +41,7 @@ export const api = async (method: string, path: string, body?: object) => {
   const response = await fetch(import.meta.env.VITE_API_URL + path, {
     method,
     headers: {
-      authorization: `Bearer ${await accessToken()}`,
+      authorization: `Bearer ${await getAccessToken()}`,
       ...(body && { 'content-type': 'application/json' }),
     },
     body: body && JSON.stringify(body),

@@ -25,7 +25,7 @@ export const sidebarRowClass = (selected: boolean, dragOver: boolean) => {
 
 export const dueDateClass = (due: string) => 'text-[13.5px] ' + (isOverdue(due) ? 'text-coral' : 'text-ink-soft')
 
-export const X_BUTTON_CLASS =
+export const ICON_BUTTON_CLASS =
   'touch-hit flex size-7 shrink-0 items-center justify-center rounded-full text-sm leading-none transition hover:bg-black/5 hover:text-ink'
 
 export const SAFE_AREA_CLASS =

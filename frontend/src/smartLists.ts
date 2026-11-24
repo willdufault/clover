@@ -4,10 +4,10 @@ export const ALL_LIST_ID = 'all'
 
 export const TODAY_LIST_ID = 'today'
 
-export const tasksInList = (tasks: Task[], selectedListId: string) => {
-  if (selectedListId === ALL_LIST_ID) return tasks
-  if (selectedListId === TODAY_LIST_ID) return tasks.filter((task) => task.addedToToday)
-  return tasks.filter((task) => task.listId === selectedListId)
+export const tasksInList = (tasks: Task[], listId: string) => {
+  if (listId === ALL_LIST_ID) return tasks
+  if (listId === TODAY_LIST_ID) return tasks.filter((task) => task.addedToToday)
+  return tasks.filter((task) => task.listId === listId)
 }
 
 export const SMART_LIST_NAMES: Partial<Record<string, string>> = {

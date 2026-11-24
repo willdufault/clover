@@ -19,7 +19,7 @@ export const sortTasks = (tasks: Task[], criteria: SortCriteria) => {
 
 export const applySort = (all: Task[], visible: Task[], criteria: SortCriteria) => {
   const sorted = sortTasks(visible, criteria)
-  const slots = new Set(visible)
-  let next = 0
-  return all.map((task) => (slots.has(task) ? (sorted[next++] ?? task) : task))
+  const visibleSet = new Set(visible)
+  let sortedIndex = 0
+  return all.map((task) => (visibleSet.has(task) ? (sorted[sortedIndex++] ?? task) : task))
 }

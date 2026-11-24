@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { nextMonday, today, tomorrow } from '../dates'
-import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
-import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS, X_BUTTON_CLASS } from '../styles'
+import { PRIORITIES, priorityLabel, STAGES, stageLabel, formatLabel } from '../labels'
+import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS, ICON_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 import { useModalFocus } from '../useModalFocus'
 
@@ -12,40 +12,40 @@ type MenuItem = { key?: string; label: string; action?: () => void; danger?: boo
 function SubmenuRow({
   label,
   submenu,
-  touch,
+  isTouch,
   open,
   setOpen,
   renderItem,
 }: {
   label: string
   submenu: MenuItem[]
-  touch: boolean
+  isTouch: boolean
   open: boolean
   setOpen: (open: boolean) => void
   renderItem: (item: MenuItem) => React.ReactNode
 }) {
-  const [flip, setFlip] = useState(false)
-  const [shift, setShift] = useState(0)
+  const [openLeft, setOpenLeft] = useState(false)
+  const [topOffset, setTopOffset] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
-    if (!open || !panelRef.current) return setShift(0)
-    setShift(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
+    if (!open || !panelRef.current) return setTopOffset(0)
+    setTopOffset(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
   }, [open])
-  const show = (row: HTMLElement) => {
-    setFlip(row.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
+  const openPanel = (row: HTMLElement) => {
+    setOpenLeft(row.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
     setOpen(true)
   }
   return (
     <div
       className="relative"
-      onPointerEnter={(event) => !touch && event.pointerType === 'mouse' && show(event.currentTarget)}
-      onPointerLeave={(event) => !touch && event.pointerType === 'mouse' && setOpen(false)}
+      onPointerEnter={(event) => !isTouch && event.pointerType === 'mouse' && openPanel(event.currentTarget)}
+      onPointerLeave={(event) => !isTouch && event.pointerType === 'mouse' && setOpen(false)}
     >
       <button
         role="menuitem"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={(event) => (open ? setOpen(false) : show(event.currentTarget))}
+        onClick={(event) => (open ? setOpen(false) : openPanel(event.currentTarget))}
         className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}
       >
         <span>{label}</span>
@@ -65,9 +65,9 @@ function SubmenuRow({
         <div
           ref={panelRef}
           role="menu"
-          style={{ top: shift, width: MENU_WIDTH }}
+          style={{ top: topOffset, width: MENU_WIDTH }}
           className={
-            'absolute -mt-1 max-h-80 overflow-y-auto ' + MENU_CLASS + ' ' + (flip ? 'right-full' : 'left-full')
+            'absolute -mt-1 max-h-80 overflow-y-auto ' + MENU_CLASS + ' ' + (openLeft ? 'right-full' : 'left-full')
           }
         >
           {submenu.map(renderItem)}
@@ -98,9 +98,9 @@ export type ContextMenuState = {
   ids: string[]
   title?: string
   moveTargets: TaskList[]
-  hasDue: boolean
+  anyHasDue: boolean
   allInToday: boolean
-  allDone?: boolean
+  allStepsDone?: boolean
 }
 
 export type OpenContextMenu = (
@@ -112,33 +112,34 @@ export default function ContextMenu({
   menu,
   onClose,
   onDelete,
-  onUpdate,
+  onUpdateTasks,
   onSetStepCompleted,
 }: {
   menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
-  onUpdate: (patch: TaskPatch) => void
+  onUpdateTasks: (patch: TaskPatch) => void
   onSetStepCompleted: (completed: boolean) => void
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [openSubmenuLabel, setOpenSubmenuLabel] = useState<string | null>(null)
   const [sheet, setSheet] = useState<{ label: string; submenu: MenuItem[] } | null>(null)
   const [mainClass, setMainClass] = useState<string>()
-  const touch = window.matchMedia('(pointer: coarse)').matches
+  const isTouch = window.matchMedia('(pointer: coarse)').matches
   useLayoutEffect(() => {
-    if (ref.current) ref.current.style.top = Math.min(menu.y, window.innerHeight - ref.current.offsetHeight) + 'px'
+    if (menuRef.current)
+      menuRef.current.style.top = Math.min(menu.y, window.innerHeight - menuRef.current.offsetHeight) + 'px'
   })
 
   useModalFocus(true)
 
-  const shown = useRef<string | null>(null)
+  const prevSheetLabel = useRef<string | null>(null)
   useEffect(() => {
-    if (!ref.current) return
-    ref.current.scrollTop = 0
-    const items = [...ref.current.querySelectorAll<HTMLElement>('[role="menuitem"]')]
-    ;(items.find((item) => item.textContent === shown.current) ?? items[0])?.focus()
-    shown.current = sheet?.label ?? null
+    if (!menuRef.current) return
+    menuRef.current.scrollTop = 0
+    const items = [...menuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+    ;(items.find((item) => item.textContent === prevSheetLabel.current) ?? items[0])?.focus()
+    prevSheetLabel.current = sheet?.label ?? null
   }, [sheet])
 
   const goBack = () => {
@@ -159,36 +160,36 @@ export default function ContextMenu({
 
   const taskItems: MenuItem[] = [
     menu.allInToday
-      ? { label: '☀️ Remove from Today', action: () => onUpdate({ addedToToday: false }) }
-      : { label: '☀️ Add to Today', action: () => onUpdate({ addedToToday: true }) },
+      ? { label: '☀️ Remove from Today', action: () => onUpdateTasks({ addedToToday: false }) }
+      : { label: '☀️ Add to Today', action: () => onUpdateTasks({ addedToToday: true }) },
     {
       label: 'Set stage',
       submenu: STAGES.map((stage) => ({
-        label: labelText(stageLabel(stage)),
-        action: () => onUpdate({ stage }),
+        label: formatLabel(stageLabel(stage)),
+        action: () => onUpdateTasks({ stage }),
       })),
     },
     {
       label: 'Set due date',
       submenu: [
-        { label: 'Today', action: () => onUpdate({ due: today() }) },
-        { label: 'Tomorrow', action: () => onUpdate({ due: tomorrow() }) },
-        { label: 'Next week', action: () => onUpdate({ due: nextMonday() }) },
-        ...(menu.hasDue ? [{ label: 'Remove', action: () => onUpdate({ due: null }), danger: true }] : []),
+        { label: 'Today', action: () => onUpdateTasks({ due: today() }) },
+        { label: 'Tomorrow', action: () => onUpdateTasks({ due: tomorrow() }) },
+        { label: 'Next week', action: () => onUpdateTasks({ due: nextMonday() }) },
+        ...(menu.anyHasDue ? [{ label: 'Remove', action: () => onUpdateTasks({ due: null }), danger: true }] : []),
       ],
     },
-    ...moveItems(menu.moveTargets, onUpdate),
+    ...moveItems(menu.moveTargets, onUpdateTasks),
     {
       label: 'Set priority',
       submenu: PRIORITIES.map((priority) => ({
-        label: labelText(priorityLabel(priority)),
-        action: () => onUpdate({ priority }),
+        label: formatLabel(priorityLabel(priority)),
+        action: () => onUpdateTasks({ priority }),
       })),
     },
   ]
 
   const stepItems: MenuItem[] = [
-    menu.allDone
+    menu.allStepsDone
       ? { label: 'Mark as open', action: () => onSetStepCompleted(false) }
       : { label: 'Mark as done', action: () => onSetStepCompleted(true) },
   ]
@@ -207,10 +208,10 @@ export default function ContextMenu({
           key={item.label}
           label={item.label}
           submenu={submenu}
-          touch={touch}
-          open={!touch && openSubmenu === item.label}
+          isTouch={isTouch}
+          open={!isTouch && openSubmenuLabel === item.label}
           setOpen={(open) =>
-            touch ? setSheet({ label: item.label, submenu }) : setOpenSubmenu(open ? item.label : null)
+            isTouch ? setSheet({ label: item.label, submenu }) : setOpenSubmenuLabel(open ? item.label : null)
           }
           renderItem={renderItem}
         />
@@ -241,7 +242,7 @@ export default function ContextMenu({
         }}
       />
       <div
-        ref={ref}
+        ref={menuRef}
         role="menu"
         className={
           'fixed z-50 ' +
@@ -256,7 +257,7 @@ export default function ContextMenu({
         {sheet ? (
           <div key={sheet.label} className="slide-from-right">
             <div className="sticky -top-1 z-10 flex items-center gap-1 bg-paper">
-              <button aria-label="Back" onClick={goBack} className={X_BUTTON_CLASS + ' m-1.5 text-ink-soft'}>
+              <button aria-label="Back" onClick={goBack} className={ICON_BUTTON_CLASS + ' m-1.5 text-ink-soft'}>
                 <svg
                   viewBox="0 0 16 16"
                   className="size-4"

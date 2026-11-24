@@ -35,9 +35,9 @@ export function EditableText({
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             event.preventDefault()
-            const name = draft.trim()
+            const trimmed = draft.trim()
             setDraft(null)
-            if (name && name !== text) onCommit(name)
+            if (trimmed && trimmed !== text) onCommit(trimmed)
           }
           if (event.key === 'Escape') cancel()
         }}

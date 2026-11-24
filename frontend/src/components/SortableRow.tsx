@@ -44,7 +44,7 @@ const useLongPress = (onLongPress: (event: { clientX: number; clientY: number })
 export function SortableRow({
   id,
   kind,
-  text,
+  menuTitle,
   tag: Tag,
   className,
   onClick,
@@ -53,7 +53,7 @@ export function SortableRow({
 }: {
   id: string
   kind: RowKind
-  text: string
+  menuTitle: string
   tag: 'li' | 'div'
   className: string
   onClick: (event: React.MouseEvent) => void
@@ -78,12 +78,12 @@ export function SortableRow({
     id,
     data: { kind, clone },
   })
-  const line =
+  const dropIndicator =
     !isOver || activeIndex === -1
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover-500 ' +
         (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
-  const { pressing, ...longPress } = useLongPress((event) => onContextMenu(event, { title: text }))
+  const { pressing, ...longPressHandlers } = useLongPress((event) => onContextMenu(event, { title: menuTitle }))
   return (
     <Tag
       ref={setNodeRef}
@@ -94,11 +94,11 @@ export function SortableRow({
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}
       className={
-        (isDragging ? 'hidden! ' : line) +
+        (isDragging ? 'hidden! ' : dropIndicator) +
         (pressing ? 'duration-500 ease-out motion-safe:scale-[0.98] ' : '') +
         rowClass
       }
-      {...longPress}
+      {...longPressHandlers}
       {...attributes}
       {...listeners}
     >

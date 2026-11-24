@@ -1,7 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { formatDueDate } from '../dates'
-import { isCompleted, priorityLabel, labelText } from '../labels'
-import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } from '../styles'
+import { isCompleted, priorityLabel, formatLabel } from '../labels'
+import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, dueDateClass } from '../styles'
 import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { AddInput } from './AddInput'
@@ -27,7 +27,7 @@ const metaItems = (task: Task) => {
         📅 {formatDueDate(task.due)}
       </span>,
     )
-  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(priorityLabel(task.priority))}</span>)
+  if (task.priority !== 'medium') items.push(<span key="priority">{formatLabel(priorityLabel(task.priority))}</span>)
   return items
 }
 
@@ -72,7 +72,7 @@ export default function TaskPane({
         key={task.id}
         id={task.id}
         kind={RowKind.Task}
-        text={task.title}
+        menuTitle={task.title}
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
@@ -123,7 +123,7 @@ export default function TaskPane({
           <button
             onClick={onOpenLists}
             aria-label="Open lists"
-            className={X_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
+            className={ICON_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
           >
             ☰
           </button>
@@ -159,7 +159,7 @@ export default function TaskPane({
               <button
                 onClick={onClearSelection}
                 aria-label="Clear selection"
-                className={X_BUTTON_CLASS + ' size-5! text-clover-700'}
+                className={ICON_BUTTON_CLASS + ' size-5! text-clover-700'}
               >
                 ×
               </button>

@@ -1,11 +1,11 @@
 import { useCallback, useState, useSyncExternalStore } from 'react'
 
-const useMedia = (query: string) => {
+const useMediaQuery = (query: string) => {
   const subscribe = useCallback(
     (onChange: () => void) => {
-      const list = window.matchMedia(query)
-      list.addEventListener('change', onChange)
-      return () => list.removeEventListener('change', onChange)
+      const mediaQuery = window.matchMedia(query)
+      mediaQuery.addEventListener('change', onChange)
+      return () => mediaQuery.removeEventListener('change', onChange)
     },
     [query],
   )
@@ -14,8 +14,8 @@ const useMedia = (query: string) => {
 
 export const useOverlays = (hasDetail: boolean) => {
   const [rawDrawerOpen, setDrawerOpen] = useState(false)
-  const narrow = !useMedia('(min-width: 1024px)')
-  const xlUp = useMedia('(min-width: 1280px)')
+  const narrow = !useMediaQuery('(min-width: 1024px)')
+  const xlUp = useMediaQuery('(min-width: 1280px)')
   const drawerOpen = rawDrawerOpen && narrow
   const detailModal = hasDetail && !xlUp
   return { drawerOpen, setDrawerOpen, detailModal, mainInert: drawerOpen || detailModal }

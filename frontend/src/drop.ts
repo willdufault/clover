@@ -23,9 +23,9 @@ export const applyDrop = (
 ): ListsAndTasks => {
   const { lists, tasks } = state
   if (activeId === overId) return state
-  const isList = (id: string) => lists.some((list) => list.id === id)
+  const isListId = (id: string) => lists.some((list) => list.id === id)
 
-  if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
+  if (isListId(activeId) && isListId(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
   const containsBoth = (items: { id: string }[]) =>
     items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
