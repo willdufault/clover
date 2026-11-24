@@ -3,9 +3,9 @@ import { isOverdue } from './dates'
 export const FIELD_CLASS =
   'flex h-11 w-full items-center rounded-xl border border-line bg-paper px-3.5 text-base text-ink pointer-fine:h-10 pointer-fine:text-sm outline-none transition placeholder:text-ink-soft focus:border-clover-400 focus:ring-3 focus:ring-clover-100'
 
-export const RENAME_CLASS = 'rounded-lg border border-clover-400 bg-paper text-ink outline-none'
+export const RENAME_CLASS = 'field-sizing-content rounded-lg border border-clover-400 bg-paper text-ink outline-none'
 
-export const TITLE_RENAME_CLASS = 'field-sizing-content max-w-full min-w-8 pr-8 font-semibold ' + RENAME_CLASS
+export const TITLE_RENAME_CLASS = 'max-w-full min-w-8 pr-8 font-semibold ' + RENAME_CLASS
 
 export const MENU_CLASS = 'rounded-xl border border-line bg-paper p-1 text-sm shadow-pop'
 

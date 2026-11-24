@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 
-const useMedia = (query: string) => {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
-  useEffect(() => {
-    const list = window.matchMedia(query)
-    const onChange = () => setMatches(list.matches)
-    list.addEventListener('change', onChange)
-    return () => list.removeEventListener('change', onChange)
-  }, [query])
-  return matches
-}
+const useMedia = (query: string) =>
+  useSyncExternalStore(
+    (onChange) => {
+      const list = window.matchMedia(query)
+      list.addEventListener('change', onChange)
+      return () => list.removeEventListener('change', onChange)
+    },
+    () => window.matchMedia(query).matches,
+  )
 
 export const useOverlays = (hasDetail: boolean) => {
   const [rawDrawerOpen, setDrawerOpen] = useState(false)

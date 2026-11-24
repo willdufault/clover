@@ -3,6 +3,7 @@ import { nextMonday, today, tomorrow } from '../dates'
 import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS, X_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
+import { useModalFocus } from '../useModalFocus'
 
 const MENU_WIDTH = 208
 
@@ -14,14 +15,14 @@ function SubmenuRow({
   touch,
   open,
   setOpen,
-  renderItems,
+  renderItem,
 }: {
   label: string
   submenu: MenuItem[]
   touch: boolean
   open: boolean
   setOpen: (open: boolean) => void
-  renderItems: (items: MenuItem[]) => React.ReactNode
+  renderItem: (item: MenuItem) => React.ReactNode
 }) {
   const [flip, setFlip] = useState(false)
   const [shift, setShift] = useState(0)
@@ -69,7 +70,7 @@ function SubmenuRow({
             'absolute -mt-1 max-h-80 overflow-y-auto ' + MENU_CLASS + ' ' + (flip ? 'right-full' : 'left-full')
           }
         >
-          {renderItems(submenu)}
+          {submenu.map(renderItem)}
         </div>
       )}
     </div>
@@ -124,13 +125,12 @@ export default function ContextMenu({
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
   const [sheet, setSheet] = useState<{ label: string; submenu: MenuItem[] } | null>(null)
   const [mainClass, setMainClass] = useState<string>()
-  const [previous] = useState(() => document.activeElement as HTMLElement | null)
   const touch = window.matchMedia('(pointer: coarse)').matches
   useLayoutEffect(() => {
     if (ref.current) ref.current.style.top = Math.min(menu.y, window.innerHeight - ref.current.offsetHeight) + 'px'
   })
 
-  useEffect(() => () => previous?.focus(), [previous])
+  useModalFocus(true)
 
   const shown = useRef<string | null>(null)
   useEffect(() => {
@@ -212,7 +212,7 @@ export default function ContextMenu({
           setOpen={(open) =>
             touch ? setSheet({ label: item.label, submenu }) : setOpenSubmenu(open ? item.label : null)
           }
-          renderItems={renderItems}
+          renderItem={renderItem}
         />
       )
     return (
@@ -229,8 +229,6 @@ export default function ContextMenu({
       </button>
     )
   }
-
-  const renderItems = (items: MenuItem[]): React.ReactNode => items.map(renderItem)
 
   return (
     <>
@@ -273,7 +271,7 @@ export default function ContextMenu({
               </button>
               <p className="font-semibold text-ink">{sheet.label}</p>
             </div>
-            {renderItems(sheet.submenu)}
+            {sheet.submenu.map(renderItem)}
           </div>
         ) : (
           <div className={mainClass}>
@@ -285,9 +283,9 @@ export default function ContextMenu({
                 {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}
               </p>
             )}
-            {renderItems(kindItems)}
+            {kindItems.map(renderItem)}
             {kindItems.length > 0 && <hr className="mx-2 my-1 border-line" />}
-            {renderItems([{ label: 'Delete', action: onDelete, danger: true }])}
+            {renderItem({ label: 'Delete', action: onDelete, danger: true })}
           </div>
         )}
       </div>
