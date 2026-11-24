@@ -1,14 +1,16 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 
-const useMedia = (query: string) =>
-  useSyncExternalStore(
-    (onChange) => {
+const useMedia = (query: string) => {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
       const list = window.matchMedia(query)
       list.addEventListener('change', onChange)
       return () => list.removeEventListener('change', onChange)
     },
-    () => window.matchMedia(query).matches,
+    [query],
   )
+  return useSyncExternalStore(subscribe, () => window.matchMedia(query).matches)
+}
 
 export const useOverlays = (hasDetail: boolean) => {
   const [rawDrawerOpen, setDrawerOpen] = useState(false)
