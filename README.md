@@ -25,4 +25,10 @@ infra/     Terraform
 
 ## Architecture
 
-<!-- diagram -->
+```mermaid
+flowchart LR
+  SPA[React SPA<br/>GitHub Pages] -->|login, PKCE| Cognito
+  SPA -->|Bearer access token| APIGW[API Gateway<br/>JWT authorizer]
+  APIGW --> Lambda[Lambda<br/>clover-api]
+  Lambda --> DDB[(DynamoDB<br/>clover-tasks)]
+```
