@@ -17,8 +17,12 @@ TRANSACTION_RETRIES = 3
 RETRY_JITTER = 0.05
 
 
-def key(user_id: str, kind: str, item_id: str) -> dict:
+def build_key(user_id: str, kind: str, item_id: str) -> dict:
     return {"PK": user_id, "SK": f"{kind}#{item_id}"}
+
+
+def key_of(item: dict) -> dict:
+    return {"PK": item["PK"], "SK": item["SK"]}
 
 
 def kind_of(item: dict) -> str:
@@ -97,7 +101,7 @@ def transact(writes: list) -> None:
 
 
 def create(user_id: str, kind: str, data: dict, items: list) -> dict:
-    item = {**key(user_id, kind, str(uuid.uuid7())), **data}
+    item = {**build_key(user_id, kind, str(uuid.uuid7())), **data}
     transact([{"Put": {"TableName": table.name, "Item": item}}, bump(user_id, items)])
     return to_api(item)
 
@@ -108,7 +112,7 @@ def update_many(user_id: str, kind: str, patches: list, items: list, checks: Ite
         {
             "Update": {
                 "TableName": table.name,
-                "Key": key(user_id, kind, item_id),
+                "Key": build_key(user_id, kind, item_id),
                 "UpdateExpression": "SET " + ", ".join(f"#{k} = :{k}" for k in data),
                 "ExpressionAttributeNames": {f"#{k}": k for k in data},
                 "ExpressionAttributeValues": {f":{k}": v for k, v in data.items()},
@@ -127,13 +131,13 @@ def delete(*groups: list) -> None:
     for items in groups:
         with table.batch_writer(overwrite_by_pkeys=["PK", "SK"]) as batch:
             for item in items:
-                batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+                batch.delete_item(Key=key_of(item))
 
 
 # Parents go first with the META bump, so the children read is current when they
 # commit and no new child can be added after. A crash before the children are
 # deleted orphans them; DELETE /steps sweeps orphan steps.
 def delete_parents(user_id: str, items: list, parents: list, *children: list) -> None:
-    deletes = [{"Delete": {"TableName": table.name, "Key": {"PK": p["PK"], "SK": p["SK"]}}} for p in parents]
+    deletes = [{"Delete": {"TableName": table.name, "Key": key_of(p)}} for p in parents]
     transact([bump(user_id, items), *deletes])
     delete(*children)
