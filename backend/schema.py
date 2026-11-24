@@ -5,11 +5,14 @@ from datetime import date
 
 from api import ApiError, parse_body, parse_json
 
-# Shared with the frontend.
-with open(os.path.join(os.path.dirname(__file__), "shared", "limits.json")) as f:
-    LIMITS = json.load(f)
-with open(os.path.join(os.path.dirname(__file__), "shared", "enums.json")) as f:
-    ENUMS = json.load(f)
+
+def load_shared(name: str) -> dict:
+    with open(os.path.join(os.path.dirname(__file__), "shared", name)) as f:
+        return json.load(f)
+
+
+LIMITS = load_shared("limits.json")
+ENUMS = load_shared("enums.json")
 USER_LIMITS = {
     "LIST": LIMITS["listsPerUser"],
     "TASK": LIMITS["tasksPerUser"],

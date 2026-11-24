@@ -1,30 +1,30 @@
 import enums from './shared/enums.json'
 
-type Label = { emoji: string; label: string }
+type EmojiLabel = { emoji: string; text: string }
 
-const STAGE_LABELS: Record<string, Label> = {
-  open: { emoji: '⚪', label: 'Open' },
-  inProgress: { emoji: '⚡', label: 'In progress' },
-  waiting: { emoji: '⏳', label: 'Waiting' },
-  done: { emoji: '✅', label: 'Done' },
+const STAGE_LABELS: Record<string, EmojiLabel> = {
+  open: { emoji: '⚪', text: 'Open' },
+  inProgress: { emoji: '⚡', text: 'In progress' },
+  waiting: { emoji: '⏳', text: 'Waiting' },
+  done: { emoji: '✅', text: 'Done' },
   // U+FE0F forces emoji rendering; the native dropdown list otherwise shows a plain x
-  cancelled: { emoji: '❌️', label: 'Cancelled' },
+  cancelled: { emoji: '❌️', text: 'Cancelled' },
 }
 
 export const STAGES = enums.stages
 
 export const isCompleted = (stage: string) => stage === 'done' || stage === 'cancelled'
 
-export const stageLabel = (stage: string) => STAGE_LABELS[stage] ?? { emoji: '', label: stage }
+export const stageLabel = (stage: string) => STAGE_LABELS[stage] ?? { emoji: '', text: stage }
 
-const PRIORITY_LABELS: Record<string, Label> = {
-  high: { emoji: '🔴', label: 'High' },
-  medium: { emoji: '🟡', label: 'Medium' },
-  low: { emoji: '🟢', label: 'Low' },
+const PRIORITY_LABELS: Record<string, EmojiLabel> = {
+  high: { emoji: '🔴', text: 'High' },
+  medium: { emoji: '🟡', text: 'Medium' },
+  low: { emoji: '🟢', text: 'Low' },
 }
 
 export const PRIORITIES = enums.priorities
 
-export const priorityLabel = (priority: string) => PRIORITY_LABELS[priority] ?? { emoji: '', label: priority }
+export const priorityLabel = (priority: string) => PRIORITY_LABELS[priority] ?? { emoji: '', text: priority }
 
-export const labelText = ({ emoji, label }: Label) => `${emoji} ${label}`
+export const formatLabel = ({ emoji, text }: EmojiLabel) => `${emoji} ${text}`

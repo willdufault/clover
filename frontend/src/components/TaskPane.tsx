@@ -1,7 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { formatDueDate } from '../dates'
-import { isCompleted, priorityLabel, labelText } from '../labels'
-import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, X_BUTTON_CLASS, dueDateClass } from '../styles'
+import { isCompleted, priorityLabel, formatLabel } from '../labels'
+import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, dueDateClass } from '../styles'
 import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { AddInput } from './AddInput'
@@ -27,7 +27,7 @@ const metaItems = (task: Task) => {
         📅 {formatDueDate(task.due)}
       </span>,
     )
-  if (task.priority !== 'medium') items.push(<span key="priority">{labelText(priorityLabel(task.priority))}</span>)
+  if (task.priority !== 'medium') items.push(<span key="priority">{formatLabel(priorityLabel(task.priority))}</span>)
   return items
 }
 
@@ -67,20 +67,18 @@ export default function TaskPane({
   const taskRow = (task: Task) => {
     const meta = metaItems(task)
     const selected = selectedIds.includes(task.id)
-    const rowTint = selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70'
-    const completed = isCompleted(task.stage)
     return (
       <SortableRow
         key={task.id}
         id={task.id}
         kind={RowKind.Task}
-        text={task.title}
+        menuTitle={task.title}
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
         className={
           'group relative flex select-none items-center gap-3.5 border-b border-line/70 px-5 py-3.5 transition last:border-b-0 ' +
-          rowTint
+          (selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70')
         }
       >
         {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
@@ -102,7 +100,7 @@ export default function TaskPane({
           <span
             className={
               'text-base break-words ' +
-              (completed ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+              (isCompleted(task.stage) ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
             }
           >
             {task.title}
@@ -125,7 +123,7 @@ export default function TaskPane({
           <button
             onClick={onOpenLists}
             aria-label="Open lists"
-            className={X_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
+            className={ICON_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
           >
             ☰
           </button>
@@ -161,7 +159,7 @@ export default function TaskPane({
               <button
                 onClick={onClearSelection}
                 aria-label="Clear selection"
-                className={X_BUTTON_CLASS + ' size-5! text-clover-700'}
+                className={ICON_BUTTON_CLASS + ' size-5! text-clover-700'}
               >
                 ×
               </button>

@@ -11,5 +11,5 @@ output "client_id" {
 }
 
 output "cognito_issuer" {
-  value = "https://${aws_cognito_user_pool.users.endpoint}"
+  value = local.cognito_issuer
 }

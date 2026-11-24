@@ -1,7 +1,7 @@
 import * as fc from 'fast-check'
 import { formatDueDate, isOverdue, nextMonday, relativeDayLabel, today, tomorrow } from '../../src/dates'
 
-const now = new Date('2026-11-08T17:00:00') // Sunday
+const now = new Date('2026-11-08T17:00:00')
 
 test('today and tomorrow', () => {
   expect(today(now)).toBe('2026-11-08')

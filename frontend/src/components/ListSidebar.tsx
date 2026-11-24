@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { SAFE_AREA_CLASS, X_BUTTON_CLASS, sidebarRowClass } from '../styles'
+import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, sidebarRowClass } from '../styles'
 import { RowKind, type Task, type TaskList } from '../types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { logout } from '../api'
@@ -16,7 +16,7 @@ export default function ListSidebar({
   tasks,
   selectedListId,
   dragOverListId,
-  open,
+  drawerOpen,
   inert,
   onClose,
   onSelectList,
@@ -27,7 +27,7 @@ export default function ListSidebar({
   tasks: Task[]
   selectedListId: string
   dragOverListId: string | null
-  open: boolean
+  drawerOpen: boolean
   inert: boolean
   onClose: () => void
   onSelectList: (id: string) => void
@@ -35,19 +35,19 @@ export default function ListSidebar({
   onContextMenu: OpenContextMenu
 }) {
   const { setNodeRef: setTodayRef } = useDroppable({ id: TODAY_LIST_ID })
-  const closeRef = useModalFocus<HTMLButtonElement>(open)
+  const closeRef = useModalFocus<HTMLButtonElement>(drawerOpen)
   return (
     <>
-      {open && <div onClick={onClose} className="fixed inset-0 z-40 bg-ink/30 lg:hidden" />}
+      {drawerOpen && <div onClick={onClose} className="fixed inset-0 z-40 bg-ink/30 lg:hidden" />}
       <div
         inert={inert}
-        role={open ? 'dialog' : undefined}
-        aria-modal={open || undefined}
+        role={drawerOpen ? 'dialog' : undefined}
+        aria-modal={drawerOpen || undefined}
         aria-label="Lists"
         className={
           'fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col bg-sprout shadow-pop duration-200 lg:visible lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:p-0 lg:shadow-none 2xl:w-72 ' +
           SAFE_AREA_CLASS +
-          (open ? ' transition-[translate]' : ' invisible -translate-x-full transition-[translate,visibility]')
+          (drawerOpen ? ' transition-[translate]' : ' invisible -translate-x-full transition-[translate,visibility]')
         }
       >
         <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-6 pb-4">
@@ -56,7 +56,7 @@ export default function ListSidebar({
             ref={closeRef}
             onClick={onClose}
             aria-label="Close lists"
-            className={X_BUTTON_CLASS + ' text-ink-soft lg:hidden'}
+            className={ICON_BUTTON_CLASS + ' text-ink-soft lg:hidden'}
           >
             ✕
           </button>
@@ -84,7 +84,7 @@ export default function ListSidebar({
                 key={list.id}
                 id={list.id}
                 kind={RowKind.List}
-                text={list.name}
+                menuTitle={list.name}
                 tag="div"
                 onClick={() => onSelectList(list.id)}
                 onContextMenu={onContextMenu(RowKind.List, list.id)}

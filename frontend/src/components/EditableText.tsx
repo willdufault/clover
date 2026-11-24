@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function EditableText({
@@ -21,19 +21,11 @@ export function EditableText({
   onCommit: (text: string) => void
 }) {
   const [draft, setDraft] = useState<string | null>(null)
-  const ref = useRef<HTMLTextAreaElement>(null)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
-  })
 
   if (draft !== null) {
     const cancel = () => setDraft(null)
     return (
       <textarea
-        ref={ref}
         rows={1}
         autoFocus
         onFocus={(event) => event.target.select()}
@@ -43,9 +35,9 @@ export function EditableText({
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             event.preventDefault()
-            const name = draft.trim()
+            const trimmed = draft.trim()
             setDraft(null)
-            if (name && name !== text) onCommit(name)
+            if (trimmed && trimmed !== text) onCommit(trimmed)
           }
           if (event.key === 'Escape') cancel()
         }}

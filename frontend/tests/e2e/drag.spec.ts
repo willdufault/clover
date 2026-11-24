@@ -30,7 +30,6 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
   const main = page.locator('main')
   const nav = page.locator('nav')
 
-  // Regression: the last list was not a drop target.
   await drag(page, main.getByText('Milk', { exact: true }), nav.getByText('Home'))
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('home')
   await expect(main.getByText('Milk', { exact: true })).toHaveCount(0)
@@ -55,8 +54,7 @@ test('dragging a task into a full list shows the limit error and keeps it in pla
 
   await drag(page, page.locator('main').getByText('Milk', { exact: true }), page.locator('nav').getByText('Work'))
 
-  const alert = page.getByRole('alert')
-  await expect(alert).toContainText('List is full')
+  await expect(page.getByRole('alert')).toContainText('List is full')
   expect(backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('groceries')
   await expect(page.locator('main [data-kind="task"]', { hasText: 'Milk' })).toBeVisible()
   await waitForDropAnimation(page)

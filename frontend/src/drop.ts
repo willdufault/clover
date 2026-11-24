@@ -17,21 +17,19 @@ type DropEvent = {
 
 export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 
-// Local-only (not persisted). Reorder only within the container holding both the dragged item and the drop target.
 export const applyDrop = (
   state: ListsAndTasks,
   { selectedListId, detailTask, activeId, overId }: DropEvent,
 ): ListsAndTasks => {
   const { lists, tasks } = state
   if (activeId === overId) return state
-  const isList = (id: string) => lists.some((list) => list.id === id)
-  const visibleInList = tasksInList(tasks, selectedListId)
+  const isListId = (id: string) => lists.some((list) => list.id === id)
 
-  if (isList(activeId) && isList(overId)) return { lists: moveById(lists, activeId, overId), tasks }
+  if (isListId(activeId) && isListId(overId)) return { lists: moveById(lists, activeId, overId), tasks }
 
   const containsBoth = (items: { id: string }[]) =>
     items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
-  if (containsBoth(visibleInList)) return { lists, tasks: moveById(tasks, activeId, overId) }
+  if (containsBoth(tasksInList(tasks, selectedListId))) return { lists, tasks: moveById(tasks, activeId, overId) }
   if (detailTask && containsBoth(detailTask.steps)) {
     return {
       lists,

@@ -2,7 +2,6 @@ import type { Locator, Page } from '@playwright/test'
 import { loadEnv } from 'vite'
 import { createFakeBackend, seed } from '../fakeBackend'
 
-// Serves the API from an in-memory fake and signs in with a fake, unexpired token. No network.
 export const mockApi = async (page: Page, data = seed()) => {
   const backend = createFakeBackend(data)
   const env = loadEnv('development', process.cwd())
@@ -44,7 +43,7 @@ export const box = async (locator: Locator) => {
   return bounds
 }
 
-const center = async (locator: Locator) => {
+export const center = async (locator: Locator) => {
   const b = await box(locator)
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
 }

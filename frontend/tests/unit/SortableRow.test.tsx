@@ -11,7 +11,7 @@ const renderRow = (onContextMenu = vi.fn()) => {
         <SortableRow
           id="a"
           kind={RowKind.Task}
-          text="Row"
+          menuTitle="Row"
           tag="div"
           className=""
           onClick={() => {}}
@@ -50,7 +50,7 @@ describe('SortableRow long press', () => {
     act(() => {
       vi.advanceTimersByTime(500)
     })
-    expect(onContextMenu).toHaveBeenCalledWith({ clientX: 5, clientY: 6 }, 'Row')
+    expect(onContextMenu).toHaveBeenCalledWith({ clientX: 5, clientY: 6 }, { title: 'Row' })
     expect(row).not.toHaveClass('motion-safe:scale-[0.98]')
   })
 })

@@ -59,11 +59,11 @@ test('mismatched ids are no-ops', () => {
     expect(
       applyDrop(state, { ...baseDrop, detailTask: state.tasks[0], activeId: 'a1', overId: 'a2', ...drop }),
     ).toEqual(makeState())
-  expectNoop({ activeId: 's1', overId: 'a2' }) // step over task
-  expectNoop({ activeId: 'a1', overId: 's1' }) // task over step
-  expectNoop({ activeId: 's1', overId: 'x1' }) // step of another task
-  expectNoop({ activeId: 'A', overId: 'a1' }) // list over task
-  expectNoop({ activeId: 'b1', overId: 'a1' }) // task from unselected list
+  expectNoop({ activeId: 's1', overId: 'a2' })
+  expectNoop({ activeId: 'a1', overId: 's1' })
+  expectNoop({ activeId: 's1', overId: 'x1' })
+  expectNoop({ activeId: 'A', overId: 'a1' })
+  expectNoop({ activeId: 'b1', overId: 'a1' })
 })
 
 const stateArb = fc

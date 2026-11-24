@@ -1,11 +1,11 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isOverdue, relativeDayLabel } from '../dates'
-import { PRIORITIES, priorityLabel, STAGES, stageLabel, labelText } from '../labels'
+import { PRIORITIES, priorityLabel, STAGES, stageLabel, formatLabel } from '../labels'
 import {
   FIELD_CLASS,
   RENAME_CLASS,
   SAFE_AREA_CLASS,
-  X_BUTTON_CLASS,
+  ICON_BUTTON_CLASS,
   SELECTED_ROW_CLASS,
   TITLE_RENAME_CLASS,
   dueDateClass,
@@ -19,7 +19,7 @@ import { SortableRow } from './SortableRow'
 import { ignoreRowEvents } from './ignoreRowEvents'
 import { useModalFocus } from '../useModalFocus'
 
-const LABEL_CLASS = 'mt-5 mb-2 px-1 text-xs font-semibold tracking-[0.07em] text-ink-soft uppercase'
+const SECTION_LABEL_CLASS = 'mt-5 mb-2 px-1 text-xs font-semibold tracking-[0.07em] text-ink-soft uppercase'
 
 function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPatch) => void }) {
   const dueLabel = task.due && relativeDayLabel(task.due)
@@ -40,7 +40,6 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           // A partly cleared date reads as '' but sets badInput; skip it so it doesn't delete the date.
           const { value } = event.target
           const partial = event.target.validity.badInput
-          // Show the saved date until the save succeeds; then the key changes and the input remounts.
           event.target.value = task.due ?? ''
           if (!partial && value !== (task.due ?? '')) onUpdate({ due: value || null })
         }}
@@ -54,7 +53,7 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           <button
             onClick={() => onUpdate({ due: null })}
             aria-label="Clear due date"
-            className={X_BUTTON_CLASS + ' text-ink-soft'}
+            className={ICON_BUTTON_CLASS + ' text-ink-soft'}
           >
             ×
           </button>
@@ -77,7 +76,7 @@ export default function TaskDetailPane({
   onAddStep,
   onToggleStep,
   onDeleteStep,
-  onUpdate,
+  onUpdateTask,
   onContextMenu,
   onRenameStep,
   modal,
@@ -90,7 +89,7 @@ export default function TaskDetailPane({
   onAddStep: (text: string) => void
   onToggleStep: (id: string, completed: boolean) => void
   onDeleteStep: (id: string) => void
-  onUpdate: (patch: TaskPatch) => void
+  onUpdateTask: (patch: TaskPatch) => void
   onContextMenu: OpenContextMenu
   onRenameStep: (id: string, text: string) => void
   modal: boolean
@@ -101,7 +100,7 @@ export default function TaskDetailPane({
       key={step.id}
       id={step.id}
       kind={RowKind.Step}
-      text={step.title}
+      menuTitle={step.title}
       tag="li"
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
@@ -122,7 +121,7 @@ export default function TaskDetailPane({
         text={step.title}
         maxLength={limits.titleMax}
         selectOnModifierClick
-        onCommit={(name) => onRenameStep(step.id, name)}
+        onCommit={(title) => onRenameStep(step.id, title)}
         className={'min-w-0 flex-1 break-words ' + (step.completed ? 'text-ink-faint line-through' : 'text-ink')}
         inputClassName={RENAME_CLASS + ' min-w-0 flex-1 px-1 py-0.5 text-base pointer-fine:text-sm'}
       />
@@ -159,7 +158,7 @@ export default function TaskDetailPane({
               tag="h2"
               text={task.title}
               maxLength={limits.titleMax}
-              onCommit={(title) => onUpdate({ title })}
+              onCommit={(title) => onUpdateTask({ title })}
               className="-mx-1.5 w-fit max-w-full rounded-lg px-1.5 text-2xl font-semibold tracking-tight break-words text-ink transition hover:bg-cream"
               inputClassName={TITLE_RENAME_CLASS + ' text-2xl tracking-tight'}
             />
@@ -168,14 +167,14 @@ export default function TaskDetailPane({
             ref={closeRef}
             onClick={onClose}
             aria-label="Close panel"
-            className={X_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
+            className={ICON_BUTTON_CLASS + ' mt-0.5 -mr-1.5 text-ink-soft'}
           >
             ✕
           </button>
         </div>
 
         <div className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-1 pb-4">
-          <h3 className={LABEL_CLASS}>Steps</h3>
+          <h3 className={SECTION_LABEL_CLASS}>Steps</h3>
           <SortableContext items={task.steps} strategy={verticalListSortingStrategy}>
             <ul className="w-full">{task.steps.map(stepRow)}</ul>
           </SortableContext>
@@ -186,48 +185,48 @@ export default function TaskDetailPane({
             onAdd={onAddStep}
             className={task.steps.length > 0 ? 'mt-2' : undefined}
           />
-          <h3 className={LABEL_CLASS + ' mt-7'}>Schedule</h3>
-          <DueDateField task={task} onUpdate={onUpdate} />
+          <h3 className={SECTION_LABEL_CLASS + ' mt-7'}>Schedule</h3>
+          <DueDateField task={task} onUpdate={onUpdateTask} />
           {task.addedToToday ? (
             <div className="mt-2.5 flex h-9 w-fit items-center gap-1 rounded-full border border-clover-200 bg-clover-100 pr-1.5 pl-4 text-sm font-medium text-clover-700">
               <span>☀️ Added to Today</span>
               <button
-                onClick={() => onUpdate({ addedToToday: false })}
+                onClick={() => onUpdateTask({ addedToToday: false })}
                 aria-label="Remove from Today"
-                className={X_BUTTON_CLASS + ' text-clover-700'}
+                className={ICON_BUTTON_CLASS + ' text-clover-700'}
               >
                 ×
               </button>
             </div>
           ) : (
             <button
-              onClick={() => onUpdate({ addedToToday: true })}
+              onClick={() => onUpdateTask({ addedToToday: true })}
               className="touch-hit mt-2.5 flex h-9 w-fit items-center rounded-full border border-clover-200 px-4 text-sm text-clover-700 transition hover:bg-clover-50"
             >
               ☀️ Add to Today
             </button>
           )}
-          <h3 className={LABEL_CLASS + ' mt-7'}>Stage</h3>
+          <h3 className={SECTION_LABEL_CLASS + ' mt-7'}>Stage</h3>
           <select
             value={task.stage}
-            onChange={(event) => onUpdate({ stage: event.target.value })}
+            onChange={(event) => onUpdateTask({ stage: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {STAGES.map((stage) => (
               <option key={stage} value={stage}>
-                {labelText(stageLabel(stage))}
+                {formatLabel(stageLabel(stage))}
               </option>
             ))}
           </select>
-          <h3 className={LABEL_CLASS}>Priority</h3>
+          <h3 className={SECTION_LABEL_CLASS}>Priority</h3>
           <select
             value={task.priority}
-            onChange={(event) => onUpdate({ priority: event.target.value })}
+            onChange={(event) => onUpdateTask({ priority: event.target.value })}
             className={FIELD_CLASS + ' field'}
           >
             {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
-                {labelText(priorityLabel(priority))}
+                {formatLabel(priorityLabel(priority))}
               </option>
             ))}
           </select>
