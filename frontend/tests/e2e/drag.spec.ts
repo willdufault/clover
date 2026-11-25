@@ -40,6 +40,11 @@ test('dragging a task onto the last sidebar list moves it, and onto Today adds i
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.addedToToday).toBe(true)
   await expect(main.locator('[data-kind="task"]', { hasText: 'Eggs' }).getByTitle('In Today')).toBeVisible()
   await waitForDropAnimation(page)
+  const patches: string[] = []
+  page.on('request', (request) => request.method() === 'PATCH' && patches.push(request.url()))
+  await drag(page, main.getByText('Eggs', { exact: true }), nav.getByText('Today', { exact: true }))
+  await waitForDropAnimation(page)
+  expect(patches).toEqual([])
   await page.screenshot({ path: 'test-results/drag-task.png' })
   expect(errors).toEqual([])
 })

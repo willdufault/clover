@@ -247,9 +247,9 @@ export default function App() {
     const targetListId = taskDropListId(over)
     if (targetListId) {
       setSelectedTaskIds([])
-      if (targetListId === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       const dragged = tasks.find((task) => task.id === active.id)
-      if (dragged?.listId === targetListId) return
+      if (targetListId === TODAY_LIST_ID ? dragged?.addedToToday : dragged?.listId === targetListId) return
+      if (targetListId === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       updateTask(String(active.id), { listId: targetListId })
       return
     }
