@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faArrowLeft, faArrowRight, faCheck, faChevronRight, faSun } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faCheck, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS } from '../styles'
@@ -122,7 +122,7 @@ const moveItems = (lists: TaskList[], onUpdate: (patch: TaskPatch) => void): Men
     ? [
         {
           label: 'Move to list',
-          icon: { icon: faArrowRight, color: 'text-lichen', text: '' },
+          icon: { icon: faListUl, color: 'text-lichen', text: '' },
           submenu: lists.map((list) => ({
             key: list.id,
             label: list.name,

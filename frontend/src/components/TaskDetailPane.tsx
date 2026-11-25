@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircle, faFolder, faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faChevronDown, faCircleCheck, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faCircle, faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faChevronDown, faCircleCheck, faListUl, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, isOverdue } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
 import {
@@ -141,7 +141,7 @@ export default function TaskDetailPane({
 }) {
   const closeRef = useModalFocus<HTMLButtonElement>(modal)
   const listLabel = (id: string): Label => ({
-    icon: faFolder,
+    icon: faListUl,
     color: 'text-lichen',
     text: lists.find((list) => list.id === id)?.name ?? 'No list',
   })
