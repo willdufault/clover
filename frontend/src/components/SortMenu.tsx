@@ -1,53 +1,86 @@
 import { useState } from 'react'
-import type { SortCriteria } from '../sort'
-import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS } from '../styles'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowDownWideShort, faCheck } from '@fortawesome/free-solid-svg-icons'
+import type { Sort, SortCriteria } from '../sort'
+import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS } from '../styles'
+import { anchorOf, type Anchor } from './Picker'
+import { Popover, rem } from './Popover'
 
-const MENU_WIDTH = 176
+const MENU_WIDTH = 14
 
-const OPTIONS: [SortCriteria, string][] = [
-  ['stage', 'Stage'],
-  ['due', 'Due date'],
-  ['priority', 'Priority'],
+const OPTIONS: [SortCriteria | null, string, string, string][] = [
+  [null, 'Manual', '', ''],
+  ['stage', 'Stage', 'Open first', 'Waiting first'],
+  ['due', 'Due date', 'Soonest first', 'Latest first'],
+  ['priority', 'Priority', 'High first', 'Low first'],
 ]
 
-export function SortMenu({ onSort }: { onSort: (criteria: SortCriteria) => void }) {
-  const [open, setOpen] = useState(false)
-  const [alignRight, setAlignRight] = useState(false)
+const describe = (sort: Sort) => {
+  const [, label = '', ascending = '', descending = ''] = OPTIONS.find(([key]) => key === sort.criteria) ?? []
+  return { label, direction: sort.descending ? descending : ascending }
+}
+
+export function SortMenu({ sort, onSort }: { sort: Sort | null; onSort: (criteria: SortCriteria | null) => void }) {
+  const [anchor, setAnchor] = useState<Anchor | null>(null)
+  const close = () => setAnchor(null)
+  const active = sort && describe(sort)
+  const summary = active ? `${active.label}, ${active.direction.toLowerCase()}` : 'Sort'
   return (
-    <div className="relative">
+    <>
       <button
-        aria-label="Sort"
-        onClick={(event) => {
-          setAlignRight(event.currentTarget.getBoundingClientRect().left + MENU_WIDTH > window.innerWidth)
-          setOpen(true)
-        }}
-        className="touch-hit rounded-full border border-line bg-paper px-3 py-1 text-sm text-ink-soft transition hover:border-clover-200 hover:text-clover-700"
+        aria-label={active ? `Sort: ${summary}` : 'Sort'}
+        aria-haspopup="menu"
+        aria-expanded={!!anchor}
+        onClick={(event) => setAnchor(anchorOf(event))}
+        className={ICON_BUTTON_CLASS + ' relative h-9 w-auto gap-2 px-2.5 text-sm text-moss/80 aria-expanded:bg-moss/5'}
       >
-        ⇅ Sort
+        <FontAwesomeIcon
+          icon={faArrowDownWideShort}
+          className={'text-base ' + (sort ? 'text-clover' : 'text-lichen')}
+        />
+        <span className="hidden sm:inline">{summary}</span>
+        {active && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-clover sm:hidden" />}
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0" onClick={() => setOpen(false)} />
-          <div
-            style={{ width: MENU_WIDTH }}
-            className={'absolute z-50 mt-2 ' + MENU_CLASS + (alignRight ? ' right-0' : ' left-0')}
-          >
-            <p className={MENU_LABEL_CLASS}>Sort by</p>
-            {OPTIONS.map(([criteria, label]) => (
+      {anchor && (
+        <Popover
+          x={anchor.rect.right - rem(MENU_WIDTH)}
+          y={anchor.rect.bottom + 4}
+          width={rem(MENU_WIDTH)}
+          title="Sort by"
+          focusFirst={anchor.keyboard}
+          onClose={close}
+        >
+          {OPTIONS.map(([criteria, label]) => {
+            const checked = (sort?.criteria ?? null) === criteria
+            const detail = checked && active ? active.direction : ''
+            return (
               <button
-                key={criteria}
+                key={label}
+                role="menuitemradio"
+                aria-checked={checked}
+                aria-label={detail ? `${label}: ${detail}` : label}
                 onClick={() => {
                   onSort(criteria)
-                  setOpen(false)
+                  close()
                 }}
-                className={'block text-ink ' + MENU_ITEM_CLASS}
+                className={MENU_ITEM_CLASS}
               >
-                {label}
+                <span className="flex flex-1 flex-col">
+                  {label}
+                  {detail && (
+                    <span className="text-sm text-moss/80">
+                      <span className="pointer-coarse:hidden">Click to reverse</span>
+                      <span className="hidden pointer-coarse:inline">Tap to reverse</span>
+                    </span>
+                  )}
+                </span>
+                {detail && <span className="text-sm text-moss/80">{detail}</span>}
+                {checked && <FontAwesomeIcon icon={faCheck} className="text-clover" />}
               </button>
-            ))}
-          </div>
-        </>
+            )
+          })}
+        </Popover>
       )}
-    </div>
+    </>
   )
 }

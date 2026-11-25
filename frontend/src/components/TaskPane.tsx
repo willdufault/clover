@@ -1,34 +1,125 @@
+import { useState } from 'react'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { formatDueDate } from '../dates'
-import { isCompleted, priorityLabel, formatLabel } from '../labels'
-import { SELECTED_ROW_CLASS, TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, dueDateClass } from '../styles'
-import type { SortCriteria } from '../sort'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faBars, faEllipsis, faListCheck, faPen, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { formatDueDate, isOverdue } from '../dates'
+import { dueIcon, isCompleted, priorityLabel, stageLabel } from '../labels'
+import {
+  TITLE_RENAME_CLASS,
+  ICON_BUTTON_CLASS,
+  ICON_SLOT_CLASS,
+  MENU_ITEM_CLASS,
+  META_TEXT_CLASS,
+  rowStateClass,
+} from '../styles'
+import type { Sort, SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
+import { SMART_LIST_ICONS } from '../smartLists'
 import { AddInput } from './AddInput'
 import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
-import type { OpenContextMenu } from './ContextMenu'
+import { MENU_WIDTH, type OpenContextMenu } from './ContextMenu'
+import { ignoreRowEvents } from './ignoreRowEvents'
+import { Popover, rem } from './Popover'
+import { anchorOf, type Anchor } from './Picker'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { StageSelect } from './StageSelect'
+import { Toast, type ToastState } from './Toast'
 
 const metaItems = (task: Task) => {
   const items = []
-  if (task.addedToToday) items.push(<span key="today">☀️ Today</span>)
+  if (task.priority !== 'medium') {
+    const priority = priorityLabel(task.priority)
+    items.push(
+      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-1.5">
+        <FontAwesomeIcon icon={priority.icon} className={priority.color} />
+        {priority.text}
+      </span>,
+    )
+  }
+  if (task.addedToToday)
+    items.push(
+      <span key="today" title="In Today" className="flex items-center gap-1.5">
+        <FontAwesomeIcon icon={faSun} className="text-clover" />
+        Today
+      </span>,
+    )
+  if (task.due) {
+    const icon = dueIcon(task.due)
+    items.push(
+      <span key="due" className={'flex items-center gap-1.5' + (isOverdue(task.due) ? ' text-rosehip' : '')}>
+        <FontAwesomeIcon icon={icon.icon} title={icon.text} className={icon.color} />
+        {formatDueDate(task.due)}
+      </span>,
+    )
+  }
   if (task.steps.length > 0)
     items.push(
-      <span key="steps">
-        {task.steps.filter((step) => step.completed).length}/{task.steps.length} steps
+      <span key="steps" className="flex items-center gap-1.5">
+        <FontAwesomeIcon icon={faListCheck} className="text-lichen" />
+        {task.steps.filter((step) => step.completed).length}/{task.steps.length}
       </span>,
     )
-  if (task.due)
-    items.push(
-      <span key="due" className={dueDateClass(task.due)}>
-        📅 {formatDueDate(task.due)}
-      </span>,
-    )
-  if (task.priority !== 'medium') items.push(<span key="priority">{formatLabel(priorityLabel(task.priority))}</span>)
   return items
+}
+
+function TitleIcon({ listId }: { listId: string }) {
+  const icon = SMART_LIST_ICONS[listId]
+  return (
+    icon && (
+      <span className="mr-1.5 flex h-10 items-center text-2xl text-clover sm:text-3xl">
+        <FontAwesomeIcon icon={icon} />
+      </span>
+    )
+  )
+}
+
+const mainClass = (toast: boolean) =>
+  'min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-8 ' +
+  (toast ? 'pb-24' : 'pb-10')
+
+const actionsOpacity = (menuOpen: boolean, selected: boolean) => {
+  if (menuOpen) return 'opacity-100'
+  return selected ? 'opacity-40' : 'opacity-0'
+}
+
+function Progress({
+  tasks,
+  selectedCount,
+  onClearSelection,
+}: {
+  tasks: Task[]
+  selectedCount: number
+  onClearSelection: () => void
+}) {
+  const doneCount = tasks.filter((task) => task.stage === 'done').length
+  const countedTotal = tasks.filter((task) => task.stage !== 'cancelled').length
+  return (
+    <div className={'mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-2 ' + META_TEXT_CLASS}>
+      <span className="text-base lining-nums tabular-nums">
+        {doneCount} of {countedTotal} done
+      </span>
+      <span className="h-0.5 min-w-16 flex-1 bg-fieldstone">
+        <span
+          className="block h-full bg-clover"
+          style={{ width: `${(doneCount / Math.max(countedTotal, 1)) * 100}%` }}
+        />
+      </span>
+      {selectedCount > 1 && (
+        <span className="flex items-center gap-1 rounded-full bg-selection py-0.5 pr-0.5 pl-3 text-moss">
+          {selectedCount} selected
+          <button
+            onClick={onClearSelection}
+            aria-label="Clear selection"
+            className={ICON_BUTTON_CLASS + ' size-6 text-xs text-moss/80'}
+          >
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        </span>
+      )}
+    </div>
+  )
 }
 
 export default function TaskPane({
@@ -37,160 +128,222 @@ export default function TaskPane({
   renamable,
   tasks,
   selectedIds,
+  menuIds,
+  sort,
   onAddTask,
   onSort,
   onSelectTask,
   onClearSelection,
-  onSetStage,
+  onToggleDone,
   onContextMenu,
   onRenameList,
+  onDeleteList,
   onOpenLists,
   inert,
+  wide,
+  toast,
+  setToast,
 }: {
   selectedListId: string
   listName: string | undefined
   renamable: boolean
   tasks: Task[]
   selectedIds: string[]
+  menuIds: string[]
+  sort: Sort | null
   onAddTask: (text: string) => void
-  onSort: (criteria: SortCriteria) => void
+  onSort: (criteria: SortCriteria | null) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
   onClearSelection: () => void
-  onSetStage: (id: string, stage: string) => void
+  onToggleDone: (task: Task) => void
   onContextMenu: OpenContextMenu
   onRenameList: (id: string, text: string) => void
+  onDeleteList: (id: string) => void
   onOpenLists: () => void
   inert: boolean
+  wide: boolean
+  toast: ToastState | null
+  setToast: (toast: null) => void
 }) {
-  const doneCount = tasks.filter((task) => isCompleted(task.stage)).length
+  const [listMenu, setListMenu] = useState<Anchor | null>(null)
+  const [renameRequest, setRenameRequest] = useState(0)
+  const closeListMenu = () => setListMenu(null)
+  const columnClass = 'w-full max-w-3xl ' + (wide ? 'xl:max-w-5xl' : '2xl:max-w-4xl')
 
   const taskRow = (task: Task) => {
     const meta = metaItems(task)
-    const selected = selectedIds.includes(task.id)
+    const stage = stageLabel(task.stage)
     return (
       <SortableRow
         key={task.id}
         id={task.id}
         kind={RowKind.Task}
-        menuTitle={task.title}
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
         className={
-          'group relative flex select-none items-center gap-3.5 border-b border-line/70 px-5 py-3.5 transition last:border-b-0 ' +
-          (selected ? SELECTED_ROW_CLASS : 'hover:bg-milk/70')
+          'group relative flex cursor-pointer select-none items-start gap-3 rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
+          rowStateClass(selectedIds.includes(task.id), menuIds.includes(task.id))
         }
       >
-        {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-clover-500" />}
-        <svg
-          viewBox="0 0 16 16"
-          className="absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-faint opacity-0 transition group-hover:opacity-100"
-          fill="currentColor"
-          aria-hidden="true"
+        <button
+          {...ignoreRowEvents}
+          aria-label={task.stage === 'done' ? 'Mark open' : 'Mark done'}
+          title={stage.text}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleDone(task)
+          }}
+          className={
+            'touch-hit h-6 cursor-pointer rounded-full text-lg transition active:scale-90 ' +
+            ICON_SLOT_CLASS +
+            ' ' +
+            stage.color
+          }
         >
-          <circle cx="6" cy="4" r="1.2" />
-          <circle cx="10" cy="4" r="1.2" />
-          <circle cx="6" cy="8" r="1.2" />
-          <circle cx="10" cy="8" r="1.2" />
-          <circle cx="6" cy="12" r="1.2" />
-          <circle cx="10" cy="12" r="1.2" />
-        </svg>
-        <StageSelect value={task.stage} onChange={(stage) => onSetStage(task.id, stage)} />
+          <FontAwesomeIcon icon={stage.icon} />
+        </button>
         <div className="flex min-w-0 flex-1 flex-col">
           <span
             className={
-              'text-base break-words ' +
-              (isCompleted(task.stage) ? 'text-ink-faint line-through decoration-ink-faint/50' : 'font-medium text-ink')
+              'max-w-2xl text-base break-words ' +
+              (isCompleted(task.stage) ? 'text-moss/75 line-through decoration-moss/40' : 'text-moss')
             }
           >
             {task.title}
           </span>
           {meta.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13.5px] text-ink-soft">{meta}</div>
+            <p className={'mt-0.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 ' + META_TEXT_CLASS}>{meta}</p>
           )}
         </div>
+        <button
+          {...ignoreRowEvents}
+          aria-label="Task actions"
+          aria-haspopup="menu"
+          onClick={(event) => {
+            event.stopPropagation()
+            const button = event.currentTarget.getBoundingClientRect()
+            const row = event.currentTarget.parentElement?.getBoundingClientRect() ?? button
+            onContextMenu(
+              RowKind.Task,
+              task.id,
+            )({
+              clientX: button.right - rem(MENU_WIDTH),
+              clientY: row.bottom + 4,
+              above: row.top - 4,
+            })
+          }}
+          className={
+            ICON_BUTTON_CLASS +
+            ' absolute top-2 right-1.5 size-8 text-lichen group-hover:opacity-100 focus-visible:opacity-100 group-focus-visible:opacity-100 pointer-coarse:hidden ' +
+            actionsOpacity(menuIds.includes(task.id), selectedIds.includes(task.id))
+          }
+        >
+          <FontAwesomeIcon icon={faEllipsis} />
+        </button>
       </SortableRow>
     )
   }
 
   return (
-    <main
-      inert={inert}
-      className="min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-6 pb-10 sm:px-8 lg:pt-14"
-    >
-      <div className="mx-auto w-full max-w-[50rem] 2xl:max-w-[64rem]">
-        <div className="flex items-start gap-2">
-          <button
-            onClick={onOpenLists}
-            aria-label="Open lists"
-            className={ICON_BUTTON_CLASS + ' mt-1.5 -ml-1 text-xl text-ink-soft lg:hidden'}
-          >
-            ☰
-          </button>
-          <EditableText
-            key={selectedListId}
-            tag="h1"
-            text={listName ?? ''}
-            maxLength={limits.listNameMax}
-            editable={renamable}
-            onCommit={(name) => onRenameList(selectedListId, name)}
-            className={
-              '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-lg px-1.5 text-4xl font-semibold tracking-tight text-ink' +
-              (renamable ? ' transition hover:bg-cream' : '')
-            }
-            inputClassName={TITLE_RENAME_CLASS + ' text-4xl tracking-tight'}
-          />
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {tasks.length > 0 && (
-            <span className="mr-2 flex items-center gap-2.5 text-sm font-medium text-ink-soft">
-              <span className="h-2 w-24 overflow-hidden rounded-full bg-line">
-                <span
-                  className="block h-full rounded-full bg-clover-500"
-                  style={{ width: `${(doneCount / tasks.length) * 100}%` }}
-                />
-              </span>
-              {doneCount} of {tasks.length} done
-            </span>
-          )}
-          {selectedIds.length > 1 && (
-            <span className="order-last flex items-center gap-1 rounded-full border border-clover-200 bg-clover-100 py-0.5 pr-0.5 pl-3 text-sm font-medium text-clover-700">
-              {selectedIds.length} selected
+    <div className="relative flex min-w-0 flex-1">
+      <main inert={inert} className={mainClass(!!toast)}>
+        <div className={columnClass}>
+          <div className="flex items-start gap-1 pl-2">
+            <button
+              onClick={onOpenLists}
+              aria-label="Open lists"
+              className={ICON_BUTTON_CLASS + ' -ml-2 size-10 text-lg text-lichen lg:hidden'}
+            >
+              <FontAwesomeIcon icon={faBars} />
+            </button>
+            <TitleIcon listId={selectedListId} />
+            <EditableText
+              key={selectedListId}
+              editRequest={renameRequest}
+              tag="h1"
+              text={listName ?? ''}
+              maxLength={limits.listNameMax}
+              editable={renamable}
+              onCommit={(name) => onRenameList(selectedListId, name)}
+              className={
+                '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-md px-1.5 font-serif text-3xl/10 font-medium text-moss sm:text-4xl/10' +
+                (renamable ? ' transition hover:bg-moss/5' : '')
+              }
+              inputClassName={TITLE_RENAME_CLASS + ' text-3xl sm:text-4xl'}
+            />
+            {renamable && (
               <button
-                onClick={onClearSelection}
-                aria-label="Clear selection"
-                className={ICON_BUTTON_CLASS + ' size-5! text-clover-700'}
+                aria-label="List actions"
+                aria-haspopup="menu"
+                aria-expanded={!!listMenu}
+                onClick={(event) => setListMenu(anchorOf(event))}
+                className={ICON_BUTTON_CLASS + ' size-10 text-lg text-lichen'}
               >
-                ×
+                <FontAwesomeIcon icon={faEllipsis} />
               </button>
-            </span>
-          )}
-          <SortMenu onSort={onSort} />
-        </div>
-
-        <AddInput placeholder="+ New task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-6" />
-
-        <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+            )}
+            {listMenu && (
+              <Popover
+                x={listMenu.rect.left}
+                y={listMenu.rect.bottom + 4}
+                width={rem(12)}
+                title={listName}
+                focusFirst={listMenu.keyboard}
+                onClose={closeListMenu}
+              >
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    closeListMenu()
+                    setTimeout(() => setRenameRequest((count) => count + 1))
+                  }}
+                  className={MENU_ITEM_CLASS}
+                >
+                  <span className={ICON_SLOT_CLASS + ' text-lichen'}>
+                    <FontAwesomeIcon icon={faPen} />
+                  </span>
+                  Rename list
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    closeListMenu()
+                    onDeleteList(selectedListId)
+                  }}
+                  className={MENU_ITEM_CLASS + ' text-rosehip!'}
+                >
+                  <span className={ICON_SLOT_CLASS}>
+                    <FontAwesomeIcon icon={faTrashCan} />
+                  </span>
+                  Delete list
+                </button>
+              </Popover>
+            )}
+            {tasks.length > 0 && (
+              <div className="mt-1 ml-auto -mr-2.5">
+                <SortMenu sort={sort} onSort={onSort} />
+              </div>
+            )}
+          </div>
           {tasks.length > 0 && (
-            <ul className="mt-5 w-full overflow-hidden rounded-xl border border-line bg-paper shadow-[0_8px_24px_-14px_rgba(84,66,30,0.25)]">
-              {tasks.map(taskRow)}
-            </ul>
+            <Progress tasks={tasks} selectedCount={selectedIds.length} onClearSelection={onClearSelection} />
           )}
-        </SortableContext>
 
-        {tasks.length > 1 && (
-          <p className="mt-2.5 pl-[15px] text-[13px] text-ink-soft">
-            <span className="pointer-coarse:hidden">Drag to reorder. Right-click a task for more actions.</span>
-            <span className="hidden pointer-coarse:inline">Long-press a task for more actions.</span>
-          </p>
-        )}
+          <AddInput placeholder="Add a task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-4" />
 
-        {tasks.length === 0 && (
-          <p className="mt-6 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint">
-            No tasks yet. Add one above.
-          </p>
-        )}
+          <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+            {tasks.length > 0 && <ul className="mt-1">{tasks.map(taskRow)}</ul>}
+          </SortableContext>
+
+          {tasks.length === 0 && <p className="mt-8 px-2 font-serif text-lg text-moss/80 italic">No tasks yet.</p>}
+        </div>
+      </main>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 sm:px-6 lg:px-8">
+        <div className={columnClass + ' flex justify-center'}>
+          <Toast toast={toast} setToast={setToast} />
+        </div>
       </div>
-    </main>
+    </div>
   )
 }

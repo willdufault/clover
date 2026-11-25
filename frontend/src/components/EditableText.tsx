@@ -6,7 +6,7 @@ export function EditableText({
   text,
   maxLength,
   editable = true,
-  selectOnModifierClick = false,
+  editRequest = 0,
   className,
   inputClassName,
   onCommit,
@@ -15,12 +15,17 @@ export function EditableText({
   text: string
   maxLength: number
   editable?: boolean
-  selectOnModifierClick?: boolean
+  editRequest?: number
   className: string
   inputClassName: string
   onCommit: (text: string) => void
 }) {
   const [draft, setDraft] = useState<string | null>(null)
+  const [seenRequest, setSeenRequest] = useState(editRequest)
+  if (editRequest !== seenRequest) {
+    setSeenRequest(editRequest)
+    setDraft(text)
+  }
 
   if (draft !== null) {
     const cancel = () => setDraft(null)
@@ -53,7 +58,6 @@ export function EditableText({
     <Tag
       onClick={(event) => {
         if (!editable) return
-        if (selectOnModifierClick && (event.ctrlKey || event.metaKey || event.shiftKey)) return
         event.stopPropagation()
         setDraft(text)
       }}

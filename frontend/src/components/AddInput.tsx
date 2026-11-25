@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import { ICON_SLOT_CLASS } from '../styles'
 
 export function AddInput({
   placeholder,
   maxLength,
   onAdd,
-  className,
+  className = '',
 }: {
   placeholder: string
   maxLength: number
@@ -25,14 +28,21 @@ export function AddInput({
         event.preventDefault()
         add()
       }}
-      className={className}
+      className={
+        'flex h-11 items-center gap-3 rounded-lg px-2 text-clover transition focus-within:bg-parchment focus-within:ring-1 focus-within:ring-fieldstone hover:bg-moss/5 pointer-fine:h-10 ' +
+        className
+      }
     >
+      <span className={ICON_SLOT_CLASS}>
+        <FontAwesomeIcon icon={faPlus} />
+      </span>
       <input
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         maxLength={maxLength}
-        className="flex h-11 w-full items-center rounded-xl border border-dashed border-clover-400/70 bg-transparent px-3.5 text-base text-ink pointer-fine:h-10 pointer-fine:text-sm outline-none transition placeholder:text-clover-700 hover:border-clover-400 focus:border-solid focus:border-clover-400 focus:bg-paper focus:ring-3 focus:ring-clover-100"
+        className="min-w-0 flex-1 cursor-text bg-transparent text-base text-moss outline-none placeholder:text-moss/80"
       />
     </form>
   )

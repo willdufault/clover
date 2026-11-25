@@ -1,16 +1,57 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { nextMonday, today, tomorrow } from '../dates'
-import { PRIORITIES, priorityLabel, STAGES, stageLabel, formatLabel } from '../labels'
-import { MENU_CLASS, MENU_ITEM_CLASS, MENU_LABEL_CLASS, ICON_BUTTON_CLASS } from '../styles'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faArrowLeft, faArrowRight, faCheck, faChevronRight, faSun } from '@fortawesome/free-solid-svg-icons'
+import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
+import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
+import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
-import { useModalFocus } from '../useModalFocus'
+import { fit, Popover, rem } from './Popover'
 
-const MENU_WIDTH = 208
+export const MENU_WIDTH = 16
 
-type MenuItem = { key?: string; label: string; action?: () => void; danger?: boolean; submenu?: MenuItem[] }
+type MenuItem = {
+  key?: string
+  label: string
+  icon?: Label
+  action?: () => void
+  danger?: boolean
+  checked?: boolean
+  pickDate?: boolean
+  value?: React.ReactNode
+  submenu?: MenuItem[]
+}
+
+const iconSlot = (label?: Label) =>
+  label && (
+    <span className={ICON_SLOT_CLASS + ' ' + label.color}>
+      <FontAwesomeIcon icon={label.icon} />
+    </span>
+  )
+
+function PickDateItem({ onPick }: { onPick: (date: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div className="relative">
+      <button role="menuitem" onClick={() => inputRef.current?.showPicker()} className={MENU_ITEM_CLASS}>
+        Pick a date…
+      </button>
+      <input
+        ref={inputRef}
+        type="date"
+        tabIndex={-1}
+        aria-label="Pick a date"
+        onChange={(event) => event.target.value && onPick(event.target.value)}
+        className="sr-only"
+      />
+    </div>
+  )
+}
 
 function SubmenuRow({
   label,
+  icon,
+  value,
   submenu,
   isTouch,
   open,
@@ -18,6 +59,8 @@ function SubmenuRow({
   renderItem,
 }: {
   label: string
+  icon?: Label
+  value?: React.ReactNode
   submenu: MenuItem[]
   isTouch: boolean
   open: boolean
@@ -29,10 +72,11 @@ function SubmenuRow({
   const panelRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (!open || !panelRef.current) return setTopOffset(0)
-    setTopOffset(Math.min(0, window.innerHeight - panelRef.current.getBoundingClientRect().bottom))
+    const rect = panelRef.current.getBoundingClientRect()
+    setTopOffset(fit(rect.top, rect.height, window.innerHeight) - rect.top)
   }, [open])
   const openPanel = (row: HTMLElement) => {
-    setOpenLeft(row.getBoundingClientRect().right + MENU_WIDTH > window.innerWidth)
+    setOpenLeft(row.getBoundingClientRect().right + rem(MENU_WIDTH) + 18 > window.innerWidth)
     setOpen(true)
   }
   return (
@@ -43,31 +87,27 @@ function SubmenuRow({
     >
       <button
         role="menuitem"
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(event) => (open ? setOpen(false) : openPanel(event.currentTarget))}
-        className={'flex justify-between text-ink ' + MENU_ITEM_CLASS}
+        className={MENU_ITEM_CLASS}
       >
-        <span>{label}</span>
-        <svg
-          viewBox="0 0 16 16"
-          className="size-3.5 self-center text-ink-faint"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6 4l4 4-4 4" />
-        </svg>
+        {iconSlot(icon)}
+        <span className="flex-1 whitespace-nowrap">{label}</span>
+        {value}
+        <FontAwesomeIcon icon={faChevronRight} className="text-xs text-lichen" />
       </button>
       {open && (
         <div
           ref={panelRef}
           role="menu"
-          style={{ top: topOffset, width: MENU_WIDTH }}
+          style={{ top: topOffset, width: rem(MENU_WIDTH) }}
           className={
-            'absolute -mt-1 max-h-80 overflow-y-auto ' + MENU_CLASS + ' ' + (openLeft ? 'right-full' : 'left-full')
+            'absolute top-0 max-h-96 overflow-y-auto ' +
+            MENU_CLASS +
+            ' ' +
+            (openLeft ? 'right-full mr-2' : 'left-full ml-2')
           }
         >
           {submenu.map(renderItem)}
@@ -82,6 +122,7 @@ const moveItems = (lists: TaskList[], onUpdate: (patch: TaskPatch) => void): Men
     ? [
         {
           label: 'Move to list',
+          icon: { icon: faArrowRight, color: 'text-lichen', text: '' },
           submenu: lists.map((list) => ({
             key: list.id,
             label: list.name,
@@ -91,54 +132,67 @@ const moveItems = (lists: TaskList[], onUpdate: (patch: TaskPatch) => void): Men
       ]
     : []
 
+const dueItems = (menu: ContextMenuState, onUpdate: (patch: TaskPatch) => void): MenuItem[] => {
+  const presets: [string, string][] = [
+    ['Today', today()],
+    ['Tomorrow', tomorrow()],
+    ['Next week', nextMonday()],
+  ]
+  const custom = menu.due && !presets.some(([, due]) => due === menu.due) ? [menu.due] : []
+  return [
+    ...presets.map(([label, due]) => ({ label, checked: due === menu.due, action: () => onUpdate({ due }) })),
+    ...custom.map((due) => ({ label: formatDueDate(due), checked: true })),
+    { label: 'Pick a date…', pickDate: true },
+    ...(menu.anyHasDue ? [{ label: 'Remove due date', action: () => onUpdate({ due: null }) }] : []),
+  ]
+}
+
 export type ContextMenuState = {
   x: number
   y: number
+  above?: number
   kind: RowKind
   ids: string[]
   title?: string
   moveTargets: TaskList[]
   anyHasDue: boolean
   allInToday: boolean
-  allStepsDone?: boolean
+  stage?: string
+  priority?: string
+  due?: string | null
 }
 
-export type OpenContextMenu = (
-  kind: RowKind,
-  id: string,
-) => (event: { clientX: number; clientY: number }, longPress?: { title: string }) => void
+export type MenuAnchor = { clientX: number; clientY: number; above?: number }
+
+export type OpenContextMenu = (kind: RowKind, id: string) => (event: MenuAnchor) => void
 
 export default function ContextMenu({
   menu,
   onClose,
   onDelete,
   onUpdateTasks,
-  onSetStepCompleted,
 }: {
   menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
   onUpdateTasks: (patch: TaskPatch) => void
-  onSetStepCompleted: (completed: boolean) => void
 }) {
-  const menuRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const [openSubmenuLabel, setOpenSubmenuLabel] = useState<string | null>(null)
   const [sheet, setSheet] = useState<{ label: string; submenu: MenuItem[] } | null>(null)
   const [mainClass, setMainClass] = useState<string>()
   const isTouch = window.matchMedia('(pointer: coarse)').matches
-  useLayoutEffect(() => {
-    if (menuRef.current)
-      menuRef.current.style.top = Math.min(menu.y, window.innerHeight - menuRef.current.offsetHeight) + 'px'
-  })
-
-  useModalFocus(true)
 
   const prevSheetLabel = useRef<string | null>(null)
   useEffect(() => {
-    if (!menuRef.current) return
-    menuRef.current.scrollTop = 0
-    const items = [...menuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]')]
-    ;(items.find((item) => item.textContent === prevSheetLabel.current) ?? items[0])?.focus()
+    const content = contentRef.current
+    if (!content) return
+    const panel = content.parentElement
+    if (panel) panel.scrollTop = 0
+    const items = [...content.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+    const previous = items.find((item) => prevSheetLabel.current && item.ariaLabel === prevSheetLabel.current)
+    if (previous) previous.focus()
+    else if (prevSheetLabel.current === null && sheet) panel?.focus()
     prevSheetLabel.current = sheet?.label ?? null
   }, [sheet])
 
@@ -147,66 +201,68 @@ export default function ContextMenu({
     setSheet(null)
   }
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      if (sheet) goBack()
-      else onClose()
-    }
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
-  })
-
   const taskItems: MenuItem[] = [
     menu.allInToday
-      ? { label: '☀️ Remove from Today', action: () => onUpdateTasks({ addedToToday: false }) }
-      : { label: '☀️ Add to Today', action: () => onUpdateTasks({ addedToToday: true }) },
+      ? {
+          label: 'Remove from Today',
+          icon: { icon: faSun, color: 'text-clover', text: '' },
+          action: () => onUpdateTasks({ addedToToday: false }),
+        }
+      : {
+          label: 'Add to Today',
+          icon: { icon: faSunRegular, color: 'text-lichen', text: '' },
+          action: () => onUpdateTasks({ addedToToday: true }),
+        },
     {
       label: 'Set stage',
+      icon: stageLabel(menu.stage ?? 'open'),
       submenu: STAGES.map((stage) => ({
-        label: formatLabel(stageLabel(stage)),
+        label: stageLabel(stage).text,
+        icon: stageLabel(stage),
+        checked: stage === menu.stage,
         action: () => onUpdateTasks({ stage }),
       })),
     },
     {
       label: 'Set due date',
-      submenu: [
-        { label: 'Today', action: () => onUpdateTasks({ due: today() }) },
-        { label: 'Tomorrow', action: () => onUpdateTasks({ due: tomorrow() }) },
-        { label: 'Next week', action: () => onUpdateTasks({ due: nextMonday() }) },
-        ...(menu.anyHasDue ? [{ label: 'Remove', action: () => onUpdateTasks({ due: null }), danger: true }] : []),
-      ],
+      icon: dueIcon(menu.due ?? null),
+      value: menu.due && <span className="truncate text-sm text-moss/80">{formatDueDate(menu.due)}</span>,
+      submenu: dueItems(menu, onUpdateTasks),
     },
     ...moveItems(menu.moveTargets, onUpdateTasks),
     {
       label: 'Set priority',
+      icon: priorityLabel(menu.priority ?? 'medium'),
       submenu: PRIORITIES.map((priority) => ({
-        label: formatLabel(priorityLabel(priority)),
+        label: priorityLabel(priority).text,
+        icon: priorityLabel(priority),
+        checked: priority === menu.priority,
         action: () => onUpdateTasks({ priority }),
       })),
     },
   ]
 
-  const stepItems: MenuItem[] = [
-    menu.allStepsDone
-      ? { label: 'Mark as open', action: () => onSetStepCompleted(false) }
-      : { label: 'Mark as done', action: () => onSetStepCompleted(true) },
-  ]
-
-  const kindItems = {
-    [RowKind.List]: [],
-    [RowKind.Task]: taskItems,
-    [RowKind.Step]: stepItems,
-  }[menu.kind]
+  const kindItems = menu.kind === RowKind.Task ? taskItems : []
 
   const renderItem = (item: MenuItem) => {
+    if (item.pickDate)
+      return (
+        <PickDateItem
+          key={item.label}
+          onPick={(due) => {
+            onUpdateTasks({ due })
+            onClose()
+          }}
+        />
+      )
     const submenu = item.submenu
     if (submenu)
       return (
         <SubmenuRow
           key={item.label}
           label={item.label}
+          icon={item.icon}
+          value={item.value}
           submenu={submenu}
           isTouch={isTouch}
           open={!isTouch && openSubmenuLabel === item.label}
@@ -219,77 +275,55 @@ export default function ContextMenu({
     return (
       <button
         key={item.key ?? item.label}
-        role="menuitem"
+        role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+        aria-checked={item.checked}
         onClick={() => {
           item.action?.()
           onClose()
         }}
-        className={'block ' + MENU_ITEM_CLASS + ' ' + (item.danger ? 'text-coral' : 'text-ink')}
+        className={MENU_ITEM_CLASS + (item.danger ? ' text-rosehip!' : '')}
       >
+        {iconSlot(item.icon)}
         {item.label}
+        {item.checked && <FontAwesomeIcon icon={faCheck} className="ml-auto text-clover" />}
       </button>
     )
   }
 
   return (
-    <>
-      <div
-        className="fixed inset-0 phone:z-40 sheet:bg-ink/20"
-        onClick={onClose}
-        onContextMenu={(event) => {
-          event.preventDefault()
-          onClose()
-        }}
-      />
-      <div
-        ref={menuRef}
-        role="menu"
-        className={
-          'fixed z-50 ' +
-          MENU_CLASS +
-          ' pointer-coarse:max-h-80 pointer-coarse:overflow-x-hidden pointer-coarse:overflow-y-auto sheet:inset-x-2! sheet:top-auto! sheet:bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] sheet:mx-auto sheet:w-auto! sheet:max-w-sm'
-        }
-        style={{
-          left: Math.min(menu.x, window.innerWidth - MENU_WIDTH),
-          width: MENU_WIDTH,
-        }}
-      >
+    <Popover
+      x={menu.x}
+      y={menu.y}
+      above={menu.above}
+      width={rem(MENU_WIDTH)}
+      title={sheet ? undefined : menu.title}
+      onClose={onClose}
+      onEscape={() => (sheet ? goBack() : onClose())}
+    >
+      <div ref={contentRef}>
         {sheet ? (
           <div key={sheet.label} className="slide-from-right">
-            <div className="sticky -top-1 z-10 flex items-center gap-1 bg-paper">
-              <button aria-label="Back" onClick={goBack} className={ICON_BUTTON_CLASS + ' m-1.5 text-ink-soft'}>
-                <svg
-                  viewBox="0 0 16 16"
-                  className="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M13 8H3m4-4L3 8l4 4" />
-                </svg>
+            <div className="sticky -top-1 z-10 mx-2 mb-1 flex items-center gap-1 border-b border-fieldstone bg-parchment py-1 sheet:top-0">
+              <button aria-label="Back" onClick={goBack} className={ICON_BUTTON_CLASS + ' -ml-1 text-lichen'}>
+                <FontAwesomeIcon icon={faArrowLeft} />
               </button>
-              <p className="font-semibold text-ink">{sheet.label}</p>
+              <p className="font-serif text-lg font-medium text-moss">{sheet.label}</p>
             </div>
             {sheet.submenu.map(renderItem)}
           </div>
         ) : (
           <div className={mainClass}>
-            {menu.ids.length === 1 && menu.title && (
-              <p className="truncate px-3 pt-2 pb-1 text-xs text-ink-soft pointer-fine:hidden">{menu.title}</p>
-            )}
-            {menu.ids.length > 1 && (
-              <p className={MENU_LABEL_CLASS}>
-                {menu.ids.length} {menu.kind === RowKind.Task ? 'tasks' : 'steps'}
-              </p>
-            )}
             {kindItems.map(renderItem)}
-            {kindItems.length > 0 && <hr className="mx-2 my-1 border-line" />}
-            {renderItem({ label: 'Delete', action: onDelete, danger: true })}
+            {kindItems.length > 0 && <hr className="mx-2 my-1 border-fieldstone" />}
+            {renderItem({
+              label: 'Delete',
+              icon: { icon: faTrashCan, color: '', text: '' },
+              action: onDelete,
+              danger: true,
+            })}
           </div>
         )}
       </div>
-    </>
+    </Popover>
   )
 }

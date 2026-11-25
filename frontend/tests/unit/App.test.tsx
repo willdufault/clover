@@ -1,8 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { STAGES, stageLabel } from '../../src/labels'
-import { SELECTED_ROW_CLASS } from '../../src/styles'
 import { createFakeBackend } from '../fakeBackend'
 import { stubViewport } from './viewport'
 
@@ -19,6 +17,7 @@ beforeEach(() => {
   })
 })
 
+type User = ReturnType<typeof userEvent.setup>
 const setup = async () => {
   const user = userEvent.setup()
   render(<App />)
@@ -28,38 +27,41 @@ const setup = async () => {
 const nav = () => screen.getByRole('navigation')
 const main = () => screen.getByRole('main')
 const aside = () => screen.getByRole('complementary')
-const STAGE_EMOJIS = STAGES.map((stage) => stageLabel(stage).emoji).join('')
-const rowName = (rowElement: HTMLElement) =>
-  (rowElement.textContent ?? '')
-    .replace(STAGE_EMOJIS, '')
-    .replace(/✕$/, '')
-    .replace(/(\d+\/\d+|📅 |🔴|🟢|☀️ Added|☀️ Today).*$/, '')
-const rowsIn = (root: HTMLElement) =>
-  within(root)
-    .queryAllByRole('button')
-    .filter((button) => !/^([✕×›☰]|⇅ Sort|☀️ Add to Today|Delete task)$/.test(button.textContent ?? ''))
+const rowName = (rowElement: HTMLElement) => {
+  const clone = rowElement.cloneNode(true) as HTMLElement
+  clone.querySelectorAll('button, p').forEach((node) => node.remove())
+  return clone.textContent ?? ''
+}
+const rowsIn = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('[data-kind]')]
 const namesIn = (root: HTMLElement) => rowsIn(root).map(rowName)
 const tasks = () => namesIn(main())
-const steps = () => namesIn(aside()).filter((name) => name !== '+ New step')
+const steps = () => namesIn(aside())
 const lists = () =>
   within(nav())
     .getAllByRole('button')
-    .map((button) => (button.textContent ?? '').replace(/\d+$/, '').replace(/^\S+ /, ''))
-    .filter((text) => !text.startsWith('+'))
+    .map((button) => (button.textContent ?? '').replace(/\d+$/, ''))
 const row = (name: string, root: HTMLElement = main()) => {
   const match = rowsIn(root).find((rowElement) => rowName(rowElement) === name)
   if (!match) throw new Error(`No row named ${name}`)
   return match
 }
-const stageSelect = (name: string) => within(row(name)).getByRole('combobox')
+const pick = async (user: User, trigger: HTMLElement, option: string) => {
+  await user.click(trigger)
+  await user.click(screen.getByRole('menuitemradio', { name: option }))
+  await flush()
+}
+const toggleButton = (name: string) => within(row(name)).getByRole('button', { name: /^Mark / })
+const toggleDone = async (user: User, name: string) => {
+  await user.click(toggleButton(name))
+  await flush()
+}
 const last = (elements: HTMLElement[]) => {
   const element = elements.at(-1)
   if (!element) throw new Error('No elements')
   return element
 }
-const dueInput = () => last(within(aside()).getAllByDisplayValue(/^(\d{4}-\d{2}-\d{2})?$/))
+const dueInput = () => within(aside()).getByLabelText('Due date')
 
-type User = ReturnType<typeof userEvent.setup>
 const submenuClick = async (user: User, parent: string, leaf: string) => {
   await user.hover(screen.getByText(parent))
   fireEvent.click(screen.getByText(leaf, { selector: 'button' }))
@@ -71,23 +73,22 @@ const deleteViaMenu = async (user: User, element: HTMLElement) => {
   await user.click(screen.getByText('Delete'))
 }
 const newList = async (user: User, name: string) => {
-  await user.type(screen.getByPlaceholderText('+ New list'), `${name}{Enter}`)
+  await user.type(screen.getByPlaceholderText('Add a list'), `${name}{Enter}`)
 }
 const newStep = async (user: User, name: string) => {
-  await user.type(within(aside()).getByPlaceholderText('+ New step'), `${name}{Enter}`)
+  await user.type(within(aside()).getByPlaceholderText('Add a step'), `${name}{Enter}`)
 }
+const sortButton = () => screen.getByRole('button', { name: /^Sort/ })
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 
 test('opening the context menu cancels an in-progress rename', async () => {
   const user = await setup()
   await user.click(within(main()).getByText('Milk'))
-  for (const target of [() => within(aside()).getByText('2% lactose free'), () => within(main()).getByText('Milk')]) {
-    await user.click(within(aside()).getByText('2% lactose free'))
-    expect(within(aside()).getByDisplayValue('2% lactose free')).toBeInTheDocument()
-    await rightClick(user, target())
-    expect(within(aside()).queryByDisplayValue('2% lactose free')).not.toBeInTheDocument()
-    expect(screen.getByText('Delete')).toBeInTheDocument()
-  }
+  await user.click(within(aside()).getByText('2% lactose free'))
+  expect(within(aside()).getByDisplayValue('2% lactose free')).toBeInTheDocument()
+  await rightClick(user, within(main()).getByText('Milk'))
+  expect(within(aside()).queryByDisplayValue('2% lactose free')).not.toBeInTheDocument()
+  expect(screen.getByText('Delete')).toBeInTheDocument()
   expect(within(aside()).getByText('2% lactose free')).toBeInTheDocument()
 })
 
@@ -96,7 +97,7 @@ test('deleting every list falls back to the All view with no tasks', async () =>
   for (const name of ['Groceries', 'Work', 'Home']) {
     await deleteViaMenu(user, within(nav()).getByText(name))
   }
-  expect(screen.getByRole('heading', { name: '📋 All' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'All' })).toBeInTheDocument()
   expect(tasks()).toHaveLength(0)
 })
 
@@ -131,8 +132,8 @@ test('a list created while a delete is in flight survives and stays selected', a
 
 test('whitespace-only names are ignored', async () => {
   const user = await setup()
-  await user.type(screen.getByPlaceholderText(/new task/i), '   {Enter}')
-  expect(tasks()).toEqual(['Milk', 'Eggs'])
+  await user.type(screen.getByPlaceholderText('Add a task'), '   {Enter}')
+  expect(tasks()).toEqual(['Eggs', 'Milk'])
 
   await user.click(within(main()).getByText('Milk'))
   await newStep(user, '   ')
@@ -167,10 +168,10 @@ test('clicking the due date opens the picker', async () => {
 test('closing and reopening a task keeps position', async () => {
   const user = await setup()
   await user.click(within(nav()).getByText('Work'))
-  await user.selectOptions(stageSelect('Reply to emails'), 'done')
-  expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
-  await user.selectOptions(stageSelect('Reply to emails'), 'inProgress')
-  expect(tasks()).toEqual(['Reply to emails', 'Update docs', 'Review PR'])
+  await toggleDone(user, 'Reply to emails')
+  expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
+  await toggleDone(user, 'Reply to emails')
+  expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails'])
 })
 
 test("detail pane shows the selected task's own values", async () => {
@@ -179,49 +180,30 @@ test("detail pane shows the selected task's own values", async () => {
   fireEvent.change(dueInput(), { target: { value: '2000-01-01' } })
   fireEvent.blur(dueInput())
   await flush()
-  await user.selectOptions(stageSelect('Milk'), 'inProgress')
-  await user.selectOptions(within(aside()).getByDisplayValue('🟡 Medium'), '🔴 High')
+  await pick(user, within(aside()).getByRole('button', { name: 'Stage: Open' }), 'In progress')
+  await pick(user, within(aside()).getByRole('button', { name: 'Priority: Medium' }), 'High')
+  expect(within(aside()).getByRole('button', { name: 'Stage: In progress' })).toBeInTheDocument()
   await user.click(within(main()).getByText('Eggs'))
   expect(dueInput()).toHaveValue('')
-  expect(within(aside()).getByDisplayValue('🟡 Medium')).toBeInTheDocument()
-})
-
-test('step menu shows Mark as done unless every selected step is done', async () => {
-  const user = await setup()
-  await user.click(within(main()).getByText('Milk'))
-  await newStep(user, 'Oat')
-  await user.click(within(row('Oat', aside())).getByRole('checkbox'))
-  await user.click(row('2% lactose free', aside()))
-  await user.keyboard('{Control>}')
-  await user.click(row('Oat', aside()))
-  await user.keyboard('{/Control}')
-  await rightClick(user, row('Oat', aside()))
-  await user.click(screen.getByText('Mark as done'))
-  expect(within(row('2% lactose free', aside())).getByRole('checkbox')).toBeChecked()
-  await rightClick(user, row('Oat', aside()))
-  await user.click(screen.getByText('Mark as open'))
-  for (const name of ['2% lactose free', 'Oat'])
-    expect(within(row(name, aside())).getByRole('checkbox')).not.toBeChecked()
-  await rightClick(user, row('Oat', aside()))
-  await user.click(screen.getByText('Delete', { exact: true }))
-  expect(backend.data.steps).toEqual([])
+  expect(within(aside()).getByRole('button', { name: 'Priority: Medium' })).toBeInTheDocument()
+  expect(within(aside()).getByRole('button', { name: 'Stage: Open' })).toBeInTheDocument()
 })
 
 test('mixed selection offers Add, all-in-Today offers Remove', async () => {
   const user = await setup()
   await rightClick(user, row('Milk'))
-  await user.click(last(screen.getAllByText('☀️ Add to Today')))
+  await user.click(last(screen.getAllByText('Add to Today')))
   await user.click(row('Milk'))
   await user.keyboard('{Control>}')
   await user.click(row('Eggs'))
   await user.keyboard('{/Control}')
   await rightClick(user, row('Eggs'))
-  expect(screen.queryByText('☀️ Remove from Today')).toBeNull()
-  await user.click(last(screen.getAllByText('☀️ Add to Today')))
+  expect(screen.queryByText('Remove from Today')).toBeNull()
+  await user.click(last(screen.getAllByText('Add to Today')))
   await rightClick(user, row('Eggs'))
-  expect(screen.getByText('☀️ Remove from Today')).toBeInTheDocument()
-  await user.click(screen.getByText('☀️ Remove from Today'))
-  await user.click(within(nav()).getByText('☀️ Today'))
+  expect(screen.getByText('Remove from Today')).toBeInTheDocument()
+  await user.click(screen.getByText('Remove from Today'))
+  await user.click(within(nav()).getByText('Today'))
   expect(tasks()).toEqual([])
 })
 
@@ -237,9 +219,9 @@ test('a failing bulk patch leaves every item unchanged and shows the banner', as
   await selectTwo(user)
   backend.data.tasks = backend.data.tasks.filter((t) => t.id !== 'g2')
   await rightClick(user, row('Milk'))
-  await submenuClick(user, 'Set priority', '🔴 High')
+  await submenuClick(user, 'Set priority', 'High')
   expect(screen.getByRole('alert')).toHaveTextContent('Not found')
-  expect(within(main()).queryByText('🔴 High')).toBeNull()
+  expect(within(main()).queryByTitle('High priority')).toBeNull()
   expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ priority: 'medium' })
 })
 
@@ -249,36 +231,15 @@ describe('multi-select', () => {
     await user.click(row('Milk'))
     await newStep(user, 'Skim')
     await newStep(user, 'Oat')
-    await user.click(row('Skim', aside()))
-    await user.keyboard('{Control>}')
-    await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step' }))
-    await user.keyboard('{/Control}')
+    await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step: Oat' }))
     expect(steps()).toEqual(['2% lactose free', 'Skim'])
-    expect(rowsIn(aside()).some((r) => r.className.includes(SELECTED_ROW_CLASS))).toBe(false)
-  })
-
-  test('modifier-click on step text selects without renaming', async () => {
-    const user = await setup()
-    await user.click(row('Milk'))
-    await newStep(user, 'Skim')
-    await user.click(row('Skim', aside()))
-    const boxes = within(aside()).queryAllByRole('textbox').length
-    for (const key of ['Control', 'Shift']) {
-      await user.keyboard(`{${key}>}`)
-      await user.click(within(aside()).getByText('2% lactose free'))
-      await user.keyboard(`{/${key}}`)
-      expect(within(aside()).queryAllByRole('textbox')).toHaveLength(boxes)
-      expect(row('Skim', aside())).toHaveClass(SELECTED_ROW_CLASS)
-      expect(row('2% lactose free', aside())).toHaveClass(SELECTED_ROW_CLASS)
-      await user.click(row('Skim', aside()))
-    }
   })
 })
 
 test('Escape in the add-step input or with the context menu open keeps the panel', async () => {
   const user = await setup()
   await user.click(within(main()).getByText('Milk'))
-  await user.type(within(aside()).getByPlaceholderText('+ New step'), 'x{Escape}')
+  await user.type(within(aside()).getByPlaceholderText('Add a step'), 'x{Escape}')
   expect(aside()).toBeInTheDocument()
 
   await rightClick(user, within(main()).getByText('Milk'))
@@ -294,11 +255,11 @@ test('Escape in the add-step input or with the context menu open keeps the panel
 test('a task that left the view is not deleted with the selection', async () => {
   const user = await setup()
   await user.click(screen.getByText('Milk'))
-  await user.click(within(aside()).getByText('☀️ Add to Today'))
+  await pick(user, within(aside()).getByRole('button', { name: 'Today: Not in Today' }), 'In Today')
   await user.click(within(nav()).getByText('Work'))
   await user.click(screen.getByText('Review PR'))
-  await user.click(within(aside()).getByText('☀️ Add to Today'))
-  await user.click(within(nav()).getByText('☀️ Today'))
+  await pick(user, within(aside()).getByRole('button', { name: 'Today: Not in Today' }), 'In Today')
+  await user.click(within(nav()).getByText('Today'))
   await user.click(within(main()).getByText('Milk'))
   await user.click(within(aside()).getByLabelText('Remove from Today'))
   expect(tasks()).toEqual(['Review PR'])
@@ -306,15 +267,22 @@ test('a task that left the view is not deleted with the selection', async () => 
   await user.click(within(main()).getByText('Review PR'))
   await user.keyboard('{/Control}')
   await deleteViaMenu(user, within(main()).getByText('Review PR'))
-  await user.click(within(nav()).getByText('📋 All'))
+  await user.click(within(nav()).getByText('All'))
   expect(tasks()).toContain('Milk')
   expect(tasks()).not.toContain('Review PR')
 })
 
+test('a new task shows first while storage appends it', async () => {
+  const user = await setup()
+  await user.type(screen.getByPlaceholderText('Add a task'), 'Bread{Enter}')
+  expect(tasks()).toEqual(['Bread', 'Eggs', 'Milk'])
+  expect(backend.data.tasks.map((t) => t.title).at(-1)).toBe('Bread')
+})
+
 test('leading and trailing spaces are not stored', async () => {
   const user = await setup()
-  await user.type(screen.getByPlaceholderText(/new task/i), '  Bread  {Enter}')
-  expect(tasks().at(-1)).toBe('Bread')
+  await user.type(screen.getByPlaceholderText('Add a task'), '  Bread  {Enter}')
+  expect(tasks()[0]).toBe('Bread')
   await user.click(within(main()).getByText('Bread'))
   await newStep(user, '  Toast  ')
   expect(steps()).toEqual(['Toast'])
@@ -367,13 +335,13 @@ test('Escape with the drawer open closes only the drawer', async () => {
   expect(nav().parentElement).toHaveClass('invisible')
 })
 
-test('the context menu focuses its first item and returns focus on close', async () => {
+test('right-click opens the menu without selecting or opening the task and returns focus on close', async () => {
   const user = await setup()
   const milk = row('Milk')
   milk.focus()
   await rightClick(user, milk)
-  expect(screen.getByRole('menu')).toBeInTheDocument()
-  expect(screen.getAllByRole('menuitem')[0]).toHaveFocus()
+  expect(screen.getByRole('menu')).toHaveFocus()
+  expect(screen.queryByRole('complementary')).toBeNull()
   await user.keyboard('{Escape}')
   expect(milk).toHaveFocus()
 })
@@ -409,8 +377,7 @@ test('on phones a submenu replaces the sheet and Back returns to the main list',
   const menu = screen.getByRole('menu')
   expect(within(menu).getByText('Set due date', { selector: 'p' })).toBeInTheDocument()
   expect(within(menu).queryByText('Delete')).toBeNull()
-  expect(within(menu).getAllByRole('menuitem')[0]).toHaveTextContent('Today')
-  expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus()
+  expect(within(menu).getAllByRole('menuitemradio')[0]).toHaveTextContent('Today')
   await user.click(within(menu).getByLabelText('Back'))
   expect(within(menu).getByText('Delete')).toBeInTheDocument()
   expect(within(menu).queryByLabelText('Back')).toBeNull()
@@ -438,4 +405,175 @@ test('on phones choosing a submenu item runs it and closes the menu', async () =
   await flush()
   expect(screen.queryByRole('menu')).toBeNull()
   expect(backend.data.tasks.find((task) => task.id === 'g1')?.listId).toBe('home')
+})
+
+test('the stage picker marks the current stage and Escape closes it without closing the panel', async () => {
+  const user = await setup()
+  await user.click(row('Milk'))
+  const stage = () => within(aside()).getByRole('button', { name: /^Stage: / })
+  stage().focus()
+  await user.keyboard('{Enter}')
+  expect(screen.getByRole('menuitemradio', { name: 'Open' })).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByRole('menuitemradio', { name: 'Open' })).toHaveFocus()
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('menu')).toBeNull()
+  expect(aside()).toBeInTheDocument()
+  expect(stage()).toHaveFocus()
+  await pick(user, stage(), 'Waiting')
+  expect(backend.data.tasks.find((task) => task.id === 'g1')?.stage).toBe('waiting')
+  expect(toggleButton('Milk')).toHaveAttribute('title', 'Waiting')
+})
+
+const eggsStage = () => backend.data.tasks.find((task) => task.id === 'g2')?.stage
+
+test('the row stage icon toggles done and open without selecting the row, with undo', async () => {
+  const user = await setup()
+  await toggleDone(user, 'Eggs')
+  expect(screen.queryByRole('complementary')).toBeNull()
+  expect(eggsStage()).toBe('done')
+  expect(screen.getByText(/^Marked/).parentElement).toHaveTextContent('Marked done')
+  await user.click(screen.getByRole('button', { name: 'Undo' }))
+  await flush()
+  expect(eggsStage()).toBe('open')
+  expect(screen.queryByText(/^Marked/)).toBeNull()
+  await rightClick(user, row('Eggs'))
+  await submenuClick(user, 'Set stage', 'Waiting')
+  await toggleDone(user, 'Eggs')
+  expect(eggsStage()).toBe('done')
+  await toggleDone(user, 'Eggs')
+  expect(eggsStage()).toBe('open')
+  expect(screen.getByText(/^Marked/).parentElement).toHaveTextContent('Marked open')
+})
+
+test('progress ignores cancelled tasks', async () => {
+  const user = await setup()
+  await toggleDone(user, 'Milk')
+  await rightClick(user, row('Eggs'))
+  await submenuClick(user, 'Set stage', 'Cancelled')
+  expect(within(main()).getByText(/of \d+ done/)).toHaveTextContent(`1 of ${tasks().length - 1} done`)
+})
+
+test('sorting marks the active option and choosing it again flips the direction', async () => {
+  const user = await setup()
+  await rightClick(user, row('Milk'))
+  await submenuClick(user, 'Set priority', 'Low')
+  const before = tasks()
+  await user.click(sortButton())
+  expect(screen.getByRole('menuitemradio', { name: 'Manual' })).toHaveAttribute('aria-checked', 'true')
+  await user.click(screen.getByRole('menuitemradio', { name: 'Priority' }))
+  expect(tasks().at(-1)).toBe('Milk')
+  expect(sortButton()).toHaveAccessibleName('Sort: Priority, high first')
+  await user.click(sortButton())
+  expect(screen.getByRole('menuitemradio', { name: 'Priority: High first' })).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByText('Click to reverse')).toBeInTheDocument()
+  await user.click(screen.getByRole('menuitemradio', { name: 'Priority: High first' }))
+  expect(tasks()[0]).toBe('Milk')
+  expect(sortButton()).toHaveAccessibleName('Sort: Priority, low first')
+  await user.click(sortButton())
+  await user.click(screen.getByRole('menuitemradio', { name: 'Manual' }))
+  expect(tasks()).toEqual(before)
+  expect(sortButton()).toHaveAccessibleName('Sort')
+})
+
+test('sorting sinks done tasks and dragging order is kept under Manual', async () => {
+  const user = await setup()
+  await toggleDone(user, 'Milk')
+  const before = tasks()
+  await user.click(sortButton())
+  await user.click(screen.getByRole('menuitemradio', { name: 'Stage' }))
+  await user.click(sortButton())
+  await user.click(screen.getByRole('menuitemradio', { name: 'Stage: Open first' }))
+  expect(tasks().at(-1)).toBe('Milk')
+  await user.click(sortButton())
+  await user.click(screen.getByRole('menuitemradio', { name: 'Manual' }))
+  expect(tasks()).toEqual(before)
+})
+
+test('the due submenu picks a date and removes it', async () => {
+  const user = await setup()
+  await rightClick(user, row('Milk'))
+  await user.hover(screen.getByText('Set due date'))
+  fireEvent.change(screen.getByLabelText('Pick a date'), { target: { value: '2026-12-01' } })
+  await flush()
+  expect(backend.data.tasks.find((task) => task.id === 'g1')?.due).toBe('2026-12-01')
+  expect(screen.queryByRole('menu')).toBeNull()
+  await rightClick(user, row('Milk'))
+  await submenuClick(user, 'Set due date', 'Remove due date')
+  expect(backend.data.tasks.find((task) => task.id === 'g1')?.due).toBeNull()
+})
+
+test('the context menu shows the current due date next to Set due date', async () => {
+  const user = await setup()
+  await rightClick(user, row('Milk'))
+  await submenuClick(user, 'Set due date', 'Tomorrow')
+  await rightClick(user, row('Milk'))
+  const item = screen.getByRole('menuitem', { name: 'Set due date' })
+  expect(item).toHaveTextContent('Tomorrow')
+})
+
+test('the row actions button opens the task menu', async () => {
+  const user = await setup()
+  await user.click(within(row('Milk')).getByLabelText('Task actions'))
+  expect(screen.getByRole('menuitem', { name: 'Set stage' })).toBeInTheDocument()
+  expect(screen.queryByRole('complementary')).toBeNull()
+})
+
+test('the due submenu checks the current preset or custom date', async () => {
+  const user = await setup()
+  await rightClick(user, row('Milk'))
+  await submenuClick(user, 'Set due date', 'Tomorrow')
+  await rightClick(user, row('Milk'))
+  await user.hover(screen.getByText('Set due date'))
+  expect(screen.getByRole('menuitemradio', { name: 'Tomorrow' })).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByRole('menuitemradio', { name: 'Today' })).toHaveAttribute('aria-checked', 'false')
+  fireEvent.change(screen.getByLabelText('Pick a date'), { target: { value: '2030-01-15' } })
+  await flush()
+  await rightClick(user, row('Milk'))
+  await user.hover(screen.getByText('Set due date'))
+  expect(screen.getByRole('menuitemradio', { name: 'Tue Jan 15' })).toHaveAttribute('aria-checked', 'true')
+})
+
+test('the detail pane moves the task to another list', async () => {
+  const user = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  await user.click(within(aside()).getByRole('button', { name: /^List: / }))
+  expect(screen.getByText('Move to list')).toBeInTheDocument()
+  await user.click(screen.getByRole('menuitemradio', { name: /Work/ }))
+  await flush()
+  expect(backend.data.tasks.find((task) => task.title === 'Milk')?.listId).toBe(
+    backend.data.lists.find((list) => list.name === 'Work')?.id,
+  )
+})
+
+test('the list menu renames and deletes the list', async () => {
+  const user = await setup()
+  await user.click(within(nav()).getByText('Work'))
+  await user.click(screen.getByLabelText('List actions'))
+  await user.click(screen.getByRole('menuitem', { name: 'Rename list' }))
+  await act(() => new Promise((resolve) => setTimeout(resolve)))
+  await user.keyboard('{Control>}a{/Control}Office{Enter}')
+  await flush()
+  expect(within(main()).getByRole('heading', { name: 'Office' })).toBeInTheDocument()
+  await user.click(screen.getByLabelText('List actions'))
+  await user.click(screen.getByRole('menuitem', { name: 'Delete list' }))
+  await flush()
+  expect(lists()).not.toContain('Office')
+})
+
+test('smart lists have no list menu', async () => {
+  const user = await setup()
+  await user.click(within(nav()).getByText('All'))
+  expect(screen.queryByLabelText('List actions')).toBeNull()
+})
+
+const allCount = () => Number(within(nav()).getByText('All').nextElementSibling?.textContent ?? 0)
+
+test('sidebar counts only open tasks', async () => {
+  const user = await setup()
+  const before = allCount()
+  await toggleDone(user, 'Milk')
+  expect(allCount()).toBe(before - 1)
+  await rightClick(user, row('Eggs'))
+  await submenuClick(user, 'Set stage', 'Cancelled')
+  expect(allCount()).toBe(before - 2)
 })
