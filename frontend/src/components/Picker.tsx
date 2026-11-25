@@ -3,7 +3,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 import type { Label } from '../labels'
 import { ICON_SLOT_CLASS, MENU_ITEM_CLASS } from '../styles'
-import { ignoreRowEvents } from './ignoreRowEvents'
 import { Popover, rem } from './Popover'
 
 const MENU_WIDTH = 13
@@ -39,7 +38,7 @@ export function Picker({
   const [anchor, setAnchor] = useState<Anchor | null>(null)
   const close = () => setAnchor(null)
   return (
-    <span {...ignoreRowEvents} onContextMenu={(event) => event.stopPropagation()} className="contents">
+    <>
       <button
         aria-label={`${name}: ${labelOf(value).text}`}
         aria-haspopup="menu"
@@ -86,6 +85,6 @@ export function Picker({
           })}
         </Popover>
       )}
-    </span>
+    </>
   )
 }

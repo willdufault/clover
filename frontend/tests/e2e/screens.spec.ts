@@ -1,6 +1,6 @@
 import { expect, test, type Locator } from '@playwright/test'
 import { join } from 'node:path'
-import { today } from '../../src/dates'
+import { addDays, today } from '../../src/dates'
 import { task } from '../fakeBackend'
 import { captureErrors, longPress, mockApi } from './helpers'
 
@@ -16,12 +16,6 @@ const VIEWPORTS: [number, number, boolean][] = [
   [2560, 1440, false],
 ]
 
-const day = (offset: number) => {
-  const date = new Date(`${today()}T00:00:00Z`)
-  date.setUTCDate(date.getUTCDate() + offset)
-  return date.toISOString().slice(0, 10)
-}
-
 const gardenSeed = () => ({
   lists: [
     { id: 'garden', name: 'Garden' },
@@ -34,13 +28,13 @@ const gardenSeed = () => ({
       ...task('t1', 'Turn the compost heap', 'garden'),
       stage: 'inProgress',
       priority: 'high',
-      due: day(-2),
+      due: addDays(today(), -2),
       addedToToday: true,
     },
     {
       ...task('t2', 'Order seed potatoes and onion sets before the spring rush sells out the good varieties', 'garden'),
       priority: 'low',
-      due: day(1),
+      due: addDays(today(), 1),
     },
     { ...task('t3', 'Sharpen pruning shears', 'garden'), stage: 'waiting' },
     {
@@ -50,7 +44,7 @@ const gardenSeed = () => ({
         'garden',
       ),
       priority: 'high',
-      due: day(5),
+      due: addDays(today(), 5),
     },
     task('t5', 'Prick out tomato seedlings', 'garden'),
     { ...task('t6', 'Plant garlic', 'garden'), stage: 'done' },
@@ -102,7 +96,7 @@ for (const [width, height, touch] of VIEWPORTS)
 
       await press(page.getByRole('button', { name: 'Sort' }))
       await shot('sort-menu')
-      await press(page.getByRole('menuitemradio', { name: 'Priority' }))
+      await press(page.getByRole('menuitem', { name: 'Priority' }))
       await shot('list-sorted')
       await press(page.getByRole('button', { name: 'Clear sort: Priority' }))
 

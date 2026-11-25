@@ -1,6 +1,6 @@
 const utcDate = (date: string) => new Date(`${date}T00:00:00Z`)
 
-const addDays = (date: string, days: number) => {
+export const addDays = (date: string, days: number) => {
   const result = utcDate(date)
   result.setUTCDate(result.getUTCDate() + days)
   return result.toISOString().slice(0, 10)

@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 
-@custom-variant phone (@media (pointer: coarse) and (width < 64rem));
 @custom-variant sheet (@media (pointer: coarse) and (width < 40rem));
 @custom-variant hover {
   @media (hover: hover) {

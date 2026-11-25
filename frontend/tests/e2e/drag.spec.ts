@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
-import { box, captureErrors, drag, glide, grab, mockApi, navRow, pick, waitForDropAnimation } from './helpers'
+import { box, captureErrors, drag, glide, grab, mockApi, navRow, waitForDropAnimation } from './helpers'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors = captureErrors(page)
@@ -175,7 +175,8 @@ test('dragging a task does not reorder while sorted but still moves it to a list
   await page.goto('./')
   const rows = page.locator('main [data-kind="task"]')
   const titles = async () => (await rows.locator('span.break-words').allInnerTexts()).map((t) => t.trim())
-  await pick(page, page.getByRole('button', { name: /^Sort/ }), 'Priority')
+  await page.getByRole('button', { name: 'Sort' }).click()
+  await page.getByRole('menuitem', { name: 'Priority' }).click()
   const sorted = await titles()
 
   const dragFirstToLast = async () => {

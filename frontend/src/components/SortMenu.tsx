@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowDownWideShort, faCheck, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faArrowDownWideShort, faXmark } from '@fortawesome/free-solid-svg-icons'
 import type { SortCriteria } from '../sort'
 import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS } from '../styles'
 import { anchorOf, type Anchor } from './Picker'
@@ -52,16 +52,14 @@ export function SortMenu({
           {OPTIONS.map(([criteria, optionLabel]) => (
             <button
               key={criteria}
-              role="menuitemradio"
-              aria-checked={sort === criteria}
+              role="menuitem"
               onClick={() => {
                 onSort(criteria)
                 close()
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span className="flex-1">{optionLabel}</span>
-              {sort === criteria && <FontAwesomeIcon icon={faCheck} className="text-clover" />}
+              {optionLabel}
             </button>
           ))}
         </Popover>

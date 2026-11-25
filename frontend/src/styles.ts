@@ -18,12 +18,10 @@ export const SHEET_TITLE_CLASS =
 export const MENU_ITEM_CLASS =
   'flex w-full cursor-pointer items-center gap-2.5 break-words rounded-md px-3 py-3 text-left text-moss -outline-offset-2 hover:bg-moss/5 aria-expanded:bg-moss/5 pointer-fine:py-2'
 
-export const SELECTED_ROW_CLASS = 'bg-selection ring-1 ring-clover/30'
-
 export const META_TEXT_CLASS = 'text-sm text-moss/80'
 
 export const rowStateClass = (selected: boolean, menuTarget: boolean) => {
-  if (selected || menuTarget) return SELECTED_ROW_CLASS
+  if (selected || menuTarget) return 'bg-selection ring-1 ring-clover/30'
   return 'pointer-fine:hover:bg-parchment'
 }
 

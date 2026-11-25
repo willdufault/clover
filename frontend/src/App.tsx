@@ -66,17 +66,15 @@ export default function App() {
   const detailTask = soleTask(visibleTasks, selectedTaskIds)
   const { drawerOpen, setDrawerOpen, detailModal, mainInert } = useOverlays(!!detailTask)
 
-  const replaceTaskSelection = setSelectedTaskIds
-
   const selectList = (id: string) => {
     setSelectedListId(id)
     setSort(null)
-    replaceTaskSelection([])
+    setSelectedTaskIds([])
     setDrawerOpen(false)
   }
 
   const selectTask = (id: string, event: React.MouseEvent) =>
-    replaceTaskSelection(
+    setSelectedTaskIds(
       nextSelection(
         selectedTaskIds,
         visibleTasks.map((task) => task.id),
@@ -145,7 +143,7 @@ export default function App() {
     runReportingErrors(async () => {
       await api('DELETE', '/tasks', { ids })
       setTasks((prev) => prev.filter((task) => !ids.includes(task.id)))
-      replaceTaskSelection([])
+      setSelectedTaskIds([])
     })
 
   const updateTasks = (ids: string[], patch: TaskPatch) =>
@@ -248,7 +246,7 @@ export default function App() {
     if (!over) return
     const targetListId = taskDropListId(over)
     if (targetListId) {
-      replaceTaskSelection([])
+      setSelectedTaskIds([])
       if (targetListId === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
       const dragged = tasks.find((task) => task.id === active.id)
       if (dragged?.listId === targetListId) return
@@ -323,7 +321,7 @@ export default function App() {
             selectedIds={selectedTaskIds}
             menuIds={menuIds}
             onSelectTask={selectTask}
-            onClearSelection={() => replaceTaskSelection([])}
+            onClearSelection={() => setSelectedTaskIds([])}
             onToggleDone={toggleDone}
             onContextMenu={openContextMenu}
             onOpenLists={() => setDrawerOpen(true)}
@@ -333,7 +331,7 @@ export default function App() {
           {detailTask && (
             <TaskDetailPane
               task={detailTask}
-              onClose={() => replaceTaskSelection([])}
+              onClose={() => setSelectedTaskIds([])}
               onDeleteTask={() => deleteTasks([detailTask.id])}
               onAddStep={addStep}
               onToggleStep={setStepCompleted}

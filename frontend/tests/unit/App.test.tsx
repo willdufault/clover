@@ -165,12 +165,6 @@ test('clicking the due date opens the picker', async () => {
   expect(showPicker).toHaveBeenCalled()
 })
 
-test('the due date row has no chevron', async () => {
-  const user = await setup()
-  await user.click(within(main()).getByText('Milk'))
-  expect(dueInput().parentElement?.querySelector('[data-icon="chevron-down"]')).toBeNull()
-})
-
 const milkTask = () => backend.data.tasks.find((t) => t.title === 'Milk')
 
 test('clicking the Today row adds the task, and only the X removes it', async () => {
@@ -470,19 +464,14 @@ test('progress ignores cancelled tasks', async () => {
   expect(within(main()).getByText(/of \d+ done/)).toHaveTextContent(`1 of ${tasks().length - 1} done`)
 })
 
-test('sorting marks the active option and clearing restores the order', async () => {
+test('the sort menu lists the options and clearing the sort restores the order', async () => {
   const user = await setup()
   await rightClick(user, row('Milk'))
   await submenuClick(user, 'Set priority', 'Low')
   const before = tasks()
   await user.click(sortButton())
-  expect(screen.getAllByRole('menuitemradio').map((item) => item.textContent)).toEqual([
-    'Stage',
-    'Due date',
-    'Priority',
-  ])
-  expect(screen.queryByRole('menuitemradio', { checked: true })).toBeNull()
-  await user.click(screen.getByRole('menuitemradio', { name: 'Priority' }))
+  expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Stage', 'Due date', 'Priority'])
+  await user.click(screen.getByRole('menuitem', { name: 'Priority' }))
   expect(tasks().at(-1)).toBe('Milk')
   expect(screen.getByRole('button', { name: 'Clear sort: Priority' })).toHaveTextContent('Priority')
   await user.click(screen.getByRole('button', { name: 'Clear sort: Priority' }))
@@ -496,7 +485,7 @@ test('sorting by stage sinks done tasks', async () => {
   await toggleDone(user, 'Milk')
   const before = tasks()
   await user.click(sortButton())
-  await user.click(screen.getByRole('menuitemradio', { name: 'Stage' }))
+  await user.click(screen.getByRole('menuitem', { name: 'Stage' }))
   expect(tasks().at(-1)).toBe('Milk')
   await user.click(screen.getByRole('button', { name: 'Clear sort: Stage' }))
   expect(tasks()).toEqual(before)
@@ -525,6 +514,10 @@ test('the context menu shows the current due date next to Set due date', async (
 })
 
 test('task properties follow one order in the menu, panel and row', async () => {
+  vi.setSystemTime(new Date('2026-06-15T12:00:00Z'))
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
   const user = await setup()
   await rightClick(user, row('Milk'))
   expect(
@@ -642,7 +635,8 @@ const dragRow = async (from: HTMLElement, to: HTMLElement) => {
 
 test('dragging a task does not reorder while sorted, and does once the sort is cleared', async () => {
   const user = await setup()
-  await pick(user, sortButton(), 'Priority')
+  await user.click(sortButton())
+  await user.click(screen.getByRole('menuitem', { name: 'Priority' }))
   const sorted = tasks()
   await dragRow(row(sorted[0] ?? ''), row(sorted[1] ?? ''))
   expect(tasks()).toEqual(sorted)
