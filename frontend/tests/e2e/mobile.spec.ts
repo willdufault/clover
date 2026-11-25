@@ -202,7 +202,10 @@ test('the sort menu stays on screen and Sort hides on an empty list', async ({ p
 
   await page.getByRole('button', { name: 'Sort' }).tap()
   expect(await onScreen()).toBe(true)
-  await page.mouse.click(20, 600)
+  await page.getByRole('menuitemradio', { name: 'Priority' }).tap()
+  await page.getByRole('button', { name: 'Clear sort: Priority' }).tap()
+  await expect(page.getByRole('button', { name: 'Sort' })).toBeVisible()
+  await expect(menu).toHaveCount(0)
 
   await page.getByLabel('Open lists').tap()
   await page.locator('nav').getByText('Home').tap()

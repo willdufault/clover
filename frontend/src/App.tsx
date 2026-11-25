@@ -15,7 +15,7 @@ import {
 import { api } from './api'
 import { applyDrop } from './drop'
 import { nextSelection } from './selection'
-import { applySort, sortTasks, type Sort, type SortCriteria } from './sort'
+import { sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './components/ContextMenu'
@@ -53,7 +53,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [selectedListId, setSelectedListId] = useState(ALL_LIST_ID)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
-  const [sort, setSort] = useState<Sort | null>(null)
+  const [sort, setSort] = useState<SortCriteria | null>(null)
   const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -162,9 +162,6 @@ export default function App() {
 
   const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: stage === 'done' ? 'open' : 'done' })
 
-  const sortList = (criteria: SortCriteria | null) =>
-    setSort(criteria && { criteria, descending: sort?.criteria === criteria && !sort.descending })
-
   const setStepCompleted = (id: string, completed: boolean) =>
     runReportingErrors(() => updateSteps([{ id, completed }]))
 
@@ -258,9 +255,8 @@ export default function App() {
       updateTask(String(active.id), { listId: targetListId })
       return
     }
-    const taskDrag = activeDrag?.kind === RowKind.Task && active.id !== over.id
     const nextState = applyDrop(
-      { lists, tasks: applySort(tasks, listTasks, taskDrag ? sort : null) },
+      { lists, tasks },
       {
         selectedListId,
         detailTask,
@@ -270,7 +266,6 @@ export default function App() {
     )
     setLists(nextState.lists)
     setTasks(nextState.tasks)
-    if (taskDrag) setSort(null)
   }
 
   if (loading) return <p className="p-8 font-sans text-moss/80">Loading…</p>
@@ -323,7 +318,7 @@ export default function App() {
             onDeleteList={deleteList}
             tasks={visibleTasks}
             onAddTask={addTask}
-            onSort={sortList}
+            onSort={setSort}
             sort={sort}
             selectedIds={selectedTaskIds}
             menuIds={menuIds}

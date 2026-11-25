@@ -13,7 +13,7 @@ import {
   META_TEXT_CLASS,
   rowStateClass,
 } from '../styles'
-import type { Sort, SortCriteria } from '../sort'
+import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { SMART_LIST_ICONS } from '../smartLists'
 import { AddInput } from './AddInput'
@@ -146,7 +146,7 @@ export default function TaskPane({
   tasks: Task[]
   selectedIds: string[]
   menuIds: string[]
-  sort: Sort | null
+  sort: SortCriteria | null
   onAddTask: (text: string) => void
   onSort: (criteria: SortCriteria | null) => void
   onSelectTask: (id: string, event: React.MouseEvent) => void
@@ -314,7 +314,7 @@ export default function TaskPane({
             </Popover>
           )}
           {tasks.length > 0 && (
-            <div className="mt-1 ml-auto -mr-2.5">
+            <div className="mt-1 ml-auto">
               <SortMenu sort={sort} onSort={onSort} />
             </div>
           )}
@@ -325,7 +325,7 @@ export default function TaskPane({
 
         <AddInput placeholder="Add a task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-4" />
 
-        <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+        <SortableContext items={tasks} strategy={verticalListSortingStrategy} disabled={{ droppable: !!sort }}>
           {tasks.length > 0 && <ul className="mt-1">{tasks.map(taskRow)}</ul>}
         </SortableContext>
 

@@ -1,45 +1,44 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowDownWideShort, faCheck } from '@fortawesome/free-solid-svg-icons'
-import type { Sort, SortCriteria } from '../sort'
+import { faArrowDownWideShort, faCheck, faXmark } from '@fortawesome/free-solid-svg-icons'
+import type { SortCriteria } from '../sort'
 import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS } from '../styles'
 import { anchorOf, type Anchor } from './Picker'
 import { Popover, rem } from './Popover'
 
 const MENU_WIDTH = 14
 
-const OPTIONS: [SortCriteria | null, string, string, string][] = [
-  [null, 'Manual', '', ''],
-  ['stage', 'Stage', 'Open first', 'Waiting first'],
-  ['due', 'Due date', 'Soonest first', 'Latest first'],
-  ['priority', 'Priority', 'High first', 'Low first'],
+const OPTIONS: [SortCriteria, string][] = [
+  ['stage', 'Stage'],
+  ['due', 'Due date'],
+  ['priority', 'Priority'],
 ]
 
-const describe = (sort: Sort) => {
-  const [, label = '', ascending = '', descending = ''] = OPTIONS.find(([key]) => key === sort.criteria) ?? []
-  return { label, direction: sort.descending ? descending : ascending }
-}
-
-export function SortMenu({ sort, onSort }: { sort: Sort | null; onSort: (criteria: SortCriteria | null) => void }) {
+export function SortMenu({
+  sort,
+  onSort,
+}: {
+  sort: SortCriteria | null
+  onSort: (criteria: SortCriteria | null) => void
+}) {
   const [anchor, setAnchor] = useState<Anchor | null>(null)
   const close = () => setAnchor(null)
-  const active = sort && describe(sort)
-  const summary = active ? `${active.label}, ${active.direction.toLowerCase()}` : 'Sort'
+  const label = OPTIONS.find(([key]) => key === sort)?.[1]
   return (
     <>
       <button
-        aria-label={active ? `Sort: ${summary}` : 'Sort'}
-        aria-haspopup="menu"
-        aria-expanded={!!anchor}
-        onClick={(event) => setAnchor(anchorOf(event))}
-        className={ICON_BUTTON_CLASS + ' relative h-9 w-auto gap-2 px-2.5 text-sm text-moss/80 aria-expanded:bg-moss/5'}
+        aria-label={label ? `Clear sort: ${label}` : 'Sort'}
+        aria-haspopup={label ? undefined : 'menu'}
+        aria-expanded={label ? undefined : !!anchor}
+        onClick={(event) => (label ? onSort(null) : setAnchor(anchorOf(event)))}
+        className={ICON_BUTTON_CLASS + ' -mr-2.5 h-9 w-auto gap-2 px-2.5 text-sm text-moss/80 aria-expanded:bg-moss/5'}
       >
         <FontAwesomeIcon
           icon={faArrowDownWideShort}
-          className={'text-base ' + (sort ? 'text-clover' : 'text-lichen')}
+          className={'text-base ' + (label ? 'text-clover' : 'text-lichen')}
         />
-        <span className="hidden sm:inline">{summary}</span>
-        {active && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-clover sm:hidden" />}
+        {label ? <span>{label}</span> : <span className="hidden sm:inline">Sort</span>}
+        {label && <FontAwesomeIcon icon={faXmark} />}
       </button>
       {anchor && (
         <Popover
@@ -50,35 +49,21 @@ export function SortMenu({ sort, onSort }: { sort: Sort | null; onSort: (criteri
           focusFirst={anchor.keyboard}
           onClose={close}
         >
-          {OPTIONS.map(([criteria, label]) => {
-            const checked = (sort?.criteria ?? null) === criteria
-            const detail = checked && active ? active.direction : ''
-            return (
-              <button
-                key={label}
-                role="menuitemradio"
-                aria-checked={checked}
-                aria-label={detail ? `${label}: ${detail}` : label}
-                onClick={() => {
-                  onSort(criteria)
-                  close()
-                }}
-                className={MENU_ITEM_CLASS}
-              >
-                <span className="flex flex-1 flex-col">
-                  {label}
-                  {detail && (
-                    <span className="text-sm text-moss/80">
-                      <span className="pointer-coarse:hidden">Click to reverse</span>
-                      <span className="hidden pointer-coarse:inline">Tap to reverse</span>
-                    </span>
-                  )}
-                </span>
-                {detail && <span className="text-sm text-moss/80">{detail}</span>}
-                {checked && <FontAwesomeIcon icon={faCheck} className="text-clover" />}
-              </button>
-            )
-          })}
+          {OPTIONS.map(([criteria, optionLabel]) => (
+            <button
+              key={criteria}
+              role="menuitemradio"
+              aria-checked={sort === criteria}
+              onClick={() => {
+                onSort(criteria)
+                close()
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span className="flex-1">{optionLabel}</span>
+              {sort === criteria && <FontAwesomeIcon icon={faCheck} className="text-clover" />}
+            </button>
+          ))}
         </Popover>
       )}
     </>

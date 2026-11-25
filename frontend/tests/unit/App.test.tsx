@@ -449,39 +449,35 @@ test('progress ignores cancelled tasks', async () => {
   expect(within(main()).getByText(/of \d+ done/)).toHaveTextContent(`1 of ${tasks().length - 1} done`)
 })
 
-test('sorting marks the active option and choosing it again flips the direction', async () => {
+test('sorting marks the active option and clearing restores the order', async () => {
   const user = await setup()
   await rightClick(user, row('Milk'))
   await submenuClick(user, 'Set priority', 'Low')
   const before = tasks()
   await user.click(sortButton())
-  expect(screen.getByRole('menuitemradio', { name: 'Manual' })).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getAllByRole('menuitemradio').map((item) => item.textContent)).toEqual([
+    'Stage',
+    'Due date',
+    'Priority',
+  ])
+  expect(screen.queryByRole('menuitemradio', { checked: true })).toBeNull()
   await user.click(screen.getByRole('menuitemradio', { name: 'Priority' }))
   expect(tasks().at(-1)).toBe('Milk')
-  expect(sortButton()).toHaveAccessibleName('Sort: Priority, high first')
-  await user.click(sortButton())
-  expect(screen.getByRole('menuitemradio', { name: 'Priority: High first' })).toHaveAttribute('aria-checked', 'true')
-  expect(screen.getByText('Click to reverse')).toBeInTheDocument()
-  await user.click(screen.getByRole('menuitemradio', { name: 'Priority: High first' }))
-  expect(tasks()[0]).toBe('Milk')
-  expect(sortButton()).toHaveAccessibleName('Sort: Priority, low first')
-  await user.click(sortButton())
-  await user.click(screen.getByRole('menuitemradio', { name: 'Manual' }))
+  expect(screen.getByRole('button', { name: 'Clear sort: Priority' })).toHaveTextContent('Priority')
+  await user.click(screen.getByRole('button', { name: 'Clear sort: Priority' }))
+  expect(screen.queryByRole('menu')).toBeNull()
   expect(tasks()).toEqual(before)
-  expect(sortButton()).toHaveAccessibleName('Sort')
+  expect(screen.getByRole('button', { name: 'Sort' })).toBeInTheDocument()
 })
 
-test('sorting sinks done tasks and dragging order is kept under Manual', async () => {
+test('sorting by stage sinks done tasks', async () => {
   const user = await setup()
   await toggleDone(user, 'Milk')
   const before = tasks()
   await user.click(sortButton())
   await user.click(screen.getByRole('menuitemradio', { name: 'Stage' }))
-  await user.click(sortButton())
-  await user.click(screen.getByRole('menuitemradio', { name: 'Stage: Open first' }))
   expect(tasks().at(-1)).toBe('Milk')
-  await user.click(sortButton())
-  await user.click(screen.getByRole('menuitemradio', { name: 'Manual' }))
+  await user.click(screen.getByRole('button', { name: 'Clear sort: Stage' }))
   expect(tasks()).toEqual(before)
 })
 
@@ -572,4 +568,33 @@ test('sidebar counts only open tasks', async () => {
   await rightClick(user, row('Eggs'))
   await submenuClick(user, 'Set stage', 'Cancelled')
   expect(allCount()).toBe(before - 2)
+})
+
+const dragRow = async (from: HTMLElement, to: HTMLElement) => {
+  const rows = rowsIn(main())
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    return DOMRect.fromRect({ x: 0, y: rows.indexOf(this) * 40, width: 100, height: 40 })
+  })
+  const y = (element: HTMLElement) => rows.indexOf(element) * 40 + 20
+  fireEvent.mouseDown(from, { button: 0, clientX: 50, clientY: y(from) })
+  fireEvent.mouseMove(document, { clientX: 50, clientY: y(from) + 10 })
+  await flush()
+  fireEvent.mouseMove(document, { clientX: 50, clientY: y(to) })
+  await flush()
+  fireEvent.mouseUp(document, { clientX: 50, clientY: y(to) })
+  await act(() => new Promise((resolve) => setTimeout(resolve, 60)))
+  vi.restoreAllMocks()
+}
+
+test('dragging a task does not reorder while sorted, and does once the sort is cleared', async () => {
+  const user = await setup()
+  await pick(user, sortButton(), 'Priority')
+  const sorted = tasks()
+  await dragRow(row(sorted[0] ?? ''), row(sorted[1] ?? ''))
+  expect(tasks()).toEqual(sorted)
+  expect(screen.getByRole('button', { name: /^Clear sort/ })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /^Clear sort/ }))
+  const before = tasks()
+  await dragRow(row(before[0] ?? ''), row(before[1] ?? ''))
+  expect(tasks()).toEqual([before[1], before[0]])
 })

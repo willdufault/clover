@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
-import { box, captureErrors, drag, glide, grab, mockApi, navRow, waitForDropAnimation } from './helpers'
+import { box, captureErrors, drag, glide, grab, mockApi, navRow, pick, waitForDropAnimation } from './helpers'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors = captureErrors(page)
@@ -166,5 +166,38 @@ test('new tasks show first and a dragged order sticks', async ({ page }) => {
   await navRow(page, 'All').click()
   const all = await titles()
   expect(all.filter((t) => ['Eggs', 'Milk', 'Bread'].includes(t))).toEqual(['Eggs', 'Milk', 'Bread'])
+  expect(errors).toEqual([])
+})
+
+test('dragging a task does not reorder while sorted but still moves it to a list', async ({ page }) => {
+  const errors = captureErrors(page)
+  const backend = await mockApi(page, richSeed())
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  const titles = async () => (await rows.locator('span.break-words').allInnerTexts()).map((t) => t.trim())
+  await pick(page, page.getByRole('button', { name: /^Sort/ }), 'Priority')
+  const sorted = await titles()
+
+  const dragFirstToLast = async () => {
+    const start = await grab(page, rows.first())
+    await page.mouse.move(start.x, start.y + 10)
+    await glide(page, start, rows.last())
+    const lines = (await Promise.all((await rows.all()).map(lineSide))).filter(Boolean)
+    await page.mouse.up()
+    return lines
+  }
+  expect(await dragFirstToLast()).toEqual([])
+  await waitForDropAnimation(page)
+  await expect.poll(titles).toEqual(sorted)
+  await expect(page.getByRole('button', { name: /^Clear sort/ })).toBeVisible()
+
+  await drag(page, rows.filter({ hasText: 'Eggs' }), page.locator('nav').getByText('Work'))
+  await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.listId).toBe('work')
+  await waitForDropAnimation(page)
+
+  await page.getByRole('button', { name: /^Clear sort/ }).click()
+  const before = await titles()
+  expect(await dragFirstToLast()).toEqual(['below'])
+  await expect.poll(titles).toEqual([...before.slice(1), before[0]])
   expect(errors).toEqual([])
 })
