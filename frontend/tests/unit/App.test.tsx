@@ -589,7 +589,6 @@ test('the list menu renames and deletes the list', async () => {
   await user.click(within(nav()).getByText('Work'))
   await user.click(screen.getByLabelText('List actions'))
   await user.click(screen.getByRole('menuitem', { name: 'Rename list' }))
-  await act(() => new Promise((resolve) => setTimeout(resolve)))
   await user.keyboard('{Control>}a{/Control}Office{Enter}')
   await flush()
   expect(within(main()).getByRole('heading', { name: 'Office' })).toBeInTheDocument()

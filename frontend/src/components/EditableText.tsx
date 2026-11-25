@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function EditableText({
@@ -26,13 +26,18 @@ export function EditableText({
     setSeenRequest(editRequest)
     setDraft(text)
   }
+  const editing = draft !== null
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
 
   if (draft !== null) {
     const cancel = () => setDraft(null)
     return (
       <textarea
         rows={1}
-        autoFocus
+        ref={inputRef}
         onFocus={(event) => event.target.select()}
         value={draft}
         maxLength={maxLength}

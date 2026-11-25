@@ -289,7 +289,7 @@ export default function TaskPane({
                 role="menuitem"
                 onClick={() => {
                   closeListMenu()
-                  setTimeout(() => setRenameRequest((count) => count + 1))
+                  setRenameRequest((count) => count + 1)
                 }}
                 className={MENU_ITEM_CLASS}
               >
