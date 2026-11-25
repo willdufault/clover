@@ -22,7 +22,6 @@ import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './comp
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
-import type { ToastState } from './components/Toast'
 import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS } from './styles'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -58,7 +57,6 @@ export default function App() {
   const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
-  const [toast, setToast] = useState<ToastState | null>(null)
 
   const listTasks = tasksInList(tasks, selectedListId)
   const visibleTasks = sortTasks(listTasks, sort)
@@ -162,11 +160,7 @@ export default function App() {
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
-  const toggleDone = ({ id, stage }: Task) => {
-    const next = stage === 'done' ? 'open' : 'done'
-    updateTask(id, { stage: next })
-    setToast({ text: next === 'done' ? 'Marked done' : 'Marked open', undo: () => updateTask(id, { stage }) })
-  }
+  const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: stage === 'done' ? 'open' : 'done' })
 
   const sortList = (criteria: SortCriteria | null) =>
     setSort(criteria && { criteria, descending: sort?.criteria === criteria && !sort.descending })
@@ -340,8 +334,6 @@ export default function App() {
             onOpenLists={() => setDrawerOpen(true)}
             inert={mainInert}
             wide={!detailTask}
-            toast={toast}
-            setToast={setToast}
           />
           {detailTask && (
             <TaskDetailPane

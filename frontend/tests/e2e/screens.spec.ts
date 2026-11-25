@@ -135,12 +135,6 @@ for (const [width, height, touch] of VIEWPORTS)
       await shot('context-submenu', true)
       await dismiss()
 
-      await press(rows.filter({ hasText: 'Mend the gap' }).getByRole('button', { name: 'Mark done' }))
-      await expect(page.getByText('Marked done')).toBeVisible()
-      await shot('undo-toast')
-      await press(page.getByRole('button', { name: 'Undo' }))
-      await expect(page.getByText('Marked done')).toHaveCount(0)
-
       if (narrow) await press(page.getByLabel('Open lists'))
       await expect(page.locator('nav')).toBeInViewport({ ratio: 1 })
       await shot('sidebar')

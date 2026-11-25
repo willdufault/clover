@@ -146,7 +146,6 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
 
   await water.getByRole('button', { name: 'Mark done' }).click()
   await expect(water.getByRole('button', { name: 'Mark open' })).toHaveAttribute('title', 'Done')
-  await expect(page.getByText('Marked done')).toBeVisible()
   await expect.poll(() => backend.data.tasks.find((t) => t.title === 'Water plants')?.stage).toBe('done')
 
   const call = rows.filter({ hasText: 'Call mom' })

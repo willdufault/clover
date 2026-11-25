@@ -157,7 +157,7 @@ test('new tasks show first and a dragged order sticks', async ({ page }) => {
   await waitForDropAnimation(page)
 
   await rows.filter({ hasText: 'Eggs' }).getByRole('button', { name: 'Mark done' }).click()
-  await page.getByRole('button', { name: 'Undo' }).click()
+  await rows.filter({ hasText: 'Eggs' }).getByRole('button', { name: 'Mark open' }).click()
   await expect.poll(titles).toEqual(['Eggs', 'Milk', 'Bread'])
 
   await navRow(page, 'Work').click()

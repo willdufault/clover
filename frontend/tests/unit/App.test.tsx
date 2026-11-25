@@ -426,23 +426,19 @@ test('the stage picker marks the current stage and Escape closes it without clos
 
 const eggsStage = () => backend.data.tasks.find((task) => task.id === 'g2')?.stage
 
-test('the row stage icon toggles done and open without selecting the row, with undo', async () => {
+test('the row stage icon toggles done and open without selecting the row', async () => {
   const user = await setup()
   await toggleDone(user, 'Eggs')
   expect(screen.queryByRole('complementary')).toBeNull()
   expect(eggsStage()).toBe('done')
-  expect(screen.getByText(/^Marked/).parentElement).toHaveTextContent('Marked done')
-  await user.click(screen.getByRole('button', { name: 'Undo' }))
-  await flush()
+  await toggleDone(user, 'Eggs')
   expect(eggsStage()).toBe('open')
-  expect(screen.queryByText(/^Marked/)).toBeNull()
   await rightClick(user, row('Eggs'))
   await submenuClick(user, 'Set stage', 'Waiting')
   await toggleDone(user, 'Eggs')
   expect(eggsStage()).toBe('done')
   await toggleDone(user, 'Eggs')
   expect(eggsStage()).toBe('open')
-  expect(screen.getByText(/^Marked/).parentElement).toHaveTextContent('Marked open')
 })
 
 test('progress ignores cancelled tasks', async () => {

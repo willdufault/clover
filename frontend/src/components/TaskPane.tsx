@@ -25,7 +25,6 @@ import { Popover, rem } from './Popover'
 import { anchorOf, type Anchor } from './Picker'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { Toast, type ToastState } from './Toast'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -75,9 +74,8 @@ function TitleIcon({ listId }: { listId: string }) {
   )
 }
 
-const mainClass = (toast: boolean) =>
-  'min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-8 ' +
-  (toast ? 'pb-24' : 'pb-10')
+const MAIN_CLASS =
+  'min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-5 pb-10 sm:px-6 lg:px-8 lg:pt-8'
 
 const actionsOpacity = (menuOpen: boolean, selected: boolean) => {
   if (menuOpen) return 'opacity-100'
@@ -141,8 +139,6 @@ export default function TaskPane({
   onOpenLists,
   inert,
   wide,
-  toast,
-  setToast,
 }: {
   selectedListId: string
   listName: string | undefined
@@ -162,8 +158,6 @@ export default function TaskPane({
   onOpenLists: () => void
   inert: boolean
   wide: boolean
-  toast: ToastState | null
-  setToast: (toast: null) => void
 }) {
   const [listMenu, setListMenu] = useState<Anchor | null>(null)
   const [renameRequest, setRenameRequest] = useState(0)
@@ -246,104 +240,97 @@ export default function TaskPane({
   }
 
   return (
-    <div className="relative flex min-w-0 flex-1">
-      <main inert={inert} className={mainClass(!!toast)}>
-        <div className={columnClass}>
-          <div className="flex items-start gap-1 pl-2">
+    <main inert={inert} className={MAIN_CLASS}>
+      <div className={columnClass}>
+        <div className="flex items-start gap-1 pl-2">
+          <button
+            onClick={onOpenLists}
+            aria-label="Open lists"
+            className={ICON_BUTTON_CLASS + ' -ml-2 size-10 text-lg text-lichen lg:hidden'}
+          >
+            <FontAwesomeIcon icon={faBars} />
+          </button>
+          <TitleIcon listId={selectedListId} />
+          <EditableText
+            key={selectedListId}
+            editRequest={renameRequest}
+            tag="h1"
+            text={listName ?? ''}
+            maxLength={limits.listNameMax}
+            editable={renamable}
+            onCommit={(name) => onRenameList(selectedListId, name)}
+            className={
+              '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-md px-1.5 font-serif text-3xl/10 font-medium text-moss sm:text-4xl/10' +
+              (renamable ? ' transition hover:bg-moss/5' : '')
+            }
+            inputClassName={TITLE_RENAME_CLASS + ' text-3xl sm:text-4xl'}
+          />
+          {renamable && (
             <button
-              onClick={onOpenLists}
-              aria-label="Open lists"
-              className={ICON_BUTTON_CLASS + ' -ml-2 size-10 text-lg text-lichen lg:hidden'}
+              aria-label="List actions"
+              aria-haspopup="menu"
+              aria-expanded={!!listMenu}
+              onClick={(event) => setListMenu(anchorOf(event))}
+              className={ICON_BUTTON_CLASS + ' size-10 text-lg text-lichen'}
             >
-              <FontAwesomeIcon icon={faBars} />
+              <FontAwesomeIcon icon={faEllipsis} />
             </button>
-            <TitleIcon listId={selectedListId} />
-            <EditableText
-              key={selectedListId}
-              editRequest={renameRequest}
-              tag="h1"
-              text={listName ?? ''}
-              maxLength={limits.listNameMax}
-              editable={renamable}
-              onCommit={(name) => onRenameList(selectedListId, name)}
-              className={
-                '-mx-1.5 w-fit min-w-0 max-w-full break-words rounded-md px-1.5 font-serif text-3xl/10 font-medium text-moss sm:text-4xl/10' +
-                (renamable ? ' transition hover:bg-moss/5' : '')
-              }
-              inputClassName={TITLE_RENAME_CLASS + ' text-3xl sm:text-4xl'}
-            />
-            {renamable && (
-              <button
-                aria-label="List actions"
-                aria-haspopup="menu"
-                aria-expanded={!!listMenu}
-                onClick={(event) => setListMenu(anchorOf(event))}
-                className={ICON_BUTTON_CLASS + ' size-10 text-lg text-lichen'}
-              >
-                <FontAwesomeIcon icon={faEllipsis} />
-              </button>
-            )}
-            {listMenu && (
-              <Popover
-                x={listMenu.rect.left}
-                y={listMenu.rect.bottom + 4}
-                width={rem(12)}
-                title={listName}
-                focusFirst={listMenu.keyboard}
-                onClose={closeListMenu}
-              >
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    closeListMenu()
-                    setTimeout(() => setRenameRequest((count) => count + 1))
-                  }}
-                  className={MENU_ITEM_CLASS}
-                >
-                  <span className={ICON_SLOT_CLASS + ' text-lichen'}>
-                    <FontAwesomeIcon icon={faPen} />
-                  </span>
-                  Rename list
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    closeListMenu()
-                    onDeleteList(selectedListId)
-                  }}
-                  className={MENU_ITEM_CLASS + ' text-rosehip!'}
-                >
-                  <span className={ICON_SLOT_CLASS}>
-                    <FontAwesomeIcon icon={faTrashCan} />
-                  </span>
-                  Delete list
-                </button>
-              </Popover>
-            )}
-            {tasks.length > 0 && (
-              <div className="mt-1 ml-auto -mr-2.5">
-                <SortMenu sort={sort} onSort={onSort} />
-              </div>
-            )}
-          </div>
-          {tasks.length > 0 && (
-            <Progress tasks={tasks} selectedCount={selectedIds.length} onClearSelection={onClearSelection} />
           )}
-
-          <AddInput placeholder="Add a task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-4" />
-
-          <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-            {tasks.length > 0 && <ul className="mt-1">{tasks.map(taskRow)}</ul>}
-          </SortableContext>
-
-          {tasks.length === 0 && <p className="mt-8 px-2 font-serif text-lg text-moss/80 italic">No tasks yet.</p>}
+          {listMenu && (
+            <Popover
+              x={listMenu.rect.left}
+              y={listMenu.rect.bottom + 4}
+              width={rem(12)}
+              title={listName}
+              focusFirst={listMenu.keyboard}
+              onClose={closeListMenu}
+            >
+              <button
+                role="menuitem"
+                onClick={() => {
+                  closeListMenu()
+                  setTimeout(() => setRenameRequest((count) => count + 1))
+                }}
+                className={MENU_ITEM_CLASS}
+              >
+                <span className={ICON_SLOT_CLASS + ' text-lichen'}>
+                  <FontAwesomeIcon icon={faPen} />
+                </span>
+                Rename list
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  closeListMenu()
+                  onDeleteList(selectedListId)
+                }}
+                className={MENU_ITEM_CLASS + ' text-rosehip!'}
+              >
+                <span className={ICON_SLOT_CLASS}>
+                  <FontAwesomeIcon icon={faTrashCan} />
+                </span>
+                Delete list
+              </button>
+            </Popover>
+          )}
+          {tasks.length > 0 && (
+            <div className="mt-1 ml-auto -mr-2.5">
+              <SortMenu sort={sort} onSort={onSort} />
+            </div>
+          )}
         </div>
-      </main>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 sm:px-6 lg:px-8">
-        <div className={columnClass + ' flex justify-center'}>
-          <Toast toast={toast} setToast={setToast} />
-        </div>
+        {tasks.length > 0 && (
+          <Progress tasks={tasks} selectedCount={selectedIds.length} onClearSelection={onClearSelection} />
+        )}
+
+        <AddInput placeholder="Add a task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-4" />
+
+        <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+          {tasks.length > 0 && <ul className="mt-1">{tasks.map(taskRow)}</ul>}
+        </SortableContext>
+
+        {tasks.length === 0 && <p className="mt-8 px-2 font-serif text-lg text-moss/80 italic">No tasks yet.</p>}
       </div>
-    </div>
+    </main>
   )
 }
