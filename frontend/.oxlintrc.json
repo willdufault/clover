@@ -28,6 +28,17 @@
     "typescript/no-unsafe-type-assertion": "off",
     "typescript/consistent-return": "off",
     "typescript/no-misused-spread": "off",
-    "vitest/require-mock-type-parameters": "off"
-  }
+    "vitest/require-mock-type-parameters": "off",
+    "no-restricted-globals": ["error", "setTimeout", "setInterval"],
+    "no-restricted-properties": ["error", { "property": "setTimeout" }, { "property": "setInterval" }]
+  },
+  "overrides": [
+    {
+      "files": ["src/components/SortableRow.tsx", "tests/**"],
+      "rules": {
+        "no-restricted-globals": "off",
+        "no-restricted-properties": "off"
+      }
+    }
+  ]
 }
