@@ -81,38 +81,14 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
   )
 }
 
-const IN_TODAY: Label = { icon: faSun, color: 'text-clover', text: 'In Today' }
-const NOT_IN_TODAY: Label = { icon: faSunRegular, color: 'text-lichen', text: 'Not in Today' }
-const todayLabel = (option: string) => (option === 'yes' ? IN_TODAY : NOT_IN_TODAY)
-
 function TodayField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPatch) => void }) {
-  const value = task.addedToToday ? 'yes' : 'no'
   return (
-    <div className={PROPERTY_ROW_CLASS + ' relative has-aria-expanded:bg-moss/5'}>
-      <Picker
-        name="Today"
-        title="Today"
-        value={value}
-        options={['yes', 'no']}
-        labelOf={todayLabel}
-        onChange={(option) => onUpdate({ addedToToday: option === 'yes' })}
-        className="absolute inset-0 cursor-pointer rounded-lg"
-      >
-        {null}
-      </Picker>
-      <LabelIcon label={todayLabel(value)} />
-      <span className={'flex-1 ' + (task.addedToToday ? '' : 'text-moss/80')}>{todayLabel(value).text}</span>
-      {task.addedToToday && (
-        <button
-          onClick={() => onUpdate({ addedToToday: false })}
-          aria-label="Remove from Today"
-          className={REMOVE_BUTTON_CLASS}
-        >
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
-      )}
-      <Chevron />
-    </div>
+    <button onClick={() => onUpdate({ addedToToday: !task.addedToToday })} className={PROPERTY_ROW_CLASS}>
+      <span className={ICON_SLOT_CLASS + (task.addedToToday ? ' text-clover' : ' text-lichen')}>
+        <FontAwesomeIcon icon={task.addedToToday ? faSun : faSunRegular} />
+      </span>
+      {task.addedToToday ? 'Remove from Today' : 'Add to Today'}
+    </button>
   )
 }
 

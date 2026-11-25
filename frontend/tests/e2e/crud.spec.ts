@@ -67,7 +67,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
   await pick(page, stageButton(aside), 'In progress')
   await aside.locator('input[type="date"]').fill('2030-01-02')
   await expect(navRow(page, 'Today')).toHaveText('Today')
-  await pick(page, aside.getByRole('button', { name: /^Today: / }), 'In Today')
+  await aside.getByRole('button', { name: 'Add to Today' }).click()
   await expect(navRow(page, 'Today')).toHaveText('Today1')
   await pick(page, aside.getByRole('button', { name: /^Priority: / }), 'High')
   await expect(task.getByTitle('In Today')).toHaveText('Today')
