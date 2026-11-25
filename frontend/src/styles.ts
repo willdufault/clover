@@ -1,5 +1,8 @@
+export const STATIC_ROW_CLASS =
+  'flex h-11 w-full items-center gap-3 rounded-lg px-2 text-left text-base text-moss pointer-fine:h-10'
+
 export const PROPERTY_ROW_CLASS =
-  'flex h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-2 text-left text-base text-moss transition hover:bg-moss/5 aria-expanded:bg-moss/5 pointer-fine:h-10'
+  STATIC_ROW_CLASS + ' cursor-pointer transition hover:bg-moss/5 aria-expanded:bg-moss/5'
 
 export const ICON_SLOT_CLASS = 'flex w-6 shrink-0 items-center justify-center'
 

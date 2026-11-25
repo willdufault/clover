@@ -165,6 +165,27 @@ test('clicking the due date opens the picker', async () => {
   expect(showPicker).toHaveBeenCalled()
 })
 
+test('the due date row has no chevron', async () => {
+  const user = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  expect(dueInput().parentElement?.querySelector('[data-icon="chevron-down"]')).toBeNull()
+})
+
+const milkTask = () => backend.data.tasks.find((t) => t.title === 'Milk')
+
+test('clicking the Today row adds the task, and only the X removes it', async () => {
+  const user = await setup()
+  await user.click(within(main()).getByText('Milk'))
+  expect(within(aside()).queryByRole('button', { name: 'Remove from Today' })).toBeNull()
+  await user.click(within(aside()).getByRole('button', { name: 'Add to Today' }))
+  expect(milkTask()?.addedToToday).toBe(true)
+  await user.click(within(aside()).getByText('Added to Today'))
+  expect(milkTask()?.addedToToday).toBe(true)
+  await user.click(within(aside()).getByRole('button', { name: 'Remove from Today' }))
+  expect(milkTask()?.addedToToday).toBe(false)
+  expect(within(aside()).getByRole('button', { name: 'Add to Today' })).toBeInTheDocument()
+})
+
 test('closing and reopening a task keeps position', async () => {
   const user = await setup()
   await user.click(within(nav()).getByText('Work'))

@@ -10,6 +10,7 @@ import {
   ICON_SLOT_CLASS,
   RENAME_CLASS,
   SAFE_AREA_CLASS,
+  STATIC_ROW_CLASS,
   ICON_BUTTON_CLASS,
   TITLE_RENAME_CLASS,
   TRAILING_ICON_CLASS,
@@ -76,19 +77,34 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPa
           <FontAwesomeIcon icon={faXmark} />
         </button>
       )}
-      <Chevron />
     </div>
   )
 }
 
 function TodayField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPatch) => void }) {
+  if (!task.addedToToday)
+    return (
+      <button onClick={() => onUpdate({ addedToToday: true })} className={PROPERTY_ROW_CLASS}>
+        <span className={ICON_SLOT_CLASS + ' text-lichen'}>
+          <FontAwesomeIcon icon={faSunRegular} />
+        </span>
+        Add to Today
+      </button>
+    )
   return (
-    <button onClick={() => onUpdate({ addedToToday: !task.addedToToday })} className={PROPERTY_ROW_CLASS}>
-      <span className={ICON_SLOT_CLASS + (task.addedToToday ? ' text-clover' : ' text-lichen')}>
-        <FontAwesomeIcon icon={task.addedToToday ? faSun : faSunRegular} />
+    <div className={STATIC_ROW_CLASS}>
+      <span className={ICON_SLOT_CLASS + ' text-clover'}>
+        <FontAwesomeIcon icon={faSun} />
       </span>
-      {task.addedToToday ? 'Remove from Today' : 'Add to Today'}
-    </button>
+      <span className="flex-1">Added to Today</span>
+      <button
+        onClick={() => onUpdate({ addedToToday: false })}
+        aria-label="Remove from Today"
+        className={REMOVE_BUTTON_CLASS}
+      >
+        <FontAwesomeIcon icon={faXmark} />
+      </button>
+    </div>
   )
 }
 
