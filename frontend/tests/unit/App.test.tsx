@@ -503,6 +503,39 @@ test('the context menu shows the current due date next to Set due date', async (
   expect(item).toHaveTextContent('Tomorrow')
 })
 
+test('task properties follow one order in the menu, panel and row', async () => {
+  const user = await setup()
+  await rightClick(user, row('Milk'))
+  expect(
+    within(screen.getByRole('menu'))
+      .getAllByRole('menuitem')
+      .map((item) => item.ariaLabel ?? item.textContent),
+  ).toEqual(['Set stage', 'Add to Today', 'Set due date', 'Set priority', 'Move to list', 'Delete'])
+  await user.keyboard('{Escape}')
+  await user.click(row('Milk'))
+  const panel = within(aside())
+  const order = [
+    panel.getByRole('button', { name: /^Stage: / }),
+    panel.getByRole('button', { name: 'Add to Today' }),
+    panel.getByLabelText('Due date'),
+    panel.getByRole('button', { name: /^Priority: / }),
+    panel.getByRole('button', { name: /^List: / }),
+  ]
+  expect(
+    [...aside().querySelectorAll('button, input')].filter((element) => order.includes(element as HTMLElement)),
+  ).toEqual(order)
+  await user.click(panel.getByRole('button', { name: 'Add to Today' }))
+  await pick(user, panel.getByRole('button', { name: /^Priority: / }), 'High')
+  fireEvent.blur(dueInput(), { target: { value: '2026-12-01' } })
+  await flush()
+  expect([...row('Milk').querySelectorAll('p span')].map((span) => span.textContent)).toEqual([
+    'Today',
+    'Tue Dec 1',
+    'High',
+    '0/1',
+  ])
+})
+
 test('the row actions button opens the task menu', async () => {
   const user = await setup()
   await user.click(within(row('Milk')).getByLabelText('Task actions'))

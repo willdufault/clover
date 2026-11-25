@@ -202,6 +202,16 @@ export default function ContextMenu({
   }
 
   const taskItems: MenuItem[] = [
+    {
+      label: 'Set stage',
+      icon: stageLabel(menu.stage ?? 'open'),
+      submenu: STAGES.map((stage) => ({
+        label: stageLabel(stage).text,
+        icon: stageLabel(stage),
+        checked: stage === menu.stage,
+        action: () => onUpdateTasks({ stage }),
+      })),
+    },
     menu.allInToday
       ? {
           label: 'Remove from Today',
@@ -214,22 +224,11 @@ export default function ContextMenu({
           action: () => onUpdateTasks({ addedToToday: true }),
         },
     {
-      label: 'Set stage',
-      icon: stageLabel(menu.stage ?? 'open'),
-      submenu: STAGES.map((stage) => ({
-        label: stageLabel(stage).text,
-        icon: stageLabel(stage),
-        checked: stage === menu.stage,
-        action: () => onUpdateTasks({ stage }),
-      })),
-    },
-    {
       label: 'Set due date',
       icon: dueIcon(menu.due ?? null),
       value: menu.due && <span className="truncate text-sm text-moss/80">{formatDueDate(menu.due)}</span>,
       submenu: dueItems(menu, onUpdateTasks),
     },
-    ...moveItems(menu.moveTargets, onUpdateTasks),
     {
       label: 'Set priority',
       icon: priorityLabel(menu.priority ?? 'medium'),
@@ -240,6 +239,7 @@ export default function ContextMenu({
         action: () => onUpdateTasks({ priority }),
       })),
     },
+    ...moveItems(menu.moveTargets, onUpdateTasks),
   ]
 
   const kindItems = menu.kind === RowKind.Task ? taskItems : []

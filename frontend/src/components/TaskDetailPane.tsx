@@ -224,6 +224,8 @@ export default function TaskDetailPane({
             {stageLabel(task.stage).text}
             <Chevron />
           </Picker>
+          <TodayField task={task} onUpdate={onUpdateTask} />
+          <DueDateField task={task} onUpdate={onUpdateTask} />
           <Picker
             name="Priority"
             value={task.priority}
@@ -236,8 +238,6 @@ export default function TaskDetailPane({
             {priorityLabel(task.priority).text} priority
             <Chevron />
           </Picker>
-          <DueDateField task={task} onUpdate={onUpdateTask} />
-          <TodayField task={task} onUpdate={onUpdateTask} />
           {lists.length > 0 && (
             <Picker
               name="List"

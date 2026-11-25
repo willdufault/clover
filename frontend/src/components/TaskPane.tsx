@@ -28,15 +28,6 @@ import { SortMenu } from './SortMenu'
 
 const metaItems = (task: Task) => {
   const items = []
-  if (task.priority !== 'medium') {
-    const priority = priorityLabel(task.priority)
-    items.push(
-      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-1.5">
-        <FontAwesomeIcon icon={priority.icon} className={priority.color} />
-        {priority.text}
-      </span>,
-    )
-  }
   if (task.addedToToday)
     items.push(
       <span key="today" title="In Today" className="flex items-center gap-1.5">
@@ -50,6 +41,15 @@ const metaItems = (task: Task) => {
       <span key="due" className={'flex items-center gap-1.5' + (isOverdue(task.due) ? ' text-rosehip' : '')}>
         <FontAwesomeIcon icon={icon.icon} title={icon.text} className={icon.color} />
         {formatDueDate(task.due)}
+      </span>,
+    )
+  }
+  if (task.priority !== 'medium') {
+    const priority = priorityLabel(task.priority)
+    items.push(
+      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-1.5">
+        <FontAwesomeIcon icon={priority.icon} className={priority.color} />
+        {priority.text}
       </span>,
     )
   }
