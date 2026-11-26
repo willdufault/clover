@@ -1,33 +1,9 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, center, mockApi } from './helpers'
+import { captureErrors, center, finger, longPress, mockApi } from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
-
-type Point = { x: number; y: number }
-
-const finger = async (page: Page, from: Point) => {
-  const cdp = await page.context().newCDPSession(page)
-  const send = (type: 'touchStart' | 'touchMove' | 'touchEnd', touchPoints: Point[]) =>
-    cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
-  let at = from
-  await send('touchStart', [from])
-  return {
-    move: async (to: Point) => {
-      for (let i = 1; i <= 10; i++)
-        await send('touchMove', [{ x: at.x + (to.x - at.x) * (i / 10), y: at.y + (to.y - at.y) * (i / 10) }])
-      at = to
-    },
-    up: () => send('touchEnd', []),
-  }
-}
-
-const longPress = async (page: Page, target: Locator) => {
-  const f = await finger(page, await center(target))
-  await page.waitForTimeout(600)
-  await f.up()
-}
 
 test('the lists drawer opens and closes', async ({ page }) => {
   const errors = captureErrors(page)
@@ -81,7 +57,7 @@ test('long-press opens the context menu on screen and a submenu replaces it in p
   await expect(remove).toBeVisible()
   await expect(page.locator('aside')).toHaveCount(0)
   await page.getByRole('menuitem', { name: 'Set stage' }).tap()
-  const done = page.getByRole('menuitem', { name: '✅ Done' })
+  const done = page.getByRole('menuitemradio', { name: 'Done' })
   await expect(done).toBeVisible()
   await expect
     .poll(async () => {
@@ -95,7 +71,7 @@ test('long-press opens the context menu on screen and a submenu replaces it in p
   expect(errors).toEqual([])
 })
 
-test('long-press on a sidebar list and on a step opens their menus', async ({ page }) => {
+test('long-press on a sidebar list opens its menu and step x buttons show on touch', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page)
   await page.goto('./')
@@ -111,8 +87,16 @@ test('long-press on a sidebar list and on a step opens their menus', async ({ pa
 
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
   await longPress(page, page.locator('aside [data-kind="step"]'))
-  await page.getByRole('menuitem', { name: 'Mark as done' }).tap()
-  await expect.poll(() => backend.data.steps[0]?.completed).toBe(true)
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  const remove = page.getByRole('button', { name: /^Delete step/ })
+  await expect(remove).toBeVisible()
+  const hit = await remove.evaluate((el) => {
+    const { width, height } = getComputedStyle(el, '::before')
+    return [parseFloat(width), parseFloat(height)]
+  })
+  expect(Math.min(...hit)).toBeGreaterThanOrEqual(44)
+  await remove.tap()
+  await expect.poll(() => backend.data.steps).toEqual([])
   expect(errors).toEqual([])
 })
 
@@ -155,13 +139,13 @@ test.describe('iPad portrait', () => {
     await longPress(page, row)
     const remove = page.getByRole('menuitem', { name: 'Delete', exact: true })
     await expect(remove).toBeVisible()
-    const menu = await remove.locator('..').boundingBox()
+    const menu = await page.getByRole('menu').boundingBox()
     const rowBox = await row.boundingBox()
-    expect(menu && rowBox && Math.abs(menu.y - (rowBox.y + rowBox.height / 2)) < 10).toBe(true)
+    expect(menu && rowBox && menu.y >= rowBox.y + rowBox.height).toBe(true)
     await page.getByRole('menuitem', { name: 'Set stage' }).tap()
-    await expect(page.getByRole('menuitem', { name: '✅ Done' })).toBeVisible()
+    await expect(page.getByRole('menuitemradio', { name: 'Done' })).toBeVisible()
     await page.getByLabel('Back').tap()
-    await expect(page.getByRole('menuitem', { name: '✅ Done' })).toHaveCount(0)
+    await expect(page.getByRole('menuitemradio', { name: 'Done' })).toHaveCount(0)
     expect(errors).toEqual([])
   })
 })
@@ -206,11 +190,11 @@ test('long-press Move to list moves the task to another list', async ({ page }) 
   expect(errors).toEqual([])
 })
 
-test('the sort menu stays on screen whether Sort sits right or left', async ({ page }) => {
+test('the sort menu stays on screen and Sort hides on an empty list', async ({ page }) => {
   const errors = captureErrors(page)
   await mockApi(page)
   await page.goto('./')
-  const menu = page.getByText('Sort by').locator('..')
+  const menu = page.getByRole('menu')
   const onScreen = async () => {
     const box = await menu.boundingBox()
     return !!box && box.x >= 0 && box.x + box.width <= 375
@@ -218,12 +202,15 @@ test('the sort menu stays on screen whether Sort sits right or left', async ({ p
 
   await page.getByRole('button', { name: 'Sort' }).tap()
   expect(await onScreen()).toBe(true)
-  await page.mouse.click(20, 600)
+  await page.getByRole('menuitem', { name: 'Priority' }).tap()
+  await page.getByRole('button', { name: 'Clear sort: Priority' }).tap()
+  await expect(page.getByRole('button', { name: 'Sort' })).toBeVisible()
+  await expect(menu).toHaveCount(0)
 
   await page.getByLabel('Open lists').tap()
   await page.locator('nav').getByText('Home').tap()
-  await page.getByRole('button', { name: 'Sort' }).tap()
-  expect(await onScreen()).toBe(true)
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sort' })).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -238,15 +225,15 @@ test.describe('phone sheet submenus', () => {
     const menu = page.getByRole('menu')
 
     const f = await finger(page, await center(row))
-    await expect(row).toHaveClass(/scale-\[0\.98\]/)
+    await expect(row).toHaveClass(/scale-98/)
     await expect(menu).toBeVisible()
     await f.up()
-    await expect(row).not.toHaveClass(/scale-\[0\.98\]/)
+    await expect(row).not.toHaveClass(/scale-98/)
 
     await menu.getByRole('menuitem', { name: 'Set due date' }).tap()
     await expect(menu.getByLabel('Back')).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
-    await menu.getByRole('menuitem', { name: 'Tomorrow' }).tap()
+    await menu.getByRole('menuitemradio', { name: 'Tomorrow' }).tap()
     await expect(menu).toHaveCount(0)
     await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.due).toBe(tomorrow())
     expect(errors).toEqual([])
@@ -273,7 +260,10 @@ test.describe('tablet', () => {
     await longPress(page, row)
     await expect(menu.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
     const box = await menu.boundingBox()
-    expect(box && Math.abs(box.x - press.x) < 10 && Math.abs(box.y - press.y) < 10 && box.width < 300).toBe(true)
+    const rowBox = await row.boundingBox()
+    expect(
+      box && rowBox && Math.abs(box.x - press.x) < 10 && box.y >= rowBox.y + rowBox.height && box.width < 300,
+    ).toBe(true)
     expect(await onScreen()).toBe(true)
 
     await menu.getByRole('menuitem', { name: 'Move to list' }).tap()
@@ -281,7 +271,7 @@ test.describe('tablet', () => {
     await expect(back).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0)
     expect(await onScreen()).toBe(true)
-    expect((await menu.boundingBox())?.height).toBeLessThanOrEqual(320)
+    expect((await menu.boundingBox())?.height).toBeLessThanOrEqual(384)
     expect(await menu.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
 
     await menu.evaluate((el) => (el.scrollTop = el.scrollHeight))

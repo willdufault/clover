@@ -1,4 +1,4 @@
-import { PRIORITIES, STAGES } from './labels'
+import { isCompleted, PRIORITIES, STAGES } from './labels'
 import type { Task } from './types'
 
 export type SortCriteria = 'stage' | 'due' | 'priority'
@@ -9,17 +9,11 @@ const sortKey = {
   priority: (task: Task) => PRIORITIES.indexOf(task.priority),
 }
 
-export const sortTasks = (tasks: Task[], criteria: SortCriteria) => {
-  const key = sortKey[criteria]
-  return tasks.toSorted((a, b) => {
-    if (key(a) === key(b)) return 0
-    return key(a) < key(b) ? -1 : 1
-  })
-}
+const compare = <T>(a: T, b: T) => Number(a > b) - Number(a < b)
 
-export const applySort = (all: Task[], visible: Task[], criteria: SortCriteria) => {
-  const sorted = sortTasks(visible, criteria)
-  const visibleSet = new Set(visible)
-  let sortedIndex = 0
-  return all.map((task) => (visibleSet.has(task) ? (sorted[sortedIndex++] ?? task) : task))
+export const sortTasks = (tasks: Task[], sort: SortCriteria | null) => {
+  const newestFirst = tasks.toReversed()
+  if (!sort) return newestFirst
+  const key = sortKey[sort]
+  return newestFirst.toSorted((a, b) => compare(isCompleted(a.stage), isCompleted(b.stage)) || compare(key(a), key(b)))
 }

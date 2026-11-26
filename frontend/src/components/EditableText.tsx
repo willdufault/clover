@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function EditableText({
@@ -6,7 +6,7 @@ export function EditableText({
   text,
   maxLength,
   editable = true,
-  selectOnModifierClick = false,
+  editRequest = 0,
   className,
   inputClassName,
   onCommit,
@@ -15,19 +15,29 @@ export function EditableText({
   text: string
   maxLength: number
   editable?: boolean
-  selectOnModifierClick?: boolean
+  editRequest?: number
   className: string
   inputClassName: string
   onCommit: (text: string) => void
 }) {
   const [draft, setDraft] = useState<string | null>(null)
+  const [seenRequest, setSeenRequest] = useState(editRequest)
+  if (editRequest !== seenRequest) {
+    setSeenRequest(editRequest)
+    setDraft(text)
+  }
+  const editing = draft !== null
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
 
   if (draft !== null) {
     const cancel = () => setDraft(null)
     return (
       <textarea
         rows={1}
-        autoFocus
+        ref={inputRef}
         onFocus={(event) => event.target.select()}
         value={draft}
         maxLength={maxLength}
@@ -53,7 +63,6 @@ export function EditableText({
     <Tag
       onClick={(event) => {
         if (!editable) return
-        if (selectOnModifierClick && (event.ctrlKey || event.metaKey || event.shiftKey)) return
         event.stopPropagation()
         setDraft(text)
       }}

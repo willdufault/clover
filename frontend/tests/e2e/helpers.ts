@@ -69,3 +69,34 @@ export const drag = async (page: Page, from: Locator, to: Locator) => {
 export const navRow = (page: Page, name: string) => page.locator('nav > div', { hasText: name })
 
 export const waitForDropAnimation = (page: Page) => page.waitForTimeout(500)
+
+export const pick = async (page: Page, trigger: Locator, option: string) => {
+  await trigger.click()
+  await page.getByRole('menuitemradio', { name: option, exact: true }).click()
+}
+
+export const stageButton = (row: Locator) => row.getByRole('button', { name: /^Stage: / })
+
+type Point = { x: number; y: number }
+
+export const finger = async (page: Page, from: Point) => {
+  const cdp = await page.context().newCDPSession(page)
+  const send = (type: 'touchStart' | 'touchMove' | 'touchEnd', touchPoints: Point[]) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
+  let at = from
+  await send('touchStart', [from])
+  return {
+    move: async (to: Point) => {
+      for (let i = 1; i <= 10; i++)
+        await send('touchMove', [{ x: at.x + (to.x - at.x) * (i / 10), y: at.y + (to.y - at.y) * (i / 10) }])
+      at = to
+    },
+    up: () => send('touchEnd', []),
+  }
+}
+
+export const longPress = async (page: Page, target: Locator) => {
+  const f = await finger(page, await center(target))
+  await page.waitForTimeout(600)
+  await f.up()
+}

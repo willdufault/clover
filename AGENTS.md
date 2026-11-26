@@ -11,6 +11,7 @@ Check your own work before finishing. Exercise the behavior you changed, not jus
 ### Frontend (run from `frontend/`)
 
 - Run `npm test`, `npm run lint`, `npm run format:check`, and `npm run build` (type-check).
+- Format with `npm run format` (oxfmt). Never use Prettier.
 - UI changes: run `npm run e2e` exercising the changed behavior (click, drag, set due date/stage), not just page load. Fail on console errors. Screenshot the changed UI and check it. For PR evidence, record with Playwright `video: 'on'`, then convert to GIF: `$(node -p "require('ffmpeg-static')") -i video.webm -vf "fps=25,scale=<width>:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" <name>.gif`.
 
 ### Backend (run from `backend/`)

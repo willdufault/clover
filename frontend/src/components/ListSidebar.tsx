@@ -1,21 +1,33 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, sidebarRowClass } from '../styles'
+import { isCompleted } from '../labels'
 import { RowKind, type Task, type TaskList } from '../types'
-import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../smartLists'
+import { ALL_LIST_ID, SMART_LIST_ICONS, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { logout } from '../api'
 import { TaskCountBadge } from './TaskCountBadge'
+import { IconSlot } from './IconSlot'
 import { AddInput } from './AddInput'
 import limits from '../shared/limits.json'
 import { SortableRow } from './SortableRow'
 import { useModalFocus } from '../useModalFocus'
 import type { OpenContextMenu } from './ContextMenu'
 
+function SmartListIcon({ listId }: { listId: string }) {
+  return <IconSlot icon={SMART_LIST_ICONS[listId]} color="text-clover" />
+}
+
+const openCount = (tasks: Task[], listId: string) =>
+  tasksInList(tasks, listId).filter((task) => !isCompleted(task.stage)).length
+
 export default function ListSidebar({
   lists,
   tasks,
   selectedListId,
   dragOverListId,
+  menuIds,
   drawerOpen,
   inert,
   onClose,
@@ -27,6 +39,7 @@ export default function ListSidebar({
   tasks: Task[]
   selectedListId: string
   dragOverListId: string | null
+  menuIds: string[]
   drawerOpen: boolean
   inert: boolean
   onClose: () => void
@@ -38,27 +51,30 @@ export default function ListSidebar({
   const closeRef = useModalFocus<HTMLButtonElement>(drawerOpen)
   return (
     <>
-      {drawerOpen && <div onClick={onClose} className="fixed inset-0 z-40 bg-ink/30 lg:hidden" />}
+      {drawerOpen && <div onClick={onClose} className="fixed inset-0 z-40 bg-moss/30 lg:hidden" />}
       <div
         inert={inert}
         role={drawerOpen ? 'dialog' : undefined}
         aria-modal={drawerOpen || undefined}
         aria-label="Lists"
         className={
-          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col bg-sprout shadow-pop duration-200 lg:visible lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:p-0 lg:shadow-none 2xl:w-72 ' +
+          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-5/6 shrink-0 flex-col border-r border-fieldstone bg-parchment shadow-md duration-200 motion-reduce:transition-none lg:visible lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:p-0 lg:shadow-none 2xl:w-72 ' +
           SAFE_AREA_CLASS +
-          (drawerOpen ? ' transition-[translate]' : ' invisible -translate-x-full transition-[translate,visibility]')
+          (drawerOpen ? ' transition-transform' : ' invisible -translate-x-full transition-all')
         }
       >
-        <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-6 pb-4">
-          <div className="px-3 py-2 text-lg font-semibold tracking-tight text-ink">🍀 clover</div>
+        <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-8 pb-4">
+          <div className="flex items-center gap-2 px-3 py-1 font-serif text-2xl font-medium text-moss">
+            <span aria-hidden="true">🍀</span>
+            Clover
+          </div>
           <button
             ref={closeRef}
             onClick={onClose}
             aria-label="Close lists"
-            className={ICON_BUTTON_CLASS + ' text-ink-soft lg:hidden'}
+            className={ICON_BUTTON_CLASS + ' size-9 text-lg text-lichen lg:hidden'}
           >
-            ✕
+            <FontAwesomeIcon icon={faXmark} />
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-3 pb-4">
@@ -67,45 +83,54 @@ export default function ListSidebar({
             onClick={() => onSelectList(TODAY_LIST_ID)}
             className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
           >
-            <span>{SMART_LIST_NAMES[TODAY_LIST_ID]}</span>
-            <TaskCountBadge count={tasksInList(tasks, TODAY_LIST_ID).length} />
+            <span className="flex items-center gap-1.5">
+              <SmartListIcon listId={TODAY_LIST_ID} />
+              {SMART_LIST_NAMES[TODAY_LIST_ID]}
+            </span>
+            <TaskCountBadge count={openCount(tasks, TODAY_LIST_ID)} />
           </div>
           <div
             onClick={() => onSelectList(ALL_LIST_ID)}
             className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
           >
-            <span>{SMART_LIST_NAMES[ALL_LIST_ID]}</span>
-            <TaskCountBadge count={tasksInList(tasks, ALL_LIST_ID).length} />
+            <span className="flex items-center gap-1.5">
+              <SmartListIcon listId={ALL_LIST_ID} />
+              {SMART_LIST_NAMES[ALL_LIST_ID]}
+            </span>
+            <TaskCountBadge count={openCount(tasks, ALL_LIST_ID)} />
           </div>
-          <hr className="mx-3 my-3 border-sprout-deep" />
+          <hr className="mx-3 my-3 border-fieldstone" />
           <SortableContext items={lists} strategy={verticalListSortingStrategy}>
             {lists.map((list) => (
               <SortableRow
                 key={list.id}
                 id={list.id}
                 kind={RowKind.List}
-                menuTitle={list.name}
                 tag="div"
                 onClick={() => onSelectList(list.id)}
                 onContextMenu={onContextMenu(RowKind.List, list.id)}
-                className={sidebarRowClass(list.id === selectedListId, list.id === dragOverListId)}
+                className={sidebarRowClass(
+                  list.id === selectedListId,
+                  list.id === dragOverListId,
+                  menuIds.includes(list.id),
+                )}
               >
-                <span className="min-w-0 truncate">{list.name}</span>
-                <TaskCountBadge count={tasksInList(tasks, list.id).length} />
+                <span className="line-clamp-1 min-w-0 break-words">{list.name}</span>
+                <TaskCountBadge count={openCount(tasks, list.id)} />
               </SortableRow>
             ))}
           </SortableContext>
 
           <AddInput
-            placeholder="+ New list"
+            placeholder="Add a list"
             maxLength={limits.listNameMax}
             onAdd={onCreateList}
-            className="mt-4 shrink-0"
+            className="mt-2 shrink-0"
           />
         </nav>
         <button
           onClick={() => void logout()}
-          className="mx-6 mb-1 w-fit py-3 text-sm text-ink-soft transition hover:text-ink pointer-fine:mb-4 pointer-fine:py-0"
+          className="touch-hit mx-4 mb-2 w-fit cursor-pointer rounded-md px-2 py-2.5 text-base text-moss/80 transition hover:text-moss pointer-fine:mb-5 pointer-fine:py-1"
         >
           Log out
         </button>

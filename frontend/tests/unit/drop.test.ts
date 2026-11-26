@@ -1,6 +1,7 @@
 import * as fc from 'fast-check'
 import { applyDrop, type ListsAndTasks } from '../../src/drop'
 import { ALL_LIST_ID, TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
+import { sortTasks } from '../../src/sort'
 import type { Step, Task } from '../../src/types'
 import { makeTask } from './makeTask'
 
@@ -23,6 +24,8 @@ const makeState = (): ListsAndTasks => ({
 const baseDrop = { selectedListId: 'A', detailTask: undefined as Task | undefined }
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
 
+const shown = (state: ListsAndTasks) => ids(sortTasks(tasksInList(state.tasks, 'A'), null))
+
 test('reorder lists: only list order changes', () => {
   const result = applyDrop(makeState(), { ...baseDrop, activeId: 'A', overId: 'C' })
   expect(ids(result.lists)).toEqual(['B', 'C', 'A'])
@@ -34,6 +37,14 @@ test('reorder tasks in a list: other tasks untouched', () => {
   expect(ids(result.tasks)).toEqual(['a2', 'a3', 'a1', 'b1', 'b2', 'c1'])
   expect(result.tasks.find((task) => task.id === 'a1')).toEqual(makeState().tasks[0])
   expect(result.lists).toEqual(makeState().lists)
+})
+
+test('a task dropped in the newest-first view lands where it was dropped', () => {
+  expect(shown(makeState())).toEqual(['a3', 'a2', 'a1'])
+  const down = applyDrop(makeState(), { ...baseDrop, activeId: 'a3', overId: 'a1' })
+  expect(shown(down)).toEqual(['a2', 'a1', 'a3'])
+  const up = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a2' })
+  expect(shown(up)).toEqual(['a3', 'a1', 'a2'])
 })
 
 test('reorder steps: task order and other tasks untouched', () => {
