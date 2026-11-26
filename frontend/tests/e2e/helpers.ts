@@ -100,3 +100,10 @@ export const longPress = async (page: Page, target: Locator) => {
   await page.waitForTimeout(600)
   await f.up()
 }
+
+export const touchDrag = async (page: Page, from: Locator, to: Locator) => {
+  const f = await finger(page, await center(from))
+  await page.locator('[data-overlay]').waitFor()
+  await f.move(await center(to))
+  await f.up()
+}

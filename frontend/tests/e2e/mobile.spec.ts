@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, center, finger, longPress, mockApi } from './helpers'
+import { captureErrors, center, finger, longPress, mockApi, touchDrag, waitForDropAnimation } from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
 
@@ -119,6 +119,111 @@ test('a quick swipe scrolls the list instead of opening the menu', async ({ page
   await page.waitForTimeout(600)
   await expect(page.getByRole('menu')).toHaveCount(0)
   expect(errors).toEqual([])
+})
+
+const texts = async (rows: Locator) => (await rows.allInnerTexts()).map((t) => t.split('\n')[0])
+
+test('touch hold-then-move reorders a task', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(2)
+  const before = await texts(rows)
+
+  await touchDrag(page, rows.last(), rows.first())
+
+  await expect.poll(() => texts(rows)).toEqual(before.toReversed())
+  await expect(page.locator('aside')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('touch hold-then-move reorders a step', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', completed: false })
+  await mockApi(page, data)
+  await page.goto('./')
+  await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
+  const steps = page.locator('aside [data-kind="step"]')
+  await expect(steps).toHaveCount(2)
+  await page.waitForTimeout(300)
+
+  await touchDrag(page, steps.last(), steps.first())
+
+  await expect.poll(() => texts(steps)).toEqual(['Whole', '2% lactose free'])
+  expect(errors).toEqual([])
+})
+
+test('touch hold-then-move reorders a list', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  await page.getByLabel('Open lists').tap()
+  await page.waitForTimeout(300)
+  const lists = page.locator('nav [data-kind="list"]')
+
+  await touchDrag(page, lists.last(), lists.first())
+
+  await expect.poll(() => texts(lists)).toEqual(['Home', 'Groceries', 'Work'])
+  expect(errors).toEqual([])
+})
+
+test('long-press opens the menu and leaves no drag active', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  const row = rows.filter({ hasText: 'Eggs' })
+
+  await longPress(page, row)
+  await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+  await expect(page.locator('[data-overlay]')).toHaveCount(0)
+  await expect(row).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await waitForDropAnimation(page)
+  await expect.poll(() => texts(rows)).toEqual(['Eggs', 'Milk'])
+  await row.tap()
+  await expect(page.locator('aside').getByRole('heading', { name: 'Eggs' })).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+test.describe('touch laptop', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false })
+
+  test('touch-dragging a selected task moves only that task', async ({ page }) => {
+    const errors = captureErrors(page)
+    await mockApi(page)
+    await page.goto('./')
+    await page.locator('nav').getByText('Work').click()
+    const rows = page.locator('main [data-kind="task"]')
+    await rows.filter({ hasText: 'Reply' }).click()
+    await rows.filter({ hasText: 'Update' }).click({ modifiers: ['Shift'] })
+    await expect(page.locator('aside')).toHaveCount(0)
+
+    await touchDrag(page, rows.filter({ hasText: 'Update' }), rows.first())
+
+    await expect.poll(() => texts(rows)).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
+    expect(errors).toEqual([])
+  })
+
+  test('touch-dragging a task onto a sidebar list or Today does not move it', async ({ page }) => {
+    const errors = captureErrors(page)
+    const backend = await mockApi(page)
+    await page.goto('./')
+    const nav = page.locator('nav')
+    const milk = page.locator('main [data-kind="task"]', { hasText: 'Milk' })
+
+    await touchDrag(page, milk, nav.getByText('Home'))
+    await waitForDropAnimation(page)
+    await touchDrag(page, milk, nav.getByText('Today', { exact: true }))
+    await waitForDropAnimation(page)
+
+    await expect(milk).toBeVisible()
+    expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ listId: 'groceries', addedToToday: false })
+    expect(errors).toEqual([])
+  })
 })
 
 test.describe('iPad portrait', () => {

@@ -19,12 +19,12 @@ const useLongPress = (onLongPress: (event: MenuAnchor) => void) => {
       const touch = event.touches[0]
       if (!touch || event.touches.length > 1) return cancel()
       const { clientX, clientY } = touch
-      const row = event.currentTarget
+      const rect = event.currentTarget.getBoundingClientRect()
       const state: Press = { x: clientX, y: clientY, fired: false, timer: 0 }
       state.timer = window.setTimeout(() => {
         state.fired = true
         setPressing(false)
-        const rect = row.getBoundingClientRect()
+        document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }))
         onLongPress({ clientX, clientY: rect.bottom + 4, above: rect.top - 4 })
       }, 500)
       press.current = state
@@ -82,7 +82,7 @@ export function SortableRow({
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover ' +
         (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
-  const { pressing, ...longPressHandlers } = useLongPress((event) => onContextMenu?.(event))
+  const { pressing, onTouchStart: onPressStart, ...longPressHandlers } = useLongPress((event) => onContextMenu?.(event))
   return (
     <Tag
       ref={setNodeRef}
@@ -98,9 +98,13 @@ export function SortableRow({
         (pressing ? 'duration-500 ease-out motion-safe:scale-98 ' : '') +
         rowClass
       }
-      {...longPressHandlers}
       {...attributes}
       {...listeners}
+      {...longPressHandlers}
+      onTouchStart={(event) => {
+        onPressStart(event)
+        listeners?.onTouchStart?.(event)
+      }}
     >
       {children}
     </Tag>
