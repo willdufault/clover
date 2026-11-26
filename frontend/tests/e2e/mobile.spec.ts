@@ -77,7 +77,6 @@ test('long-press on a sidebar list opens its menu and step x buttons show on tou
   await page.goto('./')
 
   await page.getByLabel('Open lists').tap()
-  await page.waitForTimeout(300)
   await longPress(page, page.locator('nav [data-kind="list"]', { hasText: 'Home' }))
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
   await expect(page.getByText('Home', { exact: true }).last()).toBeVisible()
@@ -147,7 +146,6 @@ test('touch hold-then-move reorders a step', async ({ page }) => {
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
   const steps = page.locator('aside [data-kind="step"]')
   await expect(steps).toHaveCount(2)
-  await page.waitForTimeout(300)
 
   await touchDrag(page, steps.last(), steps.first())
 
@@ -160,7 +158,6 @@ test('touch hold-then-move reorders a list', async ({ page }) => {
   await mockApi(page)
   await page.goto('./')
   await page.getByLabel('Open lists').tap()
-  await page.waitForTimeout(300)
   const lists = page.locator('nav [data-kind="list"]')
 
   await touchDrag(page, lists.last(), lists.first())
