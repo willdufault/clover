@@ -8,10 +8,13 @@ import {
   pointerWithin,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
   type Over,
 } from '@dnd-kit/core'
+import { getEventCoordinates } from '@dnd-kit/utilities'
 import { api } from './api'
 import { applyDrop, idsToMove } from './drop'
 import { nextSelection } from './selection'
@@ -22,6 +25,7 @@ import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './comp
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
+import { DropAfterContext } from './components/SortableRow'
 import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS, rowStateClass } from './styles'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -35,6 +39,19 @@ const measureDraggable = (node: HTMLElement) => {
   return lastRects.get(node) ?? getClientRect(node)
 }
 
+const visibleCollisions: CollisionDetection = (args) =>
+  pointerWithin({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      ({ node }) => node.current && getComputedStyle(node.current).visibility !== 'hidden',
+    ),
+  })
+
+const isDropAfter = ({ activatorEvent, delta, over }: DragMoveEvent) => {
+  const start = getEventCoordinates(activatorEvent)
+  return !!over && !!start && start.y + delta.y > over.rect.top + over.rect.height / 2
+}
+
 const clickModifiers = (event: React.MouseEvent) => ({
   ctrl: event.ctrlKey || event.metaKey,
   shift: event.shiftKey,
@@ -46,7 +63,7 @@ const soleTask = (tasks: Task[], ids: string[]) =>
 const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]) ? values[0] : undefined)
 
 const DragStack = ({ stacked, children }: { stacked: boolean; children: React.ReactNode }) => (
-  <div className="relative h-full">
+  <div className="relative h-full opacity-80">
     {stacked && (
       <div
         className={'absolute inset-0 translate-x-2 translate-y-2 rounded-lg shadow-md ' + rowStateClass(true, false)}
@@ -71,6 +88,7 @@ export default function App() {
   const [activeDrag, setActiveDrag] = useState<(DragInfo & { touch: boolean }) | null>(null)
   const [dragIds, setDragIds] = useState<string[]>([])
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
+  const [dropAfter, setDropAfter] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
   const visibleTasks = sortTasks(tasksInList(tasks, selectedListId), sort)
@@ -254,7 +272,8 @@ export default function App() {
     setDragIds(touch ? [String(active.id)] : actionIds(drag.kind, String(active.id)))
   }
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
     resetDragState()
     if (!over) return
     const targetListId = taskDropListId(over)
@@ -272,6 +291,7 @@ export default function App() {
         detailTask,
         activeId: String(active.id),
         overId: String(over.id),
+        after: isDropAfter(event),
       },
     )
     setLists(nextState.lists)
@@ -282,81 +302,84 @@ export default function App() {
 
   return (
     <DndContext
-      collisionDetection={pointerWithin}
+      collisionDetection={visibleCollisions}
       measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragMove={(event) => setDropAfter(isDropAfter(event))}
       onDragOver={({ over }) => setDragOverListId(taskDropListId(over))}
       onDragEnd={handleDragEnd}
       onDragCancel={resetDragState}
     >
-      <div className={'flex h-dvh overflow-hidden flex-col font-sans ' + SAFE_AREA_CLASS}>
-        {error && (
-          <div
-            role="alert"
-            className="flex items-center justify-between gap-3 bg-rosehip/10 px-4 py-2 text-base text-moss"
-          >
-            <span className="min-w-0 break-words">{error}</span>
-            <button
-              onClick={() => setError(null)}
-              aria-label="Dismiss error"
-              className={ICON_BUTTON_CLASS + ' text-rosehip'}
+      <DropAfterContext value={dropAfter}>
+        <div className={'flex h-dvh overflow-hidden flex-col font-sans ' + SAFE_AREA_CLASS}>
+          {error && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 bg-rosehip/10 px-4 py-2 text-base text-moss"
             >
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
-          </div>
-        )}
-        <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 2xl:border-x 2xl:border-fieldstone">
-          <ListSidebar
-            lists={lists}
-            tasks={tasks}
-            selectedListId={selectedListId}
-            dragOverListId={dragOverListId}
-            menuIds={menuIds}
-            drawerOpen={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            onSelectList={selectList}
-            onCreateList={createList}
-            onContextMenu={openContextMenu}
-            inert={detailModal}
-          />
-          <TaskPane
-            selectedListId={selectedListId}
-            listName={listName}
-            renamable={!!selectedList}
-            onRenameList={renameList}
-            onDeleteList={(id) => deleteLists([id])}
-            tasks={visibleTasks}
-            onAddTask={addTask}
-            onSort={setSort}
-            sort={sort}
-            selectedIds={selectedTaskIds}
-            menuIds={menuIds}
-            dragIds={dragIds}
-            onSelectTask={selectTask}
-            onClearSelection={() => setSelectedTaskIds([])}
-            onToggleDone={toggleDone}
-            onContextMenu={openContextMenu}
-            onOpenLists={() => setDrawerOpen(true)}
-            inert={mainInert}
-            wide={!detailTask}
-          />
-          {detailTask && (
-            <TaskDetailPane
-              task={detailTask}
-              onClose={() => setSelectedTaskIds([])}
-              onDeleteTask={() => deleteTasks([detailTask.id])}
-              onAddStep={addStep}
-              onToggleStep={setStepCompleted}
-              onDeleteStep={(id) => deleteSteps([id])}
-              onUpdateTask={(patch) => updateTask(detailTask.id, patch)}
-              lists={lists}
-              onRenameStep={renameStep}
-              modal={detailModal}
-            />
+              <span className="min-w-0 break-words">{error}</span>
+              <button
+                onClick={() => setError(null)}
+                aria-label="Dismiss error"
+                className={ICON_BUTTON_CLASS + ' text-rosehip'}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
           )}
+          <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 2xl:border-x 2xl:border-fieldstone">
+            <ListSidebar
+              lists={lists}
+              tasks={tasks}
+              selectedListId={selectedListId}
+              dragOverListId={dragOverListId}
+              menuIds={menuIds}
+              drawerOpen={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              onSelectList={selectList}
+              onCreateList={createList}
+              onContextMenu={openContextMenu}
+              inert={detailModal}
+            />
+            <TaskPane
+              selectedListId={selectedListId}
+              listName={listName}
+              renamable={!!selectedList}
+              onRenameList={renameList}
+              onDeleteList={(id) => deleteLists([id])}
+              tasks={visibleTasks}
+              onAddTask={addTask}
+              onSort={setSort}
+              sort={sort}
+              selectedIds={selectedTaskIds}
+              menuIds={menuIds}
+              dragIds={dragIds}
+              onSelectTask={selectTask}
+              onClearSelection={() => setSelectedTaskIds([])}
+              onToggleDone={toggleDone}
+              onContextMenu={openContextMenu}
+              onOpenLists={() => setDrawerOpen(true)}
+              inert={mainInert}
+              wide={!detailTask}
+            />
+            {detailTask && (
+              <TaskDetailPane
+                task={detailTask}
+                onClose={() => setSelectedTaskIds([])}
+                onDeleteTask={() => deleteTasks([detailTask.id])}
+                onAddStep={addStep}
+                onToggleStep={setStepCompleted}
+                onDeleteStep={(id) => deleteSteps([id])}
+                onUpdateTask={(patch) => updateTask(detailTask.id, patch)}
+                lists={lists}
+                onRenameStep={renameStep}
+                modal={detailModal}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      </DropAfterContext>
       <DragOverlay>
         <DragStack stacked={dragIds.length > 1}>{activeDrag?.clone}</DragStack>
       </DragOverlay>

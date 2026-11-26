@@ -634,9 +634,9 @@ const dragRow = async (from: HTMLElement, to: HTMLElement) => {
   fireEvent.mouseDown(from, { button: 0, clientX: 50, clientY: y(from) })
   fireEvent.mouseMove(document, { clientX: 50, clientY: y(from) + 10 })
   await flush()
-  fireEvent.mouseMove(document, { clientX: 50, clientY: y(to) })
+  fireEvent.mouseMove(document, { clientX: 50, clientY: y(to) + 10 })
   await flush()
-  fireEvent.mouseUp(document, { clientX: 50, clientY: y(to) })
+  fireEvent.mouseUp(document, { clientX: 50, clientY: y(to) + 10 })
   await act(() => new Promise((resolve) => setTimeout(resolve, 60)))
   vi.restoreAllMocks()
 }

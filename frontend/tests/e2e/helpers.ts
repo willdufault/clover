@@ -43,10 +43,19 @@ export const box = async (locator: Locator) => {
   return bounds
 }
 
-export const center = async (locator: Locator) => {
+export const center = async (locator: Locator, at = 0.5) => {
   const b = await box(locator)
-  return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  return { x: b.x + b.width / 2, y: b.y + b.height * at }
 }
+
+export const lineSide = (row: Locator) =>
+  row.evaluate((el) => {
+    const style = getComputedStyle(el, '::before')
+    if (style.content === 'none') return null
+    return style.top === '0px' ? 'above' : 'below'
+  })
+
+export const lineSides = async (rows: Locator) => Promise.all((await rows.all()).map(lineSide))
 
 export const grab = async (page: Page, from: Locator) => {
   const start = await center(from)
@@ -55,8 +64,8 @@ export const grab = async (page: Page, from: Locator) => {
   return start
 }
 
-export const glide = async (page: Page, start: { x: number; y: number }, to: Locator) => {
-  const end = await center(to)
+export const glide = async (page: Page, start: { x: number; y: number }, to: Locator, at = 0.5) => {
+  const end = await center(to, at)
   for (let i = 1; i <= 10; i++)
     await page.mouse.move(start.x + (end.x - start.x) * (i / 10), start.y + (end.y - start.y) * (i / 10))
 }

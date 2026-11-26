@@ -21,7 +21,7 @@ const makeState = (): ListsAndTasks => ({
     makeTask('c1', { listId: 'C', steps: [makeStep('z1')] }),
   ],
 })
-const baseDrop = { selectedListId: 'A', detailTask: undefined as Task | undefined }
+const baseDrop = { selectedListId: 'A', detailTask: undefined as Task | undefined, after: true }
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
 
 const shown = (state: ListsAndTasks) => ids(sortTasks(tasksInList(state.tasks, 'A'), null))
@@ -30,10 +30,31 @@ test('reorder lists: only list order changes', () => {
   const result = applyDrop(makeState(), { ...baseDrop, activeId: 'A', overId: 'C' })
   expect(ids(result.lists)).toEqual(['B', 'C', 'A'])
   expect(result.tasks).toEqual(makeState().tasks)
+  expect(ids(applyDrop(makeState(), { ...baseDrop, activeId: 'A', overId: 'C', after: false }).lists)).toEqual([
+    'B',
+    'A',
+    'C',
+  ])
+})
+
+test('dropping next to the original spot keeps the order', () => {
+  const state = makeState()
+  expect(ids(applyDrop(state, { ...baseDrop, activeId: 'B', overId: 'A' }).lists)).toEqual(['A', 'B', 'C'])
+  expect(ids(applyDrop(state, { ...baseDrop, activeId: 'B', overId: 'C', after: false }).lists)).toEqual([
+    'A',
+    'B',
+    'C',
+  ])
+  expect(shown(applyDrop(state, { ...baseDrop, activeId: 'a2', overId: 'a3' }))).toEqual(['a3', 'a2', 'a1'])
+  expect(shown(applyDrop(state, { ...baseDrop, activeId: 'a2', overId: 'a1', after: false }))).toEqual([
+    'a3',
+    'a2',
+    'a1',
+  ])
 })
 
 test('reorder tasks in a list: other tasks untouched', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a3' })
+  const result = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a3', after: false })
   expect(ids(result.tasks)).toEqual(['a2', 'a3', 'a1', 'b1', 'b2', 'c1'])
   expect(result.tasks.find((task) => task.id === 'a1')).toEqual(makeState().tasks[0])
   expect(result.lists).toEqual(makeState().lists)
@@ -43,7 +64,7 @@ test('a task dropped in the newest-first view lands where it was dropped', () =>
   expect(shown(makeState())).toEqual(['a3', 'a2', 'a1'])
   const down = applyDrop(makeState(), { ...baseDrop, activeId: 'a3', overId: 'a1' })
   expect(shown(down)).toEqual(['a2', 'a1', 'a3'])
-  const up = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a2' })
+  const up = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a2', after: false })
   expect(shown(up)).toEqual(['a3', 'a1', 'a2'])
 })
 
@@ -106,6 +127,7 @@ const caseArb = stateArb.chain((state) => {
         detailTask: fc.constantFrom(...tasksInList(state.tasks, selectedListId), undefined),
         activeId: fc.constantFrom(...allIds),
         overId: fc.constantFrom(...allIds),
+        after: fc.boolean(),
       }),
     }),
   )
@@ -152,6 +174,52 @@ test('property: drops outside lists, visible tasks, or detail steps return the s
       const visible = tasksInList(state.tasks, drop.selectedListId)
       fc.pre(!both(state.lists) && !both(visible) && !(drop.detailTask && both(drop.detailTask.steps)))
       expect(applyDrop(state, drop)).toBe(state)
+    }),
+  )
+})
+
+const orderArb = fc.integer({ min: 2, max: 8 }).chain((count) =>
+  fc.record({
+    order: fc.constant(Array.from({ length: count }, (_, i) => `L${i}`)),
+    from: fc.nat({ max: count - 1 }),
+    over: fc.nat({ max: count - 1 }),
+    after: fc.boolean(),
+  }),
+)
+const listState = (order: string[]): ListsAndTasks => ({ lists: order.map((id) => ({ id, name: id })), tasks: [] })
+const taskState = (order: string[]): ListsAndTasks => ({
+  lists: [{ id: 'A', name: 'A' }],
+  tasks: order.toReversed().map((id) => makeTask(id, { listId: 'A' })),
+})
+const views = [
+  [listState, (state: ListsAndTasks) => ids(state.lists)],
+  [taskState, shown],
+] as const
+
+test('property: dropping into the original gap leaves the order unchanged', () => {
+  fc.assert(
+    fc.property(orderArb, ({ order, from, after }) => {
+      const overIndex = after ? from - 1 : from + 1
+      fc.pre(overIndex >= 0 && overIndex < order.length)
+      for (const [build, view] of views) {
+        const drop = { ...baseDrop, activeId: order[from] ?? '', overId: order[overIndex] ?? '', after }
+        expect(view(applyDrop(build(order), drop))).toEqual(order)
+      }
+    }),
+  )
+})
+
+test('property: a drop lands before or after the hovered item and keeps the others in order', () => {
+  fc.assert(
+    fc.property(orderArb, ({ order, from, over, after }) => {
+      fc.pre(from !== over)
+      const activeId = order[from] ?? ''
+      const overId = order[over] ?? ''
+      for (const [build, view] of views) {
+        const result = view(applyDrop(build(order), { ...baseDrop, activeId, overId, after }))
+        expect(result.indexOf(activeId)).toBe(result.indexOf(overId) + (after ? 1 : -1))
+        expect(result.filter((id) => id !== activeId)).toEqual(order.filter((id) => id !== activeId))
+      }
     }),
   )
 })

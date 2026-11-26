@@ -1,7 +1,16 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, center, finger, longPress, mockApi, touchDrag, waitForDropAnimation } from './helpers'
+import {
+  captureErrors,
+  center,
+  finger,
+  lineSides,
+  longPress,
+  mockApi,
+  touchDrag,
+  waitForDropAnimation,
+} from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
 
@@ -180,7 +189,7 @@ test('a slow touch drag reorders instead of opening the menu', async ({ page }) 
   await expect(rows).toHaveCount(2)
   const before = await texts(rows)
   const from = await center(rows.last())
-  const to = await center(rows.first())
+  const to = await center(rows.first(), 0.25)
 
   await rows.last().evaluate(
     async (target, { x, top, bottom }) => {
@@ -228,6 +237,34 @@ test('a touch drag from the middle collapses the row and marks the drop target',
   await f.up()
 
   await expect.poll(() => texts(rows)).toEqual([before[2], before[0], before[1], before[3], before[4]])
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a touch drop back in its gap keeps the order and the hovered half picks the side', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 3; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(5)
+  const before = await texts(rows)
+  const f = await finger(page, await center(rows.nth(2)))
+  await page.locator('[data-overlay]').waitFor()
+  const hover = async (index: number, at: number, side: 'above' | 'below') => {
+    await f.move(await center(rows.nth(index), at))
+    await expect.poll(() => lineSides(rows)).toEqual(before.map((_, i) => (i === index ? side : null)))
+  }
+
+  await hover(0, 0.25, 'above')
+  await hover(4, 0.25, 'above')
+  await hover(4, 0.75, 'below')
+  await hover(1, 0.75, 'below')
+  await hover(3, 0.25, 'above')
+  await f.up()
+  await waitForDropAnimation(page)
+  expect(await texts(rows)).toEqual(before)
   await expect(page.getByRole('menu')).toHaveCount(0)
   expect(errors).toEqual([])
 })
