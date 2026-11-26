@@ -8,7 +8,7 @@ Single prod environment in `us-east-1`. Requests flow SPA â†’ Cognito (login) â†
 - **Auth**: Cognito user pool (email username, admin-only sign-up via `aws cognito-idp admin-create-user`, email auto-verified). Public app client: code grant + PKCE, no secret, scopes `openid email`, callback/logout URLs `<origin>/clover/` for each of `app_origins` (localhost, `willdufault.dev`, `willdufault.github.io`). On load, `oidc-client-ts` exchanges any `?code=` for tokens, then the app renders. It uses the user pool issuer for discovery, stores the user in `localStorage`, renews an expired access token via the refresh token before the API call, and revokes the refresh token on logout. The SPA sends the **access token** as `Authorization: Bearer`; the authorizer matches its `client_id` claim against the audience. Id tokens last 12h, access tokens 1h. A 401 triggers a fresh login.
 - **API**: API Gateway HTTP API. Cognito JWT authorizer on every route requiring the `openid` scope (rejects id tokens, which have no `scope` claim). One Lambda proxy integration (payload v2). CORS allows `app_origins`, methods `GET POST PATCH DELETE`, headers `authorization content-type`. `$default` stage throttles at 100 rps, burst 100.
 - **Lambda** (`clover-api`): Python 3.14, arm64, 30s timeout, stdlib + boto3 from the runtime. `backend/` is zipped by `archive_file`. Env: `TABLE_NAME`. IAM scoped to the table. Logs kept 7 days.
-- **DynamoDB**: one table (`clover-tasks`), on-demand.
+- **DynamoDB**: one table (`clover-tasks`), on-demand. No PITR or deletion protection (also none on the user pool): personal app, data is low-stakes.
 
 ## Backend code
 

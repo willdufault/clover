@@ -16,7 +16,7 @@ import { applyDrop, idsToMove } from './drop'
 import { nextSelection } from './selection'
 import { sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
-import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
+import { ALL_LIST_ID, SMART_LIST_NAMES, neighborListId, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
@@ -94,8 +94,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    api('GET', '/data')
-      .then((data: { lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }) => {
+    api<{ lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }>('GET', '/data')
+      .then((data) => {
         setLists(data.lists)
         setTasks(data.tasks.map((task) => ({ ...task, steps: data.steps.filter((step) => step.taskId === task.id) })))
         setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
@@ -116,7 +116,7 @@ export default function App() {
   }, [drawerOpen, setDrawerOpen])
 
   const updateSteps = async (patches: Partial<Step>[]) => {
-    const updated: Step[] = await api('PATCH', '/steps', patches)
+    const updated = await api<Step[]>('PATCH', '/steps', patches)
     setTasks((prev) =>
       prev.map((task) => ({
         ...task,
@@ -127,7 +127,7 @@ export default function App() {
 
   const addTask = (title: string) =>
     runReportingErrors(async () => {
-      const task = await api('POST', '/tasks', {
+      const task = await api<Omit<Task, 'steps'>>('POST', '/tasks', {
         title,
         listId: selectedList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
@@ -137,7 +137,7 @@ export default function App() {
 
   const addStep = (title: string) =>
     runReportingErrors(async () => {
-      const step: Step = await api('POST', '/steps', { taskId: detailTask?.id, title })
+      const step = await api<Step>('POST', '/steps', { taskId: detailTask?.id, title })
       setTasks((prev) =>
         prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
@@ -152,7 +152,7 @@ export default function App() {
 
   const updateTasks = (ids: string[], patch: TaskPatch) =>
     runReportingErrors(async () => {
-      const updated: Omit<Task, 'steps'>[] = await api(
+      const updated = await api<Omit<Task, 'steps'>[]>(
         'PATCH',
         '/tasks',
         ids.map((id) => ({ id, ...patch })),
@@ -197,7 +197,7 @@ export default function App() {
   }
 
   const deleteMenuTargets = ({ kind, ids }: ContextMenuState) => {
-    if (kind === RowKind.List) ids.forEach(deleteList)
+    if (kind === RowKind.List) deleteLists(ids)
     else deleteTasks(ids)
   }
 
@@ -205,7 +205,7 @@ export default function App() {
 
   const renameList = (id: string, name: string) =>
     runReportingErrors(async () => {
-      const [updated]: [TaskList] = await api('PATCH', '/lists', [{ id, name }])
+      const [updated] = await api<[TaskList]>('PATCH', '/lists', [{ id, name }])
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
@@ -213,20 +213,18 @@ export default function App() {
 
   const createList = (name: string) =>
     runReportingErrors(async () => {
-      const newList: TaskList = await api('POST', '/lists', { name })
+      const newList = await api<TaskList>('POST', '/lists', { name })
       setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
 
-  const deleteList = (id: string) =>
+  const deleteLists = (ids: string[]) =>
     runReportingErrors(async () => {
-      const remaining = lists.filter((list) => list.id !== id)
-      const index = lists.findIndex((list) => list.id === id)
-      const neighborId = (remaining[index - 1] ?? remaining[0])?.id ?? ALL_LIST_ID
-      await api('DELETE', '/lists', { ids: [id] })
-      setLists((prev) => prev.filter((list) => list.id !== id))
-      setTasks((prev) => prev.filter((task) => task.listId !== id))
-      setSelectedListId((current) => (current === id ? neighborId : current))
+      const neighborId = neighborListId(lists, ids)
+      await api('DELETE', '/lists', { ids })
+      setLists((prev) => prev.filter((list) => !ids.includes(list.id)))
+      setTasks((prev) => prev.filter((task) => !task.listId || !ids.includes(task.listId)))
+      setSelectedListId((current) => (ids.includes(current) ? neighborId : current))
     })
 
   const taskDropListId = (over: Over | null) => {
@@ -318,7 +316,7 @@ export default function App() {
             listName={listName}
             renamable={!!selectedList}
             onRenameList={renameList}
-            onDeleteList={deleteList}
+            onDeleteList={(id) => deleteLists([id])}
             tasks={visibleTasks}
             onAddTask={addTask}
             onSort={setSort}

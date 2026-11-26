@@ -37,7 +37,7 @@ const getAccessToken = async () => {
   return (await userManager.signinSilent().catch(() => null))?.access_token
 }
 
-export const api = async (method: string, path: string, body?: object) => {
+export const api = async <T>(method: string, path: string, body?: object): Promise<T> => {
   const response = await fetch(import.meta.env.VITE_API_URL + path, {
     method,
     headers: {
@@ -52,8 +52,8 @@ export const api = async (method: string, path: string, body?: object) => {
     throw new Error('Session expired')
   }
   justSignedIn = false
-  if (response.status === 204) return null
-  const data = await response.json()
+  if (response.status === 204) return null as T
+  const data = (await response.json()) as { error?: string }
   if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`)
-  return data
+  return data as T
 }

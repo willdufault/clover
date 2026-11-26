@@ -91,10 +91,10 @@ def transact(writes: list) -> None:
             reasons = [r.get("Code") for r in e.response.get("CancellationReasons", [])]
             for write, reason in zip(writes, reasons, strict=False):
                 if reason == "ConditionalCheckFailed":
-                    sk = write["Update"]["Key"]["SK"]
-                    if sk == "META":
+                    key = write["Update"]["Key"]
+                    if key["SK"] == "META":
                         raise Stale() from e
-                    raise ApiError(404, f"{sk.split('#')[0].capitalize()} not found") from e
+                    raise ApiError(404, f"{kind_of(key).capitalize()} not found") from e
             if "TransactionConflict" not in reasons:
                 raise
             if attempt == TRANSACTION_RETRIES:

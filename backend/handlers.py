@@ -9,9 +9,7 @@ def check_user_limit(items: list, kind: str) -> None:
 
 
 def check_parent(items: list, parent_kind: str, parent_id: str, child_field: str, limit: int) -> None:
-    sk = f"{parent_kind}#{parent_id}"
-    if not any(i["SK"] == sk for i in items):
-        raise api.ApiError(404, f"{parent_kind.capitalize()} not found")
+    db.by_id(items, parent_kind, [parent_id])
     if sum(i.get(child_field) == parent_id for i in items) >= limit:
         raise api.ApiError(409, f"{parent_kind.capitalize()} is full")
 
@@ -70,8 +68,7 @@ def update_task(event: dict, user_id: str) -> dict:
             targets.add(list_id)
         list_of[task_id] = list_id
     for list_id in targets - {None}:
-        if not any(i["SK"] == f"LIST#{list_id}" for i in items):
-            raise api.ApiError(404, "List not found")
+        db.by_id(items, "LIST", [list_id])
         if list(list_of.values()).count(list_id) > schema.TASKS_PER_LIST:
             raise api.ApiError(409, "List is full")
     checks = [db.bump(user_id, items)] if targets else []

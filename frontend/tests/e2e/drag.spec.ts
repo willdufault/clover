@@ -91,7 +91,13 @@ const lineSide = (row: Locator) =>
     return style.top === '0px' ? 'above' : 'below'
   })
 
-const boxes = (rows: Locator) => rows.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()))
+const boxes = (rows: Locator) =>
+  rows.evaluateAll((els) =>
+    els.map((el) => {
+      const { x, y, width, height } = el.getBoundingClientRect()
+      return { x, y, width, height }
+    }),
+  )
 
 const dragAndCheck = async (page: Page, rows: Locator, row: Locator, to: Locator, side: 'above' | 'below' | null) => {
   const before = await box(row)
