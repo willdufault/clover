@@ -324,7 +324,10 @@ export default function App() {
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragMove={(event) => setDropAfter(isDropAfter(event))}
-      onDragOver={({ over }) => setDragOverListId(taskDropListId(over))}
+      onDragOver={(event) => {
+        setDragOverListId(taskDropListId(event.over))
+        setDropAfter(isDropAfter(event))
+      }}
       onDragEnd={handleDragEnd}
       onDragCancel={resetDragState}
     >

@@ -10,6 +10,7 @@ import {
   lineSides,
   mockApi,
   navRow,
+  sweep,
   waitForDropAnimation,
 } from './helpers'
 
@@ -174,6 +175,21 @@ test('dropping a task back in its gap keeps the order and the hovered half picks
   await page.mouse.up()
   await waitForDropAnimation(page)
   expect(await rows.allTextContents()).toEqual(before)
+  expect(errors).toEqual([])
+})
+
+test('a slow drag keeps the drop line at the gap under the pointer', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 5; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(7)
+  const start = await grab(page, rows.nth(2))
+  await page.mouse.move(start.x, start.y - 6)
+  await sweep(rows, start, (to) => page.mouse.move(to.x, to.y))
+  await page.mouse.up()
   expect(errors).toEqual([])
 })
 

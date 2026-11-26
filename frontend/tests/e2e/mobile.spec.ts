@@ -8,6 +8,7 @@ import {
   lineSides,
   longPress,
   mockApi,
+  sweep,
   touchDrag,
   waitForDropAnimation,
 } from './helpers'
@@ -264,6 +265,22 @@ test('a touch drop back in its gap keeps the order and the hovered half picks th
   await waitForDropAnimation(page)
   expect(await texts(rows)).toEqual(before)
   await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a slow touch drag keeps the drop line at the gap under the finger', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 5; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(7)
+  const start = await center(rows.nth(2))
+  const f = await finger(page, start)
+  await page.locator('[data-overlay]').waitFor()
+  await sweep(rows, start, (to) => f.move(to, 1))
+  await f.up()
   expect(errors).toEqual([])
 })
 
