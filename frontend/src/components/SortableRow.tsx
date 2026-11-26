@@ -11,7 +11,7 @@ const OVERLAY_BG: Record<RowKind, string> = {
 
 type Press = { x: number; y: number; timer: number; fired: boolean }
 
-const useLongPress = (onLongPress: (event: MenuAnchor) => void) => {
+const useLongPress = (onLongPress: (event: MenuAnchor) => void, dragging: boolean) => {
   const press = useRef<Press | null>(null)
   const [pressing, setPressing] = useState(false)
   const cancel = () => {
@@ -39,7 +39,13 @@ const useLongPress = (onLongPress: (event: MenuAnchor) => void) => {
     onTouchMove: (event: React.TouchEvent) => {
       const touch = event.touches[0]
       const start = press.current
-      if (touch && start && !start.fired && Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10) cancel()
+      if (
+        touch &&
+        start &&
+        !start.fired &&
+        Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > (dragging ? 4 : 10)
+      )
+        cancel()
     },
     onTouchEnd: (event: React.TouchEvent) => {
       if (press.current?.fired) event.preventDefault()
@@ -88,7 +94,12 @@ export function SortableRow({
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover ' +
         (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
-  const { pressing, onTouchStart: onPressStart, ...longPressHandlers } = useLongPress((event) => onContextMenu?.(event))
+  const {
+    pressing,
+    onTouchStart: onPressStart,
+    ...longPressHandlers
+  } = useLongPress((event) => onContextMenu?.(event), isDragging)
+  const hideClass = pressing ? 'invisible ' : 'hidden! '
   return (
     <Tag
       ref={setNodeRef}
@@ -100,7 +111,7 @@ export function SortableRow({
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}
       className={
-        (isDragging || hidden ? 'hidden! ' : dropIndicator) +
+        (isDragging || hidden ? hideClass : dropIndicator) +
         (pressing ? 'duration-500 ease-out motion-safe:scale-98 ' : '') +
         rowClass
       }

@@ -166,6 +166,83 @@ test('touch hold-then-move reorders a list', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('a slow touch drag reorders instead of opening the menu', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(2)
+  const before = await texts(rows)
+  const from = await center(rows.last())
+  const to = await center(rows.first())
+
+  await rows.last().evaluate(
+    async (target, { x, top, bottom }) => {
+      const send = (type: string, y: number) => {
+        const touch = new Touch({ identifier: 1, target, clientX: x, clientY: y })
+        const touches = type === 'touchend' ? [] : [touch]
+        target.dispatchEvent(
+          new TouchEvent(type, { bubbles: true, cancelable: true, touches, changedTouches: [touch] }),
+        )
+      }
+      send('touchstart', bottom)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      for (let y = bottom; y >= top; y -= 3) {
+        send('touchmove', y)
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+      send('touchend', top)
+    },
+    { x: from.x, top: to.y, bottom: from.y },
+  )
+
+  await expect.poll(() => texts(rows)).toEqual(before.toReversed())
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a touch drag from the middle collapses the row and marks the drop target', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 3; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(5)
+  const before = await texts(rows)
+  const third = await rows.nth(2).boundingBox()
+
+  const f = await finger(page, await center(rows.nth(2)))
+  await page.locator('[data-overlay]').waitFor()
+  await f.move(await center(rows.first()))
+  expect(await rows.nth(2).boundingBox()).toBeNull()
+  expect((await rows.nth(3).boundingBox())?.y).toBe(third?.y)
+  await expect(rows.first()).toHaveClass(/before:bg-clover/)
+  expect(await rows.first().evaluate((el) => getComputedStyle(el, '::before').height)).toBe('2px')
+  await f.up()
+
+  await expect.poll(() => texts(rows)).toEqual([before[2], before[0], before[1], before[3], before[4]])
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('holding still keeps the list in place and shows no drop line before the menu', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(2)
+  const below = await rows.last().boundingBox()
+
+  const f = await finger(page, await center(rows.first()))
+  await page.locator('[data-overlay]').waitFor()
+  expect(await rows.last().boundingBox()).toEqual(below)
+  await expect(page.locator('main [class*="before:bg-clover"]')).toHaveCount(0)
+  await expect(page.getByRole('menu')).toBeVisible()
+  await f.up()
+  expect(errors).toEqual([])
+})
+
 test('long-press opens the menu and leaves no drag active', async ({ page }) => {
   const errors = captureErrors(page)
   await mockApi(page)
