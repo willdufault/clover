@@ -3,6 +3,7 @@ import os
 import traceback
 
 import api
+import db
 import handlers
 
 STALE_RETRIES = 2
@@ -17,11 +18,11 @@ def handler(event: dict, context: object) -> dict:
         return api.response(404, {"error": "Not found"})
     user_id = event["requestContext"]["authorizer"]["jwt"]["claims"]["sub"]
     try:
-        for _ in range(STALE_RETRIES):
+        for attempt in range(STALE_RETRIES):
             try:
                 return route(event, user_id)
             except api.Stale:
-                pass
+                db.backoff(attempt)
         return route(event, user_id)
     except api.ApiError as e:
         return api.response(e.status, {"error": e.message})

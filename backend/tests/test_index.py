@@ -4,6 +4,7 @@ import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
 import db
+import index
 
 
 def test_unknown_route(call: Callable) -> None:
@@ -58,6 +59,8 @@ def test_first_write_after_stale_read_retries(
 
 
 def test_exhausted_stale_retries_is_409(call: Callable, mock_table: Table, monkeypatch: pytest.MonkeyPatch) -> None:
+    sleeps = []
+    monkeypatch.setattr(db, "backoff", sleeps.append)
     stale = db.load_all("user-1")
     call("POST /lists", {"name": "A"})
     monkeypatch.setattr(db, "load_all", lambda user_id: stale)
@@ -71,3 +74,4 @@ def test_exhausted_stale_retries_is_409(call: Callable, mock_table: Table, monke
     monkeypatch.setattr(mock_table.meta.client, "transact_write_items", counted)
     assert call("POST /lists", {"name": "B"}) == (409, {"error": "Concurrent update"})
     assert len(attempts) == 3
+    assert sleeps == list(range(index.STALE_RETRIES))
