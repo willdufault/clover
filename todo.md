@@ -2,4 +2,3 @@
 - consider typing api() responses and enabling no-unsafe-* lint rules
 - support touch drag-and-drop on mobile (reorder and move to list)
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
-- drag multiple selected tasks at once (match "Move to list")

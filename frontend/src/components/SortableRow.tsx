@@ -50,6 +50,7 @@ export function SortableRow({
   className,
   onClick,
   onContextMenu,
+  hidden,
   children,
 }: {
   id: string
@@ -58,6 +59,7 @@ export function SortableRow({
   className: string
   onClick?: (event: React.MouseEvent) => void
   onContextMenu?: (event: MenuAnchor) => void
+  hidden?: boolean
   children: React.ReactNode
 }) {
   const rowClass = 'touch-manipulation [-webkit-touch-callout:none] ' + className
@@ -92,7 +94,7 @@ export function SortableRow({
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}
       className={
-        (isDragging ? 'hidden! ' : dropIndicator) +
+        (isDragging || hidden ? 'hidden! ' : dropIndicator) +
         (pressing ? 'duration-500 ease-out motion-safe:scale-98 ' : '') +
         rowClass
       }

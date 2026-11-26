@@ -1,5 +1,5 @@
 import * as fc from 'fast-check'
-import { applyDrop, type ListsAndTasks } from '../../src/drop'
+import { applyDrop, idsToMove, type ListsAndTasks } from '../../src/drop'
 import { ALL_LIST_ID, TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
 import { sortTasks } from '../../src/sort'
 import type { Step, Task } from '../../src/types'
@@ -154,4 +154,17 @@ test('property: drops outside lists, visible tasks, or detail steps return the s
       expect(applyDrop(state, drop)).toBe(state)
     }),
   )
+})
+
+test('idsToMove skips tasks already in the target list', () => {
+  const tasks = [makeTask('a', { listId: 'A' }), makeTask('b', { listId: 'B' }), makeTask('c', { listId: 'C' })]
+  expect(idsToMove(tasks, ['a', 'b'], 'B')).toEqual(['a'])
+  expect(idsToMove(tasks, ['a', 'c'], 'B')).toEqual(['a', 'c'])
+  expect(idsToMove(tasks, ['b'], 'B')).toEqual([])
+})
+
+test('idsToMove skips tasks already in Today', () => {
+  const tasks = [makeTask('a'), makeTask('b', { addedToToday: true }), makeTask('c')]
+  expect(idsToMove(tasks, ['a', 'b', 'c'], TODAY_LIST_ID)).toEqual(['a', 'c'])
+  expect(idsToMove(tasks, ['b'], TODAY_LIST_ID)).toEqual([])
 })

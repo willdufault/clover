@@ -1,6 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable'
 import type { Task, TaskList } from './types'
-import { tasksInList } from './smartLists'
+import { TODAY_LIST_ID, tasksInList } from './smartLists'
 
 const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string): T[] => {
   const fromIndex = items.findIndex((item) => item.id === activeId)
@@ -40,3 +40,9 @@ export const applyDrop = (
   }
   return state
 }
+
+export const idsToMove = (tasks: Task[], ids: string[], targetListId: string) =>
+  tasks
+    .filter((task) => ids.includes(task.id))
+    .filter((task) => (targetListId === TODAY_LIST_ID ? !task.addedToToday : task.listId !== targetListId))
+    .map((task) => task.id)
