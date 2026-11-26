@@ -282,6 +282,11 @@ export default function App() {
     setDragOverListId(null)
   }
 
+  const updateDropTarget = (event: DragMoveEvent) => {
+    setDragOverListId(taskDropListId(event.over))
+    setDropAfter(isDropAfter(event))
+  }
+
   const handleDragStart = ({ active, activatorEvent }: DragStartEvent) => {
     const drag = active.data.current as DragInfo
     const touch = activatorEvent.type === 'touchstart'
@@ -324,11 +329,8 @@ export default function App() {
       measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
       onDragStart={handleDragStart}
-      onDragMove={(event) => setDropAfter(isDropAfter(event))}
-      onDragOver={(event) => {
-        setDragOverListId(taskDropListId(event.over))
-        setDropAfter(isDropAfter(event))
-      }}
+      onDragMove={updateDropTarget}
+      onDragOver={updateDropTarget}
       onDragEnd={handleDragEnd}
       onDragCancel={resetDragState}
     >
