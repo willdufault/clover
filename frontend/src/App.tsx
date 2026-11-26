@@ -8,7 +8,6 @@ import {
   pointerWithin,
   useSensor,
   useSensors,
-  type CollisionDetection,
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
@@ -38,14 +37,6 @@ const measureDraggable = (node: HTMLElement) => {
   if (node.offsetParent) lastRects.set(node, getClientRect(node))
   return lastRects.get(node) ?? getClientRect(node)
 }
-
-const visibleCollisions: CollisionDetection = (args) =>
-  pointerWithin({
-    ...args,
-    droppableContainers: args.droppableContainers.filter(
-      ({ node }) => node.current && getComputedStyle(node.current).visibility !== 'hidden',
-    ),
-  })
 
 const isDropAfter = ({ activatorEvent, delta, over }: DragMoveEvent) => {
   const start = getEventCoordinates(activatorEvent)
@@ -328,7 +319,7 @@ export default function App() {
 
   return (
     <DndContext
-      collisionDetection={visibleCollisions}
+      collisionDetection={pointerWithin}
       measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
       onDragStart={handleDragStart}
