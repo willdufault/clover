@@ -1,19 +1,20 @@
-import { arrayMove } from '@dnd-kit/sortable'
 import type { Task, TaskList } from './types'
 import { TODAY_LIST_ID, tasksInList } from './smartLists'
 
-const moveById = <T extends { id: string }>(items: T[], activeId: string, overId: string, after: boolean): T[] => {
-  const from = items.findIndex((item) => item.id === activeId)
-  const overIndex = items.findIndex((item) => item.id === overId)
-  if (from < 0 || overIndex < 0) return items
-  const to = overIndex + (after ? 1 : 0)
-  return arrayMove(items, from, from < to ? to - 1 : to)
+const moveById = <T extends { id: string }>(items: T[], ids: string[], overId: string, after: boolean): T[] => {
+  const over = items.find((item) => item.id === overId)
+  const moved = items.filter((item) => ids.includes(item.id))
+  if (!over || moved.length === 0 || ids.includes(overId)) return items
+  const rest = items.filter((item) => !ids.includes(item.id))
+  const to = rest.indexOf(over) + (after ? 1 : 0)
+  return [...rest.slice(0, to), ...moved, ...rest.slice(to)]
 }
 
 type DropEvent = {
   selectedListId: string
   detailTask: Task | undefined
   activeId: string
+  dragIds?: string[]
   overId: string
   after: boolean
 }
@@ -22,23 +23,23 @@ export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 
 export const applyDrop = (
   state: ListsAndTasks,
-  { selectedListId, detailTask, activeId, overId, after }: DropEvent,
+  { selectedListId, detailTask, activeId, dragIds = [activeId], overId, after }: DropEvent,
 ): ListsAndTasks => {
   const { lists, tasks } = state
   if (activeId === overId) return state
   const isListId = (id: string) => lists.some((list) => list.id === id)
 
-  if (isListId(activeId) && isListId(overId)) return { lists: moveById(lists, activeId, overId, after), tasks }
+  if (isListId(activeId) && isListId(overId)) return { lists: moveById(lists, [activeId], overId, after), tasks }
 
   const containsBoth = (items: { id: string }[]) =>
     items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
   if (containsBoth(tasksInList(tasks, selectedListId)))
-    return { lists, tasks: moveById(tasks, activeId, overId, !after) }
+    return { lists, tasks: moveById(tasks, dragIds, overId, !after) }
   if (detailTask && containsBoth(detailTask.steps)) {
     return {
       lists,
       tasks: tasks.map((task) =>
-        task === detailTask ? { ...task, steps: moveById(task.steps, activeId, overId, after) } : task,
+        task === detailTask ? { ...task, steps: moveById(task.steps, [activeId], overId, after) } : task,
       ),
     }
   }

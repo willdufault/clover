@@ -224,6 +224,67 @@ test('property: a drop lands before or after the hovered item and keeps the othe
   )
 })
 
+const fiveState = () => taskState(['t0', 't1', 't2', 't3', 't4'])
+const multiDrop = (dragIds: string[], overId: string, after: boolean) =>
+  shown(applyDrop(fiveState(), { ...baseDrop, activeId: dragIds[0] ?? '', dragIds, overId, after }))
+
+test('dragging several tasks moves them together in their shown order', () => {
+  expect(multiDrop(['t3', 't1'], 't0', false)).toEqual(['t1', 't3', 't0', 't2', 't4'])
+  expect(multiDrop(['t1', 't3'], 't4', true)).toEqual(['t0', 't2', 't4', 't1', 't3'])
+  expect(multiDrop(['t0', 't4'], 't2', true)).toEqual(['t1', 't2', 't0', 't4', 't3'])
+  expect(multiDrop(['t0', 't4'], 't2', false)).toEqual(['t1', 't0', 't4', 't2', 't3'])
+})
+
+test('dropping several tasks on one of themselves is a no-op', () => {
+  expect(multiDrop(['t1', 't3'], 't3', true)).toEqual(['t0', 't1', 't2', 't3', 't4'])
+})
+
+const multiArb = fc.integer({ min: 2, max: 8 }).chain((count) =>
+  fc.record({
+    order: fc.constant(Array.from({ length: count }, (_, i) => `T${i}`)),
+    picks: fc.uniqueArray(fc.nat({ max: count - 1 }), { minLength: 1, maxLength: count }),
+    over: fc.nat({ max: count - 1 }),
+    after: fc.boolean(),
+  }),
+)
+
+test('property: dragged tasks land as one block next to the hovered task in their shown order', () => {
+  fc.assert(
+    fc.property(multiArb, ({ order, picks, over, after }) => {
+      const dragIds = picks.map((i) => order[i] ?? '')
+      const overId = order[over] ?? ''
+      const activeId = dragIds[0] ?? ''
+      fc.pre(!dragIds.includes(overId))
+      const result = shown(applyDrop(taskState(order), { ...baseDrop, activeId, dragIds, overId, after }))
+      expect(result.toSorted()).toEqual(order.toSorted())
+      const moved = order.filter((id) => dragIds.includes(id))
+      const start = result.indexOf(overId) + (after ? 1 : -moved.length)
+      expect(result.slice(start, start + moved.length)).toEqual(moved)
+      expect(result.filter((id) => !dragIds.includes(id))).toEqual(order.filter((id) => !dragIds.includes(id)))
+    }),
+  )
+})
+
+test('property: dropping dragged tasks on one of themselves is a no-op', () => {
+  fc.assert(
+    fc.property(multiArb, ({ order, picks, after }) => {
+      const dragIds = picks.map((i) => order[i] ?? '')
+      for (const overId of dragIds) {
+        const drop = { ...baseDrop, activeId: dragIds[0] ?? '', dragIds, overId, after }
+        expect(shown(applyDrop(taskState(order), drop))).toEqual(order)
+      }
+    }),
+  )
+})
+
+test('property: one dragged task moves the same with or without dragIds', () => {
+  fc.assert(
+    fc.property(caseArb, ({ state, drop }) => {
+      expect(applyDrop(state, { ...drop, dragIds: [drop.activeId] })).toEqual(applyDrop(state, drop))
+    }),
+  )
+})
+
 test('idsToMove skips tasks already in the target list', () => {
   const tasks = [makeTask('a', { listId: 'A' }), makeTask('b', { listId: 'B' }), makeTask('c', { listId: 'C' })]
   expect(idsToMove(tasks, ['a', 'b'], 'B')).toEqual(['a'])

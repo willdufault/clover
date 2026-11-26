@@ -332,3 +332,35 @@ test('dragging a selected task moves every selected task', async ({ page }) => {
   await expect(row('Bread')).toBeVisible()
   expect(errors).toEqual([])
 })
+
+test('dragging selected tasks within the list moves them together and the order sticks', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  data.tasks.push(
+    makeTask('g3', 'Bread', 'groceries'),
+    makeTask('g4', 'Butter', 'groceries'),
+    makeTask('g5', 'Jam', 'groceries'),
+  )
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  const row = (title: string) => rows.filter({ hasText: title })
+  const titles = async () => (await rows.locator('span.break-words').allInnerTexts()).map((t) => t.trim())
+  await expect.poll(titles).toEqual(['Jam', 'Butter', 'Bread', 'Eggs', 'Milk'])
+
+  await row('Butter').click({ modifiers: ['ControlOrMeta'] })
+  await row('Eggs').click({ modifiers: ['ControlOrMeta'] })
+  const start = await grab(page, row('Eggs'))
+  await page.mouse.move(start.x, start.y - 10)
+  await expect(row('Butter')).toBeHidden()
+  await glide(page, start, rows.first(), 0.25)
+  expect((await lineSides(rows)).filter(Boolean)).toEqual(['above'])
+  await page.mouse.up()
+  await expect.poll(titles).toEqual(['Butter', 'Eggs', 'Jam', 'Bread', 'Milk'])
+  await waitForDropAnimation(page)
+
+  await navRow(page, 'Work').click()
+  await navRow(page, 'Groceries').click()
+  await expect.poll(titles).toEqual(['Butter', 'Eggs', 'Jam', 'Bread', 'Milk'])
+  expect(errors).toEqual([])
+})

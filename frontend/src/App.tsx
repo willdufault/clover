@@ -307,6 +307,7 @@ export default function App() {
         selectedListId,
         detailTask,
         activeId: String(active.id),
+        dragIds,
         overId: String(over.id),
         after: isDropAfter(event),
       },

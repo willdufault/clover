@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { createFakeBackend } from '../fakeBackend'
+import { createFakeBackend, task as makeTask } from '../fakeBackend'
 import { stubViewport } from './viewport'
 
 let backend: ReturnType<typeof createFakeBackend>
@@ -752,4 +752,20 @@ test('dragging a task does not reorder while sorted, and does once the sort is c
   const before = tasks()
   await dragRow(row(before[0] ?? ''), row(before[1] ?? ''))
   expect(tasks()).toEqual([before[1], before[0]])
+})
+
+test('dragging one of several selected tasks reorders them together', async () => {
+  backend.data.tasks.push(
+    makeTask('g3', 'Bread', 'groceries'),
+    makeTask('g4', 'Butter', 'groceries'),
+    makeTask('g5', 'Jam', 'groceries'),
+  )
+  const user = await setup()
+  const before = tasks()
+  await user.keyboard('{Control>}')
+  await user.click(row(before[2] ?? ''))
+  await user.click(row(before[4] ?? ''))
+  await user.keyboard('{/Control}')
+  await dragRow(row(before[4] ?? ''), row(before[0] ?? ''))
+  expect(tasks()).toEqual([before[0], before[2], before[4], before[1], before[3]])
 })
