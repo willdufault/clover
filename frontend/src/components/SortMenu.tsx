@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDownWideShort, faXmark } from '@fortawesome/free-solid-svg-icons'
 import type { SortCriteria } from '../sort'
-import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS } from '../styles'
+import { ICON_BUTTON_CLASS } from '../styles'
+import { MenuOption } from './MenuOption'
 import { anchorOf, type Anchor } from './Picker'
 import { Popover, rem } from './Popover'
 
@@ -50,17 +51,14 @@ export function SortMenu({
           onClose={close}
         >
           {OPTIONS.map(([criteria, optionLabel]) => (
-            <button
+            <MenuOption
               key={criteria}
-              role="menuitem"
+              label={optionLabel}
               onClick={() => {
                 onSort(criteria)
                 close()
               }}
-              className={MENU_ITEM_CLASS}
-            >
-              {optionLabel}
-            </button>
+            />
           ))}
         </Popover>
       )}

@@ -5,14 +5,7 @@ import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faBars, faEllipsis, faListCheck, faPen, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, isOverdue } from '../dates'
 import { dueIcon, isCompleted, priorityLabel, stageLabel } from '../labels'
-import {
-  TITLE_RENAME_CLASS,
-  ICON_BUTTON_CLASS,
-  ICON_SLOT_CLASS,
-  MENU_ITEM_CLASS,
-  META_TEXT_CLASS,
-  rowStateClass,
-} from '../styles'
+import { TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS, META_TEXT_CLASS, rowStateClass } from '../styles'
 import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { SMART_LIST_ICONS } from '../smartLists'
@@ -25,7 +18,7 @@ import { Popover, rem } from './Popover'
 import { anchorOf, type Anchor } from './Picker'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
-import { IconSlot } from './IconSlot'
+import { MenuOption } from './MenuOption'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -286,28 +279,23 @@ export default function TaskPane({
               focusFirst={listMenu.keyboard}
               onClose={closeListMenu}
             >
-              <button
-                role="menuitem"
+              <MenuOption
+                icon={{ icon: faPen, color: 'text-lichen' }}
+                label="Rename list"
                 onClick={() => {
                   closeListMenu()
                   setRenameRequest((count) => count + 1)
                 }}
-                className={MENU_ITEM_CLASS}
-              >
-                <IconSlot icon={faPen} color="text-lichen" />
-                Rename list
-              </button>
-              <button
-                role="menuitem"
+              />
+              <MenuOption
+                icon={{ icon: faTrashCan }}
+                label="Delete list"
+                danger
                 onClick={() => {
                   closeListMenu()
                   onDeleteList(selectedListId)
                 }}
-                className={MENU_ITEM_CLASS + ' text-rosehip!'}
-              >
-                <IconSlot icon={faTrashCan} />
-                Delete list
-              </button>
+              />
             </Popover>
           )}
           {tasks.length > 0 && (

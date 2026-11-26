@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faArrowLeft, faCheck, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
@@ -9,6 +9,7 @@ import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 import { fit, Popover, rem } from './Popover'
 import { IconSlot } from './IconSlot'
+import { MenuOption } from './MenuOption'
 
 export const MENU_WIDTH = 16
 
@@ -270,20 +271,17 @@ export default function ContextMenu({
         />
       )
     return (
-      <button
+      <MenuOption
         key={item.key ?? item.label}
-        role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
-        aria-checked={item.checked}
+        icon={item.icon}
+        label={item.label}
+        checked={item.checked}
+        danger={item.danger}
         onClick={() => {
           item.action?.()
           onClose()
         }}
-        className={MENU_ITEM_CLASS + (item.danger ? ' text-rosehip!' : '')}
-      >
-        {item.icon && <IconSlot icon={item.icon.icon} color={item.icon.color} />}
-        {item.label}
-        {item.checked && <FontAwesomeIcon icon={faCheck} className="ml-auto text-clover" />}
-      </button>
+      />
     )
   }
 

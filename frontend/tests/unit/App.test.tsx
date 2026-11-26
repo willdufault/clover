@@ -64,7 +64,7 @@ const dueInput = () => within(aside()).getByLabelText('Due date')
 
 const submenuClick = async (user: User, parent: string, leaf: string) => {
   await user.hover(screen.getByText(parent))
-  fireEvent.click(screen.getByText(leaf, { selector: 'button' }))
+  fireEvent.click(screen.getByText(leaf, { selector: '[role^="menuitem"] span' }))
   await flush()
 }
 const rightClick = (user: User, element: HTMLElement) => user.pointer({ keys: '[MouseRight]', target: element })

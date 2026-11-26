@@ -1,9 +1,6 @@
 import { useState } from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheck } from '@fortawesome/free-solid-svg-icons'
 import type { Label } from '../labels'
-import { MENU_ITEM_CLASS } from '../styles'
-import { IconSlot } from './IconSlot'
+import { MenuOption } from './MenuOption'
 import { Popover, rem } from './Popover'
 
 const MENU_WIDTH = 13
@@ -62,22 +59,16 @@ export function Picker({
           {options.map((option) => {
             const label = labelOf(option)
             return (
-              <button
+              <MenuOption
                 key={option}
-                role="menuitemradio"
-                aria-checked={option === value}
+                icon={showIcons ? label : undefined}
+                label={label.text}
+                checked={option === value}
                 onClick={() => {
                   close()
                   if (option !== value) onChange(option)
                 }}
-                className={MENU_ITEM_CLASS}
-              >
-                {showIcons && <IconSlot icon={label.icon} color={label.color} />}
-                <span title={label.text} className="min-w-0 flex-1 truncate">
-                  {label.text}
-                </span>
-                {option === value && <FontAwesomeIcon icon={faCheck} className="text-clover" />}
-              </button>
+              />
             )
           })}
         </Popover>
