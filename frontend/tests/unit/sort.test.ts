@@ -40,7 +40,7 @@ test('no sort shows the newest task first', () => {
   expect(ids(sortTasks(tasks, null))).toEqual(['new', 'mid', 'old'])
 })
 
-test('ties keep their current order', () => {
-  const tasks = [makeTask('a'), makeTask('b'), makeTask('c')]
-  expect(ids(sortTasks(tasks, 'stage'))).toEqual(['a', 'b', 'c'])
+test('ties keep the unsorted order, newest first', () => {
+  const tasks = [makeTask('old'), makeTask('mid'), makeTask('new')]
+  expect(ids(sortTasks(tasks, 'stage'))).toEqual(['new', 'mid', 'old'])
 })

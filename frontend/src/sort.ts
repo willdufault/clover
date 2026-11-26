@@ -12,7 +12,8 @@ const sortKey = {
 const compare = <T>(a: T, b: T) => Number(a > b) - Number(a < b)
 
 export const sortTasks = (tasks: Task[], sort: SortCriteria | null) => {
-  if (!sort) return tasks.toReversed()
+  const newestFirst = tasks.toReversed()
+  if (!sort) return newestFirst
   const key = sortKey[sort]
-  return tasks.toSorted((a, b) => compare(isCompleted(a.stage), isCompleted(b.stage)) || compare(key(a), key(b)))
+  return newestFirst.toSorted((a, b) => compare(isCompleted(a.stage), isCompleted(b.stage)) || compare(key(a), key(b)))
 }

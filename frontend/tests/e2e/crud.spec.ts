@@ -167,7 +167,7 @@ test('add in All and Today, row stage, single delete, sort', async ({ page }) =>
   await page.getByRole('button', { name: 'Sort' }).click()
   await page.getByRole('menuitem', { name: 'Stage', exact: true }).click()
   await expect(rows.last()).toContainText('Water plants')
-  await expect(rows.first()).toContainText('Milk')
+  await expect(rows.first()).toContainText('Update docs')
   await page.screenshot({ path: 'test-results/add-sort.png' })
   await page.getByRole('button', { name: 'Clear sort: Stage' }).click()
   await expect(rows.first()).toContainText('Water plants')
