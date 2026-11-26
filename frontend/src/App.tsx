@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -60,6 +60,17 @@ const clickModifiers = (event: React.MouseEvent) => ({
 const soleTask = (tasks: Task[], ids: string[]) =>
   ids.length === 1 ? tasks.find((task) => task.id === ids[0]) : undefined
 
+const stepsOf = (task: Task | undefined) => task?.steps ?? []
+
+const useStepSelection = (task: Task | undefined) => {
+  const taskId = task?.id
+  const [selection, setSelection] = useState({ taskId, ids: [] as string[] })
+  if (selection.taskId !== taskId) setSelection({ taskId, ids: [] })
+  const ids = selection.ids.filter((id) => stepsOf(task).some((step) => step.id === id))
+  const select = useCallback((next: string[]) => setSelection({ taskId, ids: next }), [taskId])
+  return [ids, select] as const
+}
+
 const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]) ? values[0] : undefined)
 
 const DragStack = ({ stacked, children }: { stacked: boolean; children: React.ReactNode }) => (
@@ -96,6 +107,8 @@ export default function App() {
   const listName = SMART_LIST_NAMES[selectedListId] ?? selectedList?.name
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => visibleTasks.some((task) => task.id === id))
   const detailTask = soleTask(visibleTasks, selectedTaskIds)
+  const detailSteps = stepsOf(detailTask)
+  const [selectedStepIds, setSelectedStepIds] = useStepSelection(detailTask)
   const { drawerOpen, setDrawerOpen, detailModal, mainInert } = useOverlays(!!detailTask)
 
   const selectList = (id: string) => {
@@ -115,6 +128,12 @@ export default function App() {
       ),
     )
 
+  const selectStep = (id: string, event: React.MouseEvent) => {
+    const modifiers = clickModifiers(event)
+    const ids = detailSteps.map((step) => step.id)
+    setSelectedStepIds(modifiers.ctrl || modifiers.shift ? nextSelection(selectedStepIds, ids, id, modifiers) : [])
+  }
+
   const runReportingErrors = (action: () => Promise<void>) => {
     action().catch((e) => setError((e as Error).message))
   }
@@ -130,16 +149,18 @@ export default function App() {
       .finally(() => setLoading(false))
   }, [])
 
+  const hasStepSelection = selectedStepIds.length > 0
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return
       if ((event.target as HTMLElement).closest('input, textarea, select')) return
       if (drawerOpen) return setDrawerOpen(false)
+      if (hasStepSelection) return setSelectedStepIds([])
       setSelectedTaskIds([])
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [drawerOpen, setDrawerOpen])
+  }, [drawerOpen, setDrawerOpen, hasStepSelection, setSelectedStepIds])
 
   const updateSteps = async (patches: Partial<Step>[]) => {
     const updated = await api<Step[]>('PATCH', '/steps', patches)
@@ -190,8 +211,8 @@ export default function App() {
 
   const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: stage === 'done' ? 'open' : 'done' })
 
-  const setStepCompleted = (id: string, completed: boolean) =>
-    runReportingErrors(() => updateSteps([{ id, completed }]))
+  const setStepsCompleted = (ids: string[], completed: boolean) =>
+    runReportingErrors(() => updateSteps(ids.map((id) => ({ id, completed }))))
 
   const deleteSteps = (ids: string[]) =>
     runReportingErrors(async () => {
@@ -199,20 +220,30 @@ export default function App() {
       setTasks((prev) => prev.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })))
     })
 
-  const actionIds = (kind: RowKind, id: string) =>
-    kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id]
+  const selections = {
+    [RowKind.List]: [] as string[],
+    [RowKind.Task]: selectedTaskIds,
+    [RowKind.Step]: selectedStepIds,
+  }
+  const actionIds = (kind: RowKind, id: string) => (selections[kind].includes(id) ? selections[kind] : [id])
 
   const openContextMenu: OpenContextMenu = (kind, id) => (event) => {
     const ids = actionIds(kind, id)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
-    const name = kind === RowKind.Task ? menuTasks[0]?.title : lists.find((list) => list.id === id)?.name
+    const menuSteps = detailSteps.filter((step) => ids.includes(step.id))
+    const names = {
+      [RowKind.List]: lists.find((list) => list.id === id)?.name,
+      [RowKind.Task]: menuTasks[0]?.title,
+      [RowKind.Step]: menuSteps[0]?.title,
+    }
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
       above: event.above,
       kind,
       ids,
-      title: ids.length > 1 ? `${ids.length} tasks` : name,
+      title: ids.length > 1 ? `${ids.length} ${kind}s` : names[kind],
+      allStepsDone: menuSteps.every((step) => step.completed),
       moveTargets: lists.filter((list) => !menuTasks.every((task) => task.listId === list.id)),
       anyHasDue: menuTasks.some((task) => task.due),
       allInToday: menuTasks.every((task) => task.addedToToday),
@@ -222,10 +253,8 @@ export default function App() {
     })
   }
 
-  const deleteMenuTargets = ({ kind, ids }: ContextMenuState) => {
-    if (kind === RowKind.List) deleteLists(ids)
-    else deleteTasks(ids)
-  }
+  const deleteMenuTargets = ({ kind, ids }: ContextMenuState) =>
+    ({ [RowKind.List]: deleteLists, [RowKind.Task]: deleteTasks, [RowKind.Step]: deleteSteps })[kind](ids)
 
   const menuIds = contextMenu?.ids ?? []
 
@@ -269,7 +298,7 @@ export default function App() {
     const drag = active.data.current as DragInfo
     const touch = activatorEvent.type === 'touchstart'
     setActiveDrag({ ...drag, touch })
-    setDragIds(touch ? [String(active.id)] : actionIds(drag.kind, String(active.id)))
+    setDragIds(touch || drag.kind === RowKind.Step ? [String(active.id)] : actionIds(drag.kind, String(active.id)))
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -369,11 +398,15 @@ export default function App() {
                 onClose={() => setSelectedTaskIds([])}
                 onDeleteTask={() => deleteTasks([detailTask.id])}
                 onAddStep={addStep}
-                onToggleStep={setStepCompleted}
+                onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
                 onDeleteStep={(id) => deleteSteps([id])}
                 onUpdateTask={(patch) => updateTask(detailTask.id, patch)}
                 lists={lists}
                 onRenameStep={renameStep}
+                selectedStepIds={selectedStepIds}
+                menuIds={menuIds}
+                onSelectStep={selectStep}
+                onContextMenu={openContextMenu}
                 modal={detailModal}
               />
             )}
@@ -390,6 +423,7 @@ export default function App() {
           onClose={() => setContextMenu(null)}
           onDelete={() => deleteMenuTargets(contextMenu)}
           onUpdateTasks={(patch) => updateTasks(contextMenu.ids, patch)}
+          onCompleteSteps={(completed) => setStepsCompleted(contextMenu.ids, completed)}
         />
       )}
     </DndContext>

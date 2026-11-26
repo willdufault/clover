@@ -105,8 +105,6 @@ test('long-press on a sidebar list opens its menu and step x buttons show on tou
   await page.mouse.click(360, 300)
 
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
-  await longPress(page, page.locator('aside [data-kind="step"]'))
-  await expect(page.getByRole('menu')).toHaveCount(0)
   const remove = page.getByRole('button', { name: /^Delete step/ })
   await expect(remove).toBeVisible()
   const hit = await remove.evaluate((el) => {
@@ -488,4 +486,20 @@ test.describe('tablet', () => {
     await expect(menu).toHaveCount(0)
     expect(errors).toEqual([])
   })
+})
+
+test('long-press on a step opens its menu and marks only that step done', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', completed: false })
+  const backend = await mockApi(page, data)
+  await page.goto('./')
+  await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
+
+  await longPress(page, page.locator('aside [data-kind="step"]', { hasText: 'Skim' }))
+  await page.getByRole('menuitem', { name: 'Mark as done' }).tap()
+  await expect(page.getByRole('menuitem', { name: 'Mark as done' })).toHaveCount(0)
+  await expect.poll(() => backend.data.steps.map((s) => s.completed)).toEqual([false, true])
+  await expect(page.locator('aside')).toBeVisible()
+  expect(errors).toEqual([])
 })

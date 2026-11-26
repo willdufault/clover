@@ -62,7 +62,7 @@ export function EditableText({
   return (
     <Tag
       onClick={(event) => {
-        if (!editable) return
+        if (!editable || event.ctrlKey || event.metaKey || event.shiftKey) return
         event.stopPropagation()
         setDraft(text)
       }}
