@@ -2,25 +2,21 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faArrowLeft, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 import { fit, Popover, rem } from './Popover'
 import { IconSlot } from './IconSlot'
-import { MenuOption } from './MenuOption'
+import { MenuOption, type MenuIcon } from './MenuOption'
 
 export const MENU_WIDTH = 16
-
-type MenuIcon = { icon: IconDefinition; color?: string }
 
 type MenuItem = {
   key?: string
   label: string
   icon?: MenuIcon
   action?: () => void
-  danger?: boolean
   checked?: boolean
   pickDate?: boolean
   value?: React.ReactNode
@@ -99,16 +95,12 @@ function SubmenuRow({
       {open && (
         <div
           ref={panelRef}
-          role="menu"
-          style={{ top: topOffset, width: rem(MENU_WIDTH) }}
-          className={
-            'absolute top-0 max-h-96 overflow-y-auto ' +
-            MENU_CLASS +
-            ' ' +
-            (openLeft ? 'right-full mr-2' : 'left-full ml-2')
-          }
+          style={{ top: topOffset }}
+          className={'absolute top-0 ' + (openLeft ? 'right-full pr-2' : 'left-full pl-2')}
         >
-          {submenu.map(renderItem)}
+          <div role="menu" style={{ width: rem(MENU_WIDTH) }} className={'max-h-96 overflow-y-auto ' + MENU_CLASS}>
+            {submenu.map(renderItem)}
+          </div>
         </div>
       )}
     </div>
@@ -195,7 +187,7 @@ export default function ContextMenu({
   }, [sheet])
 
   const goBack = () => {
-    setMainClass('slide-from-left')
+    setMainClass('fade-in')
     setSheet(null)
   }
 
@@ -276,7 +268,6 @@ export default function ContextMenu({
         icon={item.icon}
         label={item.label}
         checked={item.checked}
-        danger={item.danger}
         onClick={() => {
           item.action?.()
           onClose()
@@ -297,12 +288,14 @@ export default function ContextMenu({
     >
       <div ref={contentRef}>
         {sheet ? (
-          <div key={sheet.label} className="slide-from-right">
-            <div className="sticky -top-1 z-10 mx-2 mb-1 flex items-center gap-1 border-b border-fieldstone bg-parchment py-1 sheet:top-0">
+          <div key={sheet.label} className="fade-in">
+            <div className="sticky -top-1 z-10 mx-2 mb-1 flex items-center border-b border-fieldstone bg-parchment py-1 sheet:top-0">
               <button aria-label="Back" onClick={goBack} className={ICON_BUTTON_CLASS + ' -ml-1 text-lichen'}>
                 <FontAwesomeIcon icon={faArrowLeft} />
               </button>
-              <p className="font-serif text-lg font-medium text-moss">{sheet.label}</p>
+              <p className="ml-[calc(var(--spacing-icon)-0.25rem)] font-serif text-lg font-medium text-moss">
+                {sheet.label}
+              </p>
             </div>
             {sheet.submenu.map(renderItem)}
           </div>
@@ -310,12 +303,15 @@ export default function ContextMenu({
           <div className={mainClass}>
             {kindItems.map(renderItem)}
             {kindItems.length > 0 && <hr className="mx-2 my-1 border-fieldstone" />}
-            {renderItem({
-              label: 'Delete',
-              icon: { icon: faTrashCan },
-              action: onDelete,
-              danger: true,
-            })}
+            <MenuOption
+              icon={{ icon: faTrashCan }}
+              label="Delete"
+              danger
+              onClick={() => {
+                onDelete()
+                onClose()
+              }}
+            />
           </div>
         )}
       </div>

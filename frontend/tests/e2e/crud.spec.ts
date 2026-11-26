@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { today } from '../../src/dates'
 import { seed, task as makeTask } from '../fakeBackend'
-import { captureErrors, mockApi, navRow, pick, stageButton } from './helpers'
+import { box, captureErrors, mockApi, navRow, pick, stageButton } from './helpers'
 
 test('create, edit, set stage/due/Today and delete against the API', async ({ page }) => {
   const errors = captureErrors(page)
@@ -282,6 +282,29 @@ test('Move to list from the context menu moves the task', async ({ page }) => {
 
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g1')?.listId).toBe('home')
   await expect(navRow(page, 'Home')).toHaveText('Home1')
+  expect(errors).toEqual([])
+})
+
+test('the submenu stays open while the mouse crosses the gap to it', async ({ page }) => {
+  const errors = captureErrors(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await mockApi(page)
+  await page.goto('./')
+  const row = page.locator('main [data-kind="task"]', { hasText: 'Milk' })
+  for (const x of [0.1, 0.98]) {
+    const bounds = await box(row)
+    await row.click({ button: 'right', position: { x: bounds.width * x, y: bounds.height / 2 } })
+    const stage = page.getByRole('menuitem', { name: 'Set stage' })
+    await stage.hover()
+    const from = await box(stage)
+    const to = await box(page.getByRole('menu').nth(1))
+    const y = from.y + from.height / 2
+    const right = to.x > from.x
+    await page.mouse.move(right ? from.x + from.width - 2 : from.x + 2, y)
+    await page.mouse.move(right ? to.x + 10 : to.x + to.width - 10, y, { steps: 20 })
+    await expect(page.getByRole('menuitemradio', { name: 'In progress' })).toBeVisible()
+    await page.keyboard.press('Escape')
+  }
   expect(errors).toEqual([])
 })
 

@@ -75,11 +75,14 @@ def bump(user_id: str, items: list) -> dict:
     }
 
 
+def backoff(attempt: int) -> None:
+    time.sleep(RETRY_BASE_DELAY * 2**attempt + random.uniform(0, RETRY_JITTER))
+
+
 # Overlapping writes to the same item (e.g. two quick edits to one task) cancel
 # the transaction with TransactionConflict, and AWS SDKs don't retry it. Retry
 # with exponential backoff, plus jitter so colliding requests don't retry in sync.
 def transact(writes: list) -> None:
-    delay = RETRY_BASE_DELAY
     for attempt in range(TRANSACTION_RETRIES + 1):
         try:
             table.meta.client.transact_write_items(TransactItems=writes)
@@ -96,8 +99,7 @@ def transact(writes: list) -> None:
                 raise
             if attempt == TRANSACTION_RETRIES:
                 raise ApiError(409, "Concurrent update") from e
-            time.sleep(delay + random.uniform(0, RETRY_JITTER))
-            delay *= 2
+            backoff(attempt)
 
 
 def create(user_id: str, kind: str, data: dict, items: list) -> dict:

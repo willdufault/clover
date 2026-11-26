@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faClover, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, sidebarRowClass } from '../styles'
 import { isCompleted } from '../labels'
 import { RowKind, type Task, type TaskList } from '../types'
@@ -14,10 +14,6 @@ import limits from '../shared/limits.json'
 import { SortableRow } from './SortableRow'
 import { useModalFocus } from '../useModalFocus'
 import type { OpenContextMenu } from './ContextMenu'
-
-function SmartListIcon({ listId }: { listId: string }) {
-  return <IconSlot icon={SMART_LIST_ICONS[listId]} color="text-clover" />
-}
 
 const openCount = (tasks: Task[], listId: string) =>
   tasksInList(tasks, listId).filter((task) => !isCompleted(task.stage)).length
@@ -58,14 +54,14 @@ export default function ListSidebar({
         aria-modal={drawerOpen || undefined}
         aria-label="Lists"
         className={
-          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-5/6 shrink-0 flex-col border-r border-fieldstone bg-parchment shadow-md duration-200 motion-reduce:transition-none lg:visible lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:p-0 lg:shadow-none 2xl:w-72 ' +
+          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-5/6 shrink-0 flex-col border-r border-fieldstone bg-parchment shadow-md lg:visible lg:static lg:z-auto lg:w-64 lg:p-0 lg:shadow-none 2xl:w-72 ' +
           SAFE_AREA_CLASS +
-          (drawerOpen ? ' transition-transform' : ' invisible -translate-x-full transition-all')
+          (drawerOpen ? ' fade-in' : ' invisible')
         }
       >
         <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-8 pb-4">
-          <div className="flex items-center gap-2 px-3 py-1 font-serif text-2xl font-medium text-moss">
-            <span aria-hidden="true">🍀</span>
+          <div className="flex items-center gap-icon px-3 py-1 font-serif text-2xl font-medium text-moss">
+            <FontAwesomeIcon icon={faClover} className="text-xl text-clover" />
             Clover
           </div>
           <button
@@ -83,8 +79,8 @@ export default function ListSidebar({
             onClick={() => onSelectList(TODAY_LIST_ID)}
             className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
           >
-            <span className="flex items-center gap-1.5">
-              <SmartListIcon listId={TODAY_LIST_ID} />
+            <span className="flex items-center gap-icon">
+              <IconSlot icon={SMART_LIST_ICONS[TODAY_LIST_ID]} color="text-clover" />
               {SMART_LIST_NAMES[TODAY_LIST_ID]}
             </span>
             <TaskCountBadge count={openCount(tasks, TODAY_LIST_ID)} />
@@ -93,8 +89,8 @@ export default function ListSidebar({
             onClick={() => onSelectList(ALL_LIST_ID)}
             className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
           >
-            <span className="flex items-center gap-1.5">
-              <SmartListIcon listId={ALL_LIST_ID} />
+            <span className="flex items-center gap-icon">
+              <IconSlot icon={SMART_LIST_ICONS[ALL_LIST_ID]} color="text-clover" />
               {SMART_LIST_NAMES[ALL_LIST_ID]}
             </span>
             <TaskCountBadge count={openCount(tasks, ALL_LIST_ID)} />

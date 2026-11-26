@@ -73,7 +73,7 @@ export function Popover({
         role="menu"
         tabIndex={-1}
         className={
-          'fixed z-50 outline-none ' +
+          'fade-in fixed z-50 outline-none ' +
           MENU_CLASS +
           ' pointer-coarse:max-h-96 pointer-coarse:overflow-x-hidden pointer-coarse:overflow-y-auto sheet:inset-x-0! sheet:top-auto! sheet:bottom-0 sheet:max-h-3/4 sheet:w-auto! sheet:rounded-b-none sheet:rounded-t-2xl sheet:border-x-0 sheet:border-b-0 sheet:px-2 sheet:pb-[calc(env(safe-area-inset-bottom)+1rem)]'
         }

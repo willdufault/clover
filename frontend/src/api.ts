@@ -14,7 +14,7 @@ const userManager = new UserManager({
 
 let justSignedIn = false
 
-export const login = () => userManager.signinRedirect()
+const login = () => userManager.signinRedirect()
 
 export const logout = async () => {
   await userManager.revokeTokens().catch(() => {})

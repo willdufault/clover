@@ -8,8 +8,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
   type Over,
 } from '@dnd-kit/core'
 import { api } from './api'
@@ -58,8 +56,7 @@ export default function App() {
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
-  const listTasks = tasksInList(tasks, selectedListId)
-  const visibleTasks = sortTasks(listTasks, sort)
+  const visibleTasks = sortTasks(tasksInList(tasks, selectedListId), sort)
   const selectedList = lists.find((list) => list.id === selectedListId)
   const listName = SMART_LIST_NAMES[selectedListId] ?? selectedList?.name
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => visibleTasks.some((task) => task.id === id))
@@ -106,9 +103,7 @@ export default function App() {
       setSelectedTaskIds([])
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [drawerOpen, setDrawerOpen])
 
   const updateSteps = async (patches: Partial<Step>[]) => {
@@ -222,18 +217,10 @@ export default function App() {
       setSelectedListId((current) => (current === id ? neighborId : current))
     })
 
-  const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveDrag(active.data.current as DragInfo)
-  }
-
   const taskDropListId = (over: Over | null) => {
     if (!over || activeDrag?.kind !== RowKind.Task) return null
     const id = String(over.id)
     return id === TODAY_LIST_ID || lists.some((list) => list.id === id) ? id : null
-  }
-
-  const handleDragOver = ({ over }: DragOverEvent) => {
-    setDragOverListId(taskDropListId(over))
   }
 
   const resetDragState = () => {
@@ -274,8 +261,8 @@ export default function App() {
       collisionDetection={pointerWithin}
       measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
+      onDragStart={({ active }) => setActiveDrag(active.data.current as DragInfo)}
+      onDragOver={({ over }) => setDragOverListId(taskDropListId(over))}
       onDragEnd={handleDragEnd}
       onDragCancel={resetDragState}
     >

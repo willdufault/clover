@@ -10,6 +10,8 @@
 }
 
 @theme {
+  --spacing-icon: 0.5em;
+
   --font-sans: 'Alegreya Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Alegreya', ui-serif, Georgia, serif;
 
@@ -52,41 +54,19 @@ input[type='date']::-webkit-calendar-picker-indicator {
   }
 }
 
-@keyframes pane-in {
+@keyframes fade-in {
   from {
     opacity: 0;
     transform: translateX(12px);
   }
 }
 
-.pane-in {
-  animation: pane-in 0.18s ease-out;
-}
-
-@keyframes slide-from-right {
-  from {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes slide-from-left {
-  from {
-    transform: translateX(-100%);
-  }
-}
-
-.slide-from-right {
-  animation: slide-from-right 0.18s ease-out;
-}
-
-.slide-from-left {
-  animation: slide-from-left 0.18s ease-out;
+.fade-in {
+  animation: fade-in 0.18s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane-in,
-  .slide-from-right,
-  .slide-from-left {
+  .fade-in {
     animation: none;
   }
 

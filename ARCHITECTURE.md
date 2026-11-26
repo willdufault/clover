@@ -30,7 +30,7 @@ Single prod environment in `us-east-1`. Requests flow SPA â†’ Cognito (login) â†
 
 ## Concurrency
 
-- Writes that change counts or parents (creates, `PATCH /tasks` changing a task's `listId`, `DELETE /lists`/`/tasks`) bump `META.version` in their transaction, conditioned on it being unchanged since the read (or absent). On mismatch the route re-runs from the read, up to 3 tries. This keeps count limits and parent existence strict under concurrency.
+- Writes that change counts or parents (creates, `PATCH /tasks` changing a task's `listId`, `DELETE /lists`/`/tasks`) bump `META.version` in their transaction, conditioned on it being unchanged since the read (or absent). On mismatch the route re-runs from the read, up to 3 tries, with the same backoff and jitter as below. This keeps count limits and parent existence strict under concurrency.
 - PATCH transactions are also retried up to 3 times with backoff and jitter on `TransactionConflict`.
 - Failing all retries returns 409 `Concurrent update`.
 
