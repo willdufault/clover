@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faClover, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, sidebarRowClass } from '../styles'
 import { isCompleted } from '../labels'
 import { RowKind, type Task, type TaskList } from '../types'
@@ -65,7 +65,7 @@ export default function ListSidebar({
       >
         <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-8 pb-4">
           <div className="flex items-center gap-2 px-3 py-1 font-serif text-2xl font-medium text-moss">
-            <span aria-hidden="true">🍀</span>
+            <FontAwesomeIcon icon={faClover} className="text-xl text-clover" />
             Clover
           </div>
           <button
