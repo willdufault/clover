@@ -25,6 +25,7 @@ provider "aws" {
 }
 
 locals {
+  function_name  = "clover-api"
   app_urls       = formatlist("%s/clover/", var.app_origins)
   cognito_issuer = "https://${aws_cognito_user_pool.users.endpoint}"
   routes         = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
@@ -139,7 +140,7 @@ resource "aws_iam_role_policy" "api_table_policy" {
 }
 
 resource "aws_lambda_function" "api" {
-  function_name    = "clover-api"
+  function_name    = local.function_name
   role             = aws_iam_role.api.arn
   runtime          = "python3.14"
   architectures    = ["arm64"]
@@ -153,10 +154,12 @@ resource "aws_lambda_function" "api" {
       TABLE_NAME = aws_dynamodb_table.tasks.name
     }
   }
+
+  depends_on = [aws_cloudwatch_log_group.api]
 }
 
 resource "aws_cloudwatch_log_group" "api" {
-  name              = "/aws/lambda/${aws_lambda_function.api.function_name}"
+  name              = "/aws/lambda/${local.function_name}"
   retention_in_days = 7
 }
 
