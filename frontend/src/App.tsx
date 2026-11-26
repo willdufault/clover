@@ -4,6 +4,7 @@ import {
   DragOverlay,
   getClientRect,
   MouseSensor,
+  TouchSensor,
   pointerWithin,
   useSensor,
   useSensors,
@@ -21,7 +22,7 @@ import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './comp
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
-import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS } from './styles'
+import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS, rowStateClass } from './styles'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useOverlays } from './useOverlays'
@@ -46,13 +47,20 @@ const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]
 
 const DragStack = ({ stacked, children }: { stacked: boolean; children: React.ReactNode }) => (
   <div className="relative h-full">
-    {stacked && <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-lg bg-parchment shadow-md" />}
+    {stacked && (
+      <div
+        className={'absolute inset-0 translate-x-2 translate-y-2 rounded-lg shadow-md ' + rowStateClass(true, false)}
+      />
+    )}
     <div className="relative h-full">{children}</div>
   </div>
 )
 
 export default function App() {
-  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 10 } }),
+  )
   const [lists, setLists] = useState<TaskList[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +68,7 @@ export default function App() {
   const [selectedListId, setSelectedListId] = useState(ALL_LIST_ID)
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [sort, setSort] = useState<SortCriteria | null>(null)
-  const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
+  const [activeDrag, setActiveDrag] = useState<(DragInfo & { touch: boolean }) | null>(null)
   const [dragIds, setDragIds] = useState<string[]>([])
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -228,7 +236,7 @@ export default function App() {
     })
 
   const taskDropListId = (over: Over | null) => {
-    if (!over || activeDrag?.kind !== RowKind.Task) return null
+    if (!over || activeDrag?.kind !== RowKind.Task || activeDrag.touch) return null
     const id = String(over.id)
     return id === TODAY_LIST_ID || lists.some((list) => list.id === id) ? id : null
   }
@@ -239,10 +247,11 @@ export default function App() {
     setDragOverListId(null)
   }
 
-  const handleDragStart = ({ active }: DragStartEvent) => {
+  const handleDragStart = ({ active, activatorEvent }: DragStartEvent) => {
     const drag = active.data.current as DragInfo
-    setActiveDrag(drag)
-    setDragIds(actionIds(drag.kind, String(active.id)))
+    const touch = activatorEvent.type === 'touchstart'
+    setActiveDrag({ ...drag, touch })
+    setDragIds(touch ? [String(active.id)] : actionIds(drag.kind, String(active.id)))
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {

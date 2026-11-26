@@ -1,9 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, center, finger, longPress, mockApi } from './helpers'
+import { captureErrors, center, finger, longPress, mockApi, touchDrag, waitForDropAnimation } from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
+
+const texts = async (rows: Locator) => (await rows.allInnerTexts()).map((t) => t.split('\n')[0])
 
 test('the lists drawer opens and closes', async ({ page }) => {
   const errors = captureErrors(page)
@@ -52,10 +54,15 @@ test('long-press opens the context menu on screen and a submenu replaces it in p
   const backend = await mockApi(page)
   await page.goto('./')
 
-  await longPress(page, page.locator('[data-kind="task"]', { hasText: 'Eggs' }))
+  const rows = page.locator('main [data-kind="task"]')
+  const row = rows.filter({ hasText: 'Eggs' })
+
+  await longPress(page, row)
   const remove = page.getByRole('menuitem', { name: 'Delete' })
   await expect(remove).toBeVisible()
   await expect(page.locator('aside')).toHaveCount(0)
+  await expect(page.locator('[data-overlay]')).toHaveCount(0)
+  await expect(row).toBeVisible()
   await page.getByRole('menuitem', { name: 'Set stage' }).tap()
   const done = page.getByRole('menuitemradio', { name: 'Done' })
   await expect(done).toBeVisible()
@@ -68,6 +75,10 @@ test('long-press opens the context menu on screen and a submenu replaces it in p
   await done.tap()
   await expect.poll(() => backend.data.tasks.find((t) => t.id === 'g2')?.stage).toBe('done')
   await expect(remove).toBeHidden()
+  await waitForDropAnimation(page)
+  await expect.poll(() => texts(rows)).toEqual(['Eggs', 'Milk'])
+  await row.tap()
+  await expect(page.locator('aside').getByRole('heading', { name: 'Eggs' })).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -77,7 +88,6 @@ test('long-press on a sidebar list opens its menu and step x buttons show on tou
   await page.goto('./')
 
   await page.getByLabel('Open lists').tap()
-  await page.waitForTimeout(300)
   await longPress(page, page.locator('nav [data-kind="list"]', { hasText: 'Home' }))
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
   await expect(page.getByText('Home', { exact: true }).last()).toBeVisible()
@@ -119,6 +129,161 @@ test('a quick swipe scrolls the list instead of opening the menu', async ({ page
   await page.waitForTimeout(600)
   await expect(page.getByRole('menu')).toHaveCount(0)
   expect(errors).toEqual([])
+})
+
+const touchReorder = async (
+  page: Page,
+  selector: string,
+  expected: string[],
+  open?: () => Promise<void>,
+  data = seed(),
+) => {
+  const errors = captureErrors(page)
+  await mockApi(page, data)
+  await page.goto('./')
+  await open?.()
+  const rows = page.locator(selector)
+  await expect(rows).toHaveCount(expected.length)
+  await touchDrag(page, rows.last(), rows.first())
+  await expect.poll(() => texts(rows)).toEqual(expected)
+  expect(errors).toEqual([])
+}
+
+test('touch hold-then-move reorders a task', async ({ page }) => {
+  await touchReorder(page, 'main [data-kind="task"]', ['Milk', 'Eggs'])
+  await expect(page.locator('aside')).toHaveCount(0)
+})
+
+test('touch hold-then-move reorders a step', async ({ page }) => {
+  const data = seed()
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', completed: false })
+  await touchReorder(
+    page,
+    'aside [data-kind="step"]',
+    ['Whole', '2% lactose free'],
+    () => page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap(),
+    data,
+  )
+})
+
+test('touch hold-then-move reorders a list', async ({ page }) => {
+  await touchReorder(page, 'nav [data-kind="list"]', ['Home', 'Groceries', 'Work'], () =>
+    page.getByLabel('Open lists').tap(),
+  )
+})
+
+test('a slow touch drag reorders instead of opening the menu', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(2)
+  const before = await texts(rows)
+  const from = await center(rows.last())
+  const to = await center(rows.first())
+
+  await rows.last().evaluate(
+    async (target, { x, top, bottom }) => {
+      const send = (type: string, y: number) => {
+        const touch = new Touch({ identifier: 1, target, clientX: x, clientY: y })
+        const touches = type === 'touchend' ? [] : [touch]
+        target.dispatchEvent(
+          new TouchEvent(type, { bubbles: true, cancelable: true, touches, changedTouches: [touch] }),
+        )
+      }
+      send('touchstart', bottom)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      for (let y = bottom; y >= top; y -= 3) {
+        send('touchmove', y)
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+      send('touchend', top)
+    },
+    { x: from.x, top: to.y, bottom: from.y },
+  )
+
+  await expect.poll(() => texts(rows)).toEqual(before.toReversed())
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a touch drag from the middle collapses the row and marks the drop target', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 3; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(5)
+  const before = await texts(rows)
+  const third = await rows.nth(2).boundingBox()
+
+  const f = await finger(page, await center(rows.nth(2)))
+  await page.locator('[data-overlay]').waitFor()
+  await f.move(await center(rows.first()))
+  expect(await rows.nth(2).boundingBox()).toBeNull()
+  expect((await rows.nth(3).boundingBox())?.y).toBe(third?.y)
+  await expect(rows.first()).toHaveClass(/before:bg-clover/)
+  expect(await rows.first().evaluate((el) => getComputedStyle(el, '::before').height)).toBe('2px')
+  await f.up()
+
+  await expect.poll(() => texts(rows)).toEqual([before[2], before[0], before[1], before[3], before[4]])
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('holding still keeps the list in place and shows no drop line before the menu', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(2)
+  const below = await rows.last().boundingBox()
+
+  const f = await finger(page, await center(rows.first()))
+  await page.locator('[data-overlay]').waitFor()
+  expect(await rows.last().boundingBox()).toEqual(below)
+  await expect(page.locator('main [class*="before:bg-clover"]')).toHaveCount(0)
+  await expect(page.getByRole('menu')).toBeVisible()
+  await f.up()
+  expect(errors).toEqual([])
+})
+
+test.describe('touch laptop', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false })
+
+  test('touch-dragging a selected task moves only that task', async ({ page }) => {
+    const errors = captureErrors(page)
+    await mockApi(page)
+    await page.goto('./')
+    await page.locator('nav').getByText('Work').click()
+    const rows = page.locator('main [data-kind="task"]')
+    await rows.filter({ hasText: 'Reply' }).click()
+    await rows.filter({ hasText: 'Update' }).click({ modifiers: ['Shift'] })
+    await expect(page.locator('aside')).toHaveCount(0)
+
+    await touchDrag(page, rows.filter({ hasText: 'Update' }), rows.first())
+
+    await expect.poll(() => texts(rows)).toEqual(['Update docs', 'Review PR', 'Reply to emails'])
+    expect(errors).toEqual([])
+  })
+
+  test('touch-dragging a task onto a sidebar list or Today does not move it', async ({ page }) => {
+    const errors = captureErrors(page)
+    const backend = await mockApi(page)
+    await page.goto('./')
+    const nav = page.locator('nav')
+    const milk = page.locator('main [data-kind="task"]', { hasText: 'Milk' })
+
+    await touchDrag(page, milk, nav.getByText('Home'))
+    await waitForDropAnimation(page)
+    await touchDrag(page, milk, nav.getByText('Today', { exact: true }))
+    await waitForDropAnimation(page)
+
+    await expect(milk).toBeVisible()
+    expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ listId: 'groceries', addedToToday: false })
+    expect(errors).toEqual([])
+  })
 })
 
 test.describe('iPad portrait', () => {
