@@ -187,7 +187,7 @@ export default function TaskDetailPane({
         aria-modal={modal || undefined}
         aria-label={task.title}
         className={
-          'pane-in fixed inset-0 z-30 flex shrink-0 flex-col bg-parchment sm:left-auto sm:w-100 sm:border-l sm:border-fieldstone sm:shadow-md xl:static xl:z-auto xl:shadow-none ' +
+          'fade-in fixed inset-0 z-30 flex shrink-0 flex-col bg-parchment sm:left-auto sm:w-100 sm:border-l sm:border-fieldstone sm:shadow-md xl:static xl:z-auto xl:shadow-none ' +
           SAFE_AREA_CLASS
         }
       >
