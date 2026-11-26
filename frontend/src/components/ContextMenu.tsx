@@ -99,16 +99,12 @@ function SubmenuRow({
       {open && (
         <div
           ref={panelRef}
-          role="menu"
-          style={{ top: topOffset, width: rem(MENU_WIDTH) }}
-          className={
-            'absolute top-0 max-h-96 overflow-y-auto ' +
-            MENU_CLASS +
-            ' ' +
-            (openLeft ? 'right-full mr-2' : 'left-full ml-2')
-          }
+          style={{ top: topOffset }}
+          className={'absolute top-0 ' + (openLeft ? 'right-full pr-2' : 'left-full pl-2')}
         >
-          {submenu.map(renderItem)}
+          <div role="menu" style={{ width: rem(MENU_WIDTH) }} className={'max-h-96 overflow-y-auto ' + MENU_CLASS}>
+            {submenu.map(renderItem)}
+          </div>
         </div>
       )}
     </div>
