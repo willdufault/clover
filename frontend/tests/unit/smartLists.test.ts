@@ -1,5 +1,5 @@
 import type { Task } from '../../src/types'
-import { TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
+import { ALL_LIST_ID, TODAY_LIST_ID, neighborListId, tasksInList } from '../../src/smartLists'
 import { makeTask } from './makeTask'
 
 test('Today view shows only tasks added to Today, whatever their due date', () => {
@@ -9,4 +9,12 @@ test('Today view shows only tasks added to Today, whatever their due date', () =
     makeTask('plain'),
   ]
   expect(tasksInList(tasks, TODAY_LIST_ID).map((task) => task.id)).toEqual(['flag'])
+})
+
+test('deleting lists selects the nearest surviving list before them, else the first, else All', () => {
+  const lists = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id }))
+  expect(neighborListId(lists, ['c'])).toBe('b')
+  expect(neighborListId(lists, ['b', 'c'])).toBe('a')
+  expect(neighborListId(lists, ['a', 'b'])).toBe('c')
+  expect(neighborListId(lists, ['a', 'b', 'c', 'd'])).toBe(ALL_LIST_ID)
 })

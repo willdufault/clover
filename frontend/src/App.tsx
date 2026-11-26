@@ -16,7 +16,7 @@ import { applyDrop, idsToMove } from './drop'
 import { nextSelection } from './selection'
 import { sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
-import { ALL_LIST_ID, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from './smartLists'
+import { ALL_LIST_ID, SMART_LIST_NAMES, neighborListId, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './components/ContextMenu'
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
@@ -197,7 +197,7 @@ export default function App() {
   }
 
   const deleteMenuTargets = ({ kind, ids }: ContextMenuState) => {
-    if (kind === RowKind.List) ids.forEach(deleteList)
+    if (kind === RowKind.List) deleteLists(ids)
     else deleteTasks(ids)
   }
 
@@ -218,15 +218,13 @@ export default function App() {
       selectList(newList.id)
     })
 
-  const deleteList = (id: string) =>
+  const deleteLists = (ids: string[]) =>
     runReportingErrors(async () => {
-      const remaining = lists.filter((list) => list.id !== id)
-      const index = lists.findIndex((list) => list.id === id)
-      const neighborId = (remaining[index - 1] ?? remaining[0])?.id ?? ALL_LIST_ID
-      await api('DELETE', '/lists', { ids: [id] })
-      setLists((prev) => prev.filter((list) => list.id !== id))
-      setTasks((prev) => prev.filter((task) => task.listId !== id))
-      setSelectedListId((current) => (current === id ? neighborId : current))
+      const neighborId = neighborListId(lists, ids)
+      await api('DELETE', '/lists', { ids })
+      setLists((prev) => prev.filter((list) => !ids.includes(list.id)))
+      setTasks((prev) => prev.filter((task) => !task.listId || !ids.includes(task.listId)))
+      setSelectedListId((current) => (ids.includes(current) ? neighborId : current))
     })
 
   const taskDropListId = (over: Over | null) => {
@@ -318,7 +316,7 @@ export default function App() {
             listName={listName}
             renamable={!!selectedList}
             onRenameList={renameList}
-            onDeleteList={deleteList}
+            onDeleteList={(id) => deleteLists([id])}
             tasks={visibleTasks}
             onAddTask={addTask}
             onSort={setSort}
