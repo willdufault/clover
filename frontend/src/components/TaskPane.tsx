@@ -128,6 +128,7 @@ export default function TaskPane({
   tasks,
   selectedIds,
   menuIds,
+  dragIds,
   sort,
   onAddTask,
   onSort,
@@ -147,6 +148,7 @@ export default function TaskPane({
   tasks: Task[]
   selectedIds: string[]
   menuIds: string[]
+  dragIds: string[]
   sort: SortCriteria | null
   onAddTask: (text: string) => void
   onSort: (criteria: SortCriteria | null) => void
@@ -176,6 +178,7 @@ export default function TaskPane({
         tag="li"
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
+        hidden={dragIds.includes(task.id)}
         className={
           'group relative flex cursor-pointer select-none items-start gap-icon rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
           rowStateClass(selectedIds.includes(task.id), menuIds.includes(task.id))

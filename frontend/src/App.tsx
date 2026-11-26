@@ -8,10 +8,11 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
   type Over,
 } from '@dnd-kit/core'
 import { api } from './api'
-import { applyDrop } from './drop'
+import { applyDrop, idsToMove } from './drop'
 import { nextSelection } from './selection'
 import { sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
@@ -43,6 +44,13 @@ const soleTask = (tasks: Task[], ids: string[]) =>
 
 const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]) ? values[0] : undefined)
 
+const DragStack = ({ stacked, children }: { stacked: boolean; children: React.ReactNode }) => (
+  <div className="relative h-full">
+    {stacked && <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-lg bg-parchment shadow-md" />}
+    <div className="relative h-full">{children}</div>
+  </div>
+)
+
 export default function App() {
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }))
   const [lists, setLists] = useState<TaskList[]>([])
@@ -53,6 +61,7 @@ export default function App() {
   const [rawSelectedTaskIds, setSelectedTaskIds] = useState<string[]>([])
   const [sort, setSort] = useState<SortCriteria | null>(null)
   const [activeDrag, setActiveDrag] = useState<DragInfo | null>(null)
+  const [dragIds, setDragIds] = useState<string[]>([])
   const [dragOverListId, setDragOverListId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
@@ -164,8 +173,11 @@ export default function App() {
       setTasks((prev) => prev.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })))
     })
 
+  const actionIds = (kind: RowKind, id: string) =>
+    kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id]
+
   const openContextMenu: OpenContextMenu = (kind, id) => (event) => {
-    const ids = kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id]
+    const ids = actionIds(kind, id)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
     const name = kind === RowKind.Task ? menuTasks[0]?.title : lists.find((list) => list.id === id)?.name
     setContextMenu({
@@ -225,7 +237,14 @@ export default function App() {
 
   const resetDragState = () => {
     setActiveDrag(null)
+    setDragIds([])
     setDragOverListId(null)
+  }
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const drag = active.data.current as DragInfo
+    setActiveDrag(drag)
+    setDragIds(actionIds(drag.kind, String(active.id)))
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -234,11 +253,9 @@ export default function App() {
     const targetListId = taskDropListId(over)
     if (targetListId) {
       setSelectedTaskIds([])
-      const dragged = tasks.find((task) => task.id === active.id)
-      const alreadyThere = targetListId === TODAY_LIST_ID ? dragged?.addedToToday : dragged?.listId === targetListId
-      if (alreadyThere) return
-      if (targetListId === TODAY_LIST_ID) return updateTask(String(active.id), { addedToToday: true })
-      updateTask(String(active.id), { listId: targetListId })
+      const ids = idsToMove(tasks, dragIds, targetListId)
+      if (ids.length > 0)
+        updateTasks(ids, targetListId === TODAY_LIST_ID ? { addedToToday: true } : { listId: targetListId })
       return
     }
     const nextState = applyDrop(
@@ -261,7 +278,7 @@ export default function App() {
       collisionDetection={pointerWithin}
       measuring={{ draggable: { measure: measureDraggable } }}
       sensors={sensors}
-      onDragStart={({ active }) => setActiveDrag(active.data.current as DragInfo)}
+      onDragStart={handleDragStart}
       onDragOver={({ over }) => setDragOverListId(taskDropListId(over))}
       onDragEnd={handleDragEnd}
       onDragCancel={resetDragState}
@@ -308,6 +325,7 @@ export default function App() {
             sort={sort}
             selectedIds={selectedTaskIds}
             menuIds={menuIds}
+            dragIds={dragIds}
             onSelectTask={selectTask}
             onClearSelection={() => setSelectedTaskIds([])}
             onToggleDone={toggleDone}
@@ -332,7 +350,9 @@ export default function App() {
           )}
         </div>
       </div>
-      <DragOverlay>{activeDrag?.clone}</DragOverlay>
+      <DragOverlay>
+        <DragStack stacked={dragIds.length > 1}>{activeDrag?.clone}</DragStack>
+      </DragOverlay>
 
       {contextMenu && (
         <ContextMenu
