@@ -115,9 +115,9 @@ export function SortableRow({
         (pressing ? 'duration-500 ease-out motion-safe:scale-98 ' : '') +
         rowClass
       }
+      {...longPressHandlers}
       {...attributes}
       {...listeners}
-      {...longPressHandlers}
       onTouchStart={(event) => {
         onPressStart(event)
         listeners?.onTouchStart?.(event)
