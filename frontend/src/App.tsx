@@ -173,8 +173,11 @@ export default function App() {
       setTasks((prev) => prev.map((task) => ({ ...task, steps: task.steps.filter((step) => !ids.includes(step.id)) })))
     })
 
+  const actionIds = (kind: RowKind, id: string) =>
+    kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id]
+
   const openContextMenu: OpenContextMenu = (kind, id) => (event) => {
-    const ids = kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id]
+    const ids = actionIds(kind, id)
     const menuTasks = tasks.filter((task) => ids.includes(task.id))
     const name = kind === RowKind.Task ? menuTasks[0]?.title : lists.find((list) => list.id === id)?.name
     setContextMenu({
@@ -240,9 +243,8 @@ export default function App() {
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     const drag = active.data.current as DragInfo
-    const id = String(active.id)
     setActiveDrag(drag)
-    setDragIds(drag.kind === RowKind.Task && selectedTaskIds.includes(id) ? selectedTaskIds : [id])
+    setDragIds(actionIds(drag.kind, String(active.id)))
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -252,9 +254,8 @@ export default function App() {
     if (targetListId) {
       setSelectedTaskIds([])
       const ids = idsToMove(tasks, dragIds, targetListId)
-      if (ids.length === 0) return
-      if (targetListId === TODAY_LIST_ID) return updateTasks(ids, { addedToToday: true })
-      updateTasks(ids, { listId: targetListId })
+      if (ids.length > 0)
+        updateTasks(ids, targetListId === TODAY_LIST_ID ? { addedToToday: true } : { listId: targetListId })
       return
     }
     const nextState = applyDrop(
