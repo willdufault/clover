@@ -6,6 +6,7 @@ import { faChevronDown, faCircleCheck, faListUl, faSun, faXmark } from '@fortawe
 import { formatDueDate, isOverdue } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
 import {
+  doneTextClass,
   PROPERTY_ROW_CLASS,
   ICON_SLOT_CLASS,
   RENAME_CLASS,
@@ -128,6 +129,9 @@ export default function TaskDetailPane({
     color: 'text-lichen',
     text: lists.find((list) => list.id === id)?.name ?? 'No list',
   })
+  const stageInfo = stageLabel(task.stage)
+  const priorityInfo = priorityLabel(task.priority)
+  const listInfo = listLabel(task.listId ?? '')
   const stepRow = (step: Step) => (
     <SortableRow
       key={step.id}
@@ -157,10 +161,7 @@ export default function TaskDetailPane({
         text={step.title}
         maxLength={limits.titleMax}
         onCommit={(title) => onRenameStep(step.id, title)}
-        className={
-          'min-w-0 flex-1 break-words ' +
-          (step.completed ? 'text-moss/75 line-through decoration-moss/40' : 'text-moss')
-        }
+        className={'min-w-0 flex-1 break-words ' + doneTextClass(step.completed)}
         inputClassName={RENAME_CLASS + ' min-w-0 flex-1 px-1 text-base'}
       />
       <button
@@ -225,10 +226,9 @@ export default function TaskDetailPane({
             options={STAGES}
             labelOf={stageLabel}
             onChange={(stage) => onUpdateTask({ stage })}
-            className={PROPERTY_ROW_CLASS}
           >
-            <IconSlot {...stageLabel(task.stage)} />
-            {stageLabel(task.stage).text}
+            <IconSlot {...stageInfo} />
+            {stageInfo.text}
             <Chevron />
           </Picker>
           <TodayField task={task} onUpdate={onUpdateTask} />
@@ -239,10 +239,9 @@ export default function TaskDetailPane({
             options={PRIORITIES}
             labelOf={priorityLabel}
             onChange={(priority) => onUpdateTask({ priority })}
-            className={PROPERTY_ROW_CLASS}
           >
-            <IconSlot {...priorityLabel(task.priority)} />
-            {priorityLabel(task.priority).text} priority
+            <IconSlot {...priorityInfo} />
+            {priorityInfo.text} priority
             <Chevron />
           </Picker>
           {lists.length > 0 && (
@@ -254,10 +253,9 @@ export default function TaskDetailPane({
               labelOf={listLabel}
               showIcons={false}
               onChange={(listId) => onUpdateTask({ listId })}
-              className={PROPERTY_ROW_CLASS}
             >
-              <IconSlot {...listLabel(task.listId ?? '')} />
-              <span className="min-w-0 truncate">{listLabel(task.listId ?? '').text}</span>
+              <IconSlot {...listInfo} />
+              <span className="min-w-0 truncate">{listInfo.text}</span>
               <Chevron />
             </Picker>
           )}

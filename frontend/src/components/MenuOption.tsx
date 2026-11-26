@@ -4,6 +4,8 @@ import { faCheck } from '@fortawesome/free-solid-svg-icons'
 import { MENU_ITEM_CLASS } from '../styles'
 import { IconSlot } from './IconSlot'
 
+export type MenuIcon = { icon: IconDefinition; color?: string }
+
 export function MenuOption({
   icon,
   label,
@@ -11,7 +13,7 @@ export function MenuOption({
   danger,
   onClick,
 }: {
-  icon?: { icon: IconDefinition; color?: string }
+  icon?: MenuIcon
   label: string
   checked?: boolean
   danger?: boolean

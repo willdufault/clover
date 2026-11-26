@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Label } from '../labels'
+import { PROPERTY_ROW_CLASS } from '../styles'
 import { MenuOption } from './MenuOption'
 import { Popover, rem } from './Popover'
 
@@ -20,7 +21,6 @@ export function Picker({
   labelOf,
   showIcons = true,
   onChange,
-  className,
   children,
 }: {
   name: string
@@ -30,7 +30,6 @@ export function Picker({
   labelOf: (option: string) => Label
   showIcons?: boolean
   onChange: (option: string) => void
-  className: string
   children: React.ReactNode
 }) {
   const [anchor, setAnchor] = useState<Anchor | null>(null)
@@ -42,7 +41,7 @@ export function Picker({
         aria-haspopup="menu"
         aria-expanded={!!anchor}
         onClick={(event) => setAnchor(anchorOf(event))}
-        className={className}
+        className={PROPERTY_ROW_CLASS}
       >
         {children}
       </button>

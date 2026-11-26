@@ -2,25 +2,21 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faArrowLeft, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 import { fit, Popover, rem } from './Popover'
 import { IconSlot } from './IconSlot'
-import { MenuOption } from './MenuOption'
+import { MenuOption, type MenuIcon } from './MenuOption'
 
 export const MENU_WIDTH = 16
-
-type MenuIcon = { icon: IconDefinition; color?: string }
 
 type MenuItem = {
   key?: string
   label: string
   icon?: MenuIcon
   action?: () => void
-  danger?: boolean
   checked?: boolean
   pickDate?: boolean
   value?: React.ReactNode
@@ -272,7 +268,6 @@ export default function ContextMenu({
         icon={item.icon}
         label={item.label}
         checked={item.checked}
-        danger={item.danger}
         onClick={() => {
           item.action?.()
           onClose()
@@ -308,12 +303,15 @@ export default function ContextMenu({
           <div className={mainClass}>
             {kindItems.map(renderItem)}
             {kindItems.length > 0 && <hr className="mx-2 my-1 border-fieldstone" />}
-            {renderItem({
-              label: 'Delete',
-              icon: { icon: faTrashCan },
-              action: onDelete,
-              danger: true,
-            })}
+            <MenuOption
+              icon={{ icon: faTrashCan }}
+              label="Delete"
+              danger
+              onClick={() => {
+                onDelete()
+                onClose()
+              }}
+            />
           </div>
         )}
       </div>

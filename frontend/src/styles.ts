@@ -20,6 +20,8 @@ export const MENU_ITEM_CLASS =
 
 export const META_TEXT_CLASS = 'text-sm text-moss/80'
 
+export const doneTextClass = (done: boolean) => (done ? 'text-moss/75 line-through decoration-moss/40' : 'text-moss')
+
 export const rowStateClass = (selected: boolean, menuTarget: boolean) => {
   if (selected || menuTarget) return 'bg-selection ring-1 ring-clover/30'
   return 'pointer-fine:hover:bg-parchment'

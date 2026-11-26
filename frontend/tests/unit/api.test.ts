@@ -1,8 +1,10 @@
+import type { MockInstance } from 'vitest'
 import { UserManager } from 'oidc-client-ts'
 
 let api: typeof import('../../src/api').api
 let handleRedirect: typeof import('../../src/api').handleRedirect
 let logout: typeof import('../../src/api').logout
+let signinRedirect: MockInstance
 
 const issuer = import.meta.env.VITE_COGNITO_ISSUER
 const cognitoUrl = import.meta.env.VITE_COGNITO_URL
@@ -45,10 +47,16 @@ const mockCognito = (token: Response, other: Response) => {
 const bodies = (fetch: ReturnType<typeof mockCognito>, url: string) =>
   fetch.mock.calls.filter(([u]) => u === url).map(([, init]) => Object.fromEntries(init?.body as URLSearchParams))
 
+const redirectTo = (search: string) => {
+  vi.stubGlobal('location', { ...window.location, search, pathname: '/' })
+  return vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+}
+
 beforeEach(async () => {
   localStorage.clear()
   vi.restoreAllMocks()
   vi.resetModules()
+  signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   ;({ api, handleRedirect, logout } = await import('../../src/api'))
 })
 
@@ -70,7 +78,6 @@ test('api sends the access token and throws the server error message', async () 
 
 test('api redirects to login on 401', async () => {
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Session expired')
   expect(signinRedirect).toHaveBeenCalled()
 })
@@ -84,19 +91,16 @@ test('handleRedirect does nothing without a code', async () => {
 })
 
 test('handleRedirect swallows a failed callback and strips the code', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
-  const replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  const replaceState = redirectTo('?code=c')
   await expect(handleRedirect()).resolves.toBeUndefined()
   expect(replaceState).toHaveBeenCalledWith(null, '', '/')
   expect(localStorage.getItem(userKey)).toBeNull()
 })
 
 test('api throws instead of redirecting after a failed callback', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  redirectTo('?code=c')
   await handleRedirect()
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
   expect(signinRedirect).not.toHaveBeenCalled()
 })
@@ -112,23 +116,19 @@ test('api throws a generic error when the response has no error field', async ()
 })
 
 test('api throws instead of redirecting after a successful callback', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  redirectTo('?code=c')
   vi.spyOn(UserManager.prototype, 'signinCallback').mockResolvedValue(undefined)
   await handleRedirect()
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
   expect(signinRedirect).not.toHaveBeenCalled()
 })
 
 test('handleRedirect strips a Cognito error and blocks a second redirect', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?error=access_denied', pathname: '/' })
-  const replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  const replaceState = redirectTo('?error=access_denied')
   await handleRedirect()
   expect(replaceState).toHaveBeenCalledWith(null, '', '/')
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Sign-in failed')
   expect(signinRedirect).not.toHaveBeenCalled()
 })
@@ -163,7 +163,6 @@ test('api does not refresh a valid token', async () => {
 test('api redirects to login when the refresh fails', async () => {
   storeUser(1)
   mockCognito(json({ error: 'invalid_grant' }, 400), new Response(null, { status: 401 }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Session expired')
   expect(signinRedirect).toHaveBeenCalled()
 })
@@ -184,7 +183,6 @@ test('logout revokes only the refresh token and redirects to Cognito logout', as
 test('api redirects to login without a stored user and never tries a silent sign-in', async () => {
   const fetch = mockCognito(json({}), new Response(null, { status: 401 }))
   const signinSilent = vi.spyOn(UserManager.prototype, 'signinSilent').mockResolvedValue(null)
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Session expired')
   expect(signinSilent).not.toHaveBeenCalled()
   expect(signinRedirect).toHaveBeenCalled()
@@ -192,14 +190,12 @@ test('api redirects to login without a stored user and never tries a silent sign
 })
 
 test('api redirects on a later 401 once a request after the callback succeeds', async () => {
-  vi.stubGlobal('location', { ...window.location, search: '?code=c', pathname: '/' })
-  vi.spyOn(window.history, 'replaceState').mockImplementation(() => {})
+  redirectTo('?code=c')
   vi.spyOn(UserManager.prototype, 'signinCallback').mockResolvedValue(undefined)
   await handleRedirect()
   vi.stubGlobal('fetch', async () => ({ status: 204, ok: true }))
   await api('GET', '/data')
   vi.stubGlobal('fetch', async () => ({ status: 401, ok: false }))
-  const signinRedirect = vi.spyOn(UserManager.prototype, 'signinRedirect').mockResolvedValue()
   await expect(api('GET', '/data')).rejects.toThrow('Session expired')
   expect(signinRedirect).toHaveBeenCalled()
 })

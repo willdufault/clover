@@ -15,10 +15,6 @@ import { SortableRow } from './SortableRow'
 import { useModalFocus } from '../useModalFocus'
 import type { OpenContextMenu } from './ContextMenu'
 
-function SmartListIcon({ listId }: { listId: string }) {
-  return <IconSlot icon={SMART_LIST_ICONS[listId]} color="text-clover" />
-}
-
 const openCount = (tasks: Task[], listId: string) =>
   tasksInList(tasks, listId).filter((task) => !isCompleted(task.stage)).length
 
@@ -84,7 +80,7 @@ export default function ListSidebar({
             className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
           >
             <span className="flex items-center gap-icon">
-              <SmartListIcon listId={TODAY_LIST_ID} />
+              <IconSlot icon={SMART_LIST_ICONS[TODAY_LIST_ID]} color="text-clover" />
               {SMART_LIST_NAMES[TODAY_LIST_ID]}
             </span>
             <TaskCountBadge count={openCount(tasks, TODAY_LIST_ID)} />
@@ -94,7 +90,7 @@ export default function ListSidebar({
             className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
           >
             <span className="flex items-center gap-icon">
-              <SmartListIcon listId={ALL_LIST_ID} />
+              <IconSlot icon={SMART_LIST_ICONS[ALL_LIST_ID]} color="text-clover" />
               {SMART_LIST_NAMES[ALL_LIST_ID]}
             </span>
             <TaskCountBadge count={openCount(tasks, ALL_LIST_ID)} />

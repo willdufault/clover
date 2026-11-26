@@ -5,7 +5,14 @@ import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faBars, faEllipsis, faListCheck, faPen, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, isOverdue } from '../dates'
 import { dueIcon, isCompleted, priorityLabel, stageLabel } from '../labels'
-import { TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS, META_TEXT_CLASS, rowStateClass } from '../styles'
+import {
+  TITLE_RENAME_CLASS,
+  ICON_BUTTON_CLASS,
+  ICON_SLOT_CLASS,
+  META_TEXT_CLASS,
+  doneTextClass,
+  rowStateClass,
+} from '../styles'
 import type { SortCriteria } from '../sort'
 import { RowKind, type Task } from '../types'
 import { SMART_LIST_ICONS } from '../smartLists'
@@ -192,12 +199,7 @@ export default function TaskPane({
           <FontAwesomeIcon icon={stage.icon} />
         </button>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span
-            className={
-              'max-w-2xl text-base break-words ' +
-              (isCompleted(task.stage) ? 'text-moss/75 line-through decoration-moss/40' : 'text-moss')
-            }
-          >
+          <span className={'max-w-2xl text-base break-words ' + doneTextClass(isCompleted(task.stage))}>
             {task.title}
           </span>
           {meta.length > 0 && (

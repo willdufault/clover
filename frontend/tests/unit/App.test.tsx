@@ -79,7 +79,14 @@ const newStep = async (user: User, name: string) => {
   await user.type(within(aside()).getByPlaceholderText('Add a step'), `${name}{Enter}`)
 }
 const sortButton = () => screen.getByRole('button', { name: /^Sort/ })
+const selectTwo = async (user: User) => {
+  await user.click(row('Milk'))
+  await user.keyboard('{Control>}')
+  await user.click(row('Eggs'))
+  await user.keyboard('{/Control}')
+}
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+const taskById = (id: string) => backend.data.tasks.find((task) => task.id === id)
 
 test('opening the context menu cancels an in-progress rename', async () => {
   const user = await setup()
@@ -146,14 +153,13 @@ test('whitespace-only names are ignored', async () => {
 test('saves the due date only when the edit ends', async () => {
   const user = await setup()
   await user.click(within(main()).getByText('Milk'))
-  const id = backend.data.tasks.find((t) => t.title === 'Milk')?.id
   act(() => dueInput().focus())
   fireEvent.change(dueInput(), { target: { value: '2030-01-02' } })
   await flush()
-  expect(backend.data.tasks.find((t) => t.id === id)?.due).toBeNull()
+  expect(taskById('g1')?.due).toBeNull()
   fireEvent.keyDown(dueInput(), { key: 'Enter' })
   await flush()
-  expect(backend.data.tasks.find((t) => t.id === id)?.due).toBe('2030-01-02')
+  expect(taskById('g1')?.due).toBe('2030-01-02')
 })
 
 test('clicking the due date opens the picker', async () => {
@@ -165,18 +171,16 @@ test('clicking the due date opens the picker', async () => {
   expect(showPicker).toHaveBeenCalled()
 })
 
-const milkTask = () => backend.data.tasks.find((t) => t.title === 'Milk')
-
 test('clicking the Today row adds the task, and only the X removes it', async () => {
   const user = await setup()
   await user.click(within(main()).getByText('Milk'))
   expect(within(aside()).queryByRole('button', { name: 'Remove from Today' })).toBeNull()
   await user.click(within(aside()).getByRole('button', { name: 'Add to Today' }))
-  expect(milkTask()?.addedToToday).toBe(true)
+  expect(taskById('g1')?.addedToToday).toBe(true)
   await user.click(within(aside()).getByText('Added to Today'))
-  expect(milkTask()?.addedToToday).toBe(true)
+  expect(taskById('g1')?.addedToToday).toBe(true)
   await user.click(within(aside()).getByRole('button', { name: 'Remove from Today' }))
-  expect(milkTask()?.addedToToday).toBe(false)
+  expect(taskById('g1')?.addedToToday).toBe(false)
   expect(within(aside()).getByRole('button', { name: 'Add to Today' })).toBeInTheDocument()
 })
 
@@ -222,13 +226,6 @@ test('mixed selection offers Add, all-in-Today offers Remove', async () => {
   expect(tasks()).toEqual([])
 })
 
-const selectTwo = async (user: User) => {
-  await user.click(row('Milk'))
-  await user.keyboard('{Control>}')
-  await user.click(row('Eggs'))
-  await user.keyboard('{/Control}')
-}
-
 test('a failing bulk patch leaves every item unchanged and shows the banner', async () => {
   const user = await setup()
   await selectTwo(user)
@@ -237,7 +234,7 @@ test('a failing bulk patch leaves every item unchanged and shows the banner', as
   await submenuClick(user, 'Set priority', 'High')
   expect(screen.getByRole('alert')).toHaveTextContent('Not found')
   expect(within(main()).queryByTitle('High priority')).toBeNull()
-  expect(backend.data.tasks.find((t) => t.id === 'g1')).toMatchObject({ priority: 'medium' })
+  expect(taskById('g1')).toMatchObject({ priority: 'medium' })
 })
 
 describe('multi-select', () => {
@@ -374,10 +371,7 @@ test('Move to list offers the other lists and moves every selected task', async 
   ).toEqual(['Work', 'Home'])
   await user.keyboard('{Escape}')
 
-  await user.click(row('Milk'))
-  await user.keyboard('{Control>}')
-  await user.click(row('Eggs'))
-  await user.keyboard('{/Control}')
+  await selectTwo(user)
   await rightClick(user, row('Eggs'))
   await submenuClick(user, 'Move to list', 'Home')
   expect(tasks()).toEqual([])
@@ -419,7 +413,7 @@ test('on phones choosing a submenu item runs it and closes the menu', async () =
   await user.click(screen.getByRole('menuitem', { name: 'Home' }))
   await flush()
   expect(screen.queryByRole('menu')).toBeNull()
-  expect(backend.data.tasks.find((task) => task.id === 'g1')?.listId).toBe('home')
+  expect(taskById('g1')?.listId).toBe('home')
 })
 
 test('the stage picker marks the current stage and Escape closes it without closing the panel', async () => {
@@ -435,25 +429,23 @@ test('the stage picker marks the current stage and Escape closes it without clos
   expect(aside()).toBeInTheDocument()
   expect(stage()).toHaveFocus()
   await pick(user, stage(), 'Waiting')
-  expect(backend.data.tasks.find((task) => task.id === 'g1')?.stage).toBe('waiting')
+  expect(taskById('g1')?.stage).toBe('waiting')
   expect(toggleButton('Milk')).toHaveAttribute('title', 'Waiting')
 })
-
-const eggsStage = () => backend.data.tasks.find((task) => task.id === 'g2')?.stage
 
 test('the row stage icon toggles done and open without selecting the row', async () => {
   const user = await setup()
   await toggleDone(user, 'Eggs')
   expect(screen.queryByRole('complementary')).toBeNull()
-  expect(eggsStage()).toBe('done')
+  expect(taskById('g2')?.stage).toBe('done')
   await toggleDone(user, 'Eggs')
-  expect(eggsStage()).toBe('open')
+  expect(taskById('g2')?.stage).toBe('open')
   await rightClick(user, row('Eggs'))
   await submenuClick(user, 'Set stage', 'Waiting')
   await toggleDone(user, 'Eggs')
-  expect(eggsStage()).toBe('done')
+  expect(taskById('g2')?.stage).toBe('done')
   await toggleDone(user, 'Eggs')
-  expect(eggsStage()).toBe('open')
+  expect(taskById('g2')?.stage).toBe('open')
 })
 
 test('progress ignores cancelled tasks', async () => {
@@ -497,11 +489,11 @@ test('the due submenu picks a date and removes it', async () => {
   await user.hover(screen.getByText('Set due date'))
   fireEvent.change(screen.getByLabelText('Pick a date'), { target: { value: '2026-12-01' } })
   await flush()
-  expect(backend.data.tasks.find((task) => task.id === 'g1')?.due).toBe('2026-12-01')
+  expect(taskById('g1')?.due).toBe('2026-12-01')
   expect(screen.queryByRole('menu')).toBeNull()
   await rightClick(user, row('Milk'))
   await submenuClick(user, 'Set due date', 'Remove due date')
-  expect(backend.data.tasks.find((task) => task.id === 'g1')?.due).toBeNull()
+  expect(taskById('g1')?.due).toBeNull()
 })
 
 test('the context menu shows the current due date next to Set due date', async () => {
