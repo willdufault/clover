@@ -3,6 +3,12 @@ import { useSortable } from '@dnd-kit/sortable'
 import { RowKind } from '../types'
 import type { MenuAnchor } from './ContextMenu'
 
+const OVERLAY_BG: Record<RowKind, string> = {
+  [RowKind.List]: 'bg-parchment',
+  [RowKind.Task]: 'bg-linen',
+  [RowKind.Step]: 'bg-parchment',
+}
+
 type Press = { x: number; y: number; timer: number; fired: boolean }
 
 const useLongPress = (onLongPress: (event: MenuAnchor) => void) => {
@@ -68,7 +74,7 @@ export function SortableRow({
     <Wrapper
       inert
       data-overlay
-      className="pointer-events-none h-full overflow-hidden rounded-lg bg-parchment shadow-md"
+      className={'pointer-events-none h-full overflow-hidden rounded-lg shadow-md ' + OVERLAY_BG[kind]}
     >
       <Tag className={rowClass}>{children}</Tag>
     </Wrapper>

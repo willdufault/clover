@@ -22,7 +22,7 @@ import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './comp
 import TaskDetailPane from './components/TaskDetailPane'
 import ListSidebar from './components/ListSidebar'
 import TaskPane from './components/TaskPane'
-import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS } from './styles'
+import { ICON_BUTTON_CLASS, SAFE_AREA_CLASS, rowStateClass } from './styles'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useOverlays } from './useOverlays'
@@ -47,7 +47,11 @@ const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]
 
 const DragStack = ({ stacked, children }: { stacked: boolean; children: React.ReactNode }) => (
   <div className="relative h-full">
-    {stacked && <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-lg bg-parchment shadow-md" />}
+    {stacked && (
+      <div
+        className={'absolute inset-0 translate-x-2 translate-y-2 rounded-lg shadow-md ' + rowStateClass(true, false)}
+      />
+    )}
     <div className="relative h-full">{children}</div>
   </div>
 )
