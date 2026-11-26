@@ -30,7 +30,12 @@
     "typescript/no-misused-spread": "off",
     "vitest/require-mock-type-parameters": "off",
     "no-restricted-globals": ["error", "setTimeout", "setInterval"],
-    "no-restricted-properties": ["error", { "property": "setTimeout" }, { "property": "setInterval" }]
+    "no-restricted-properties": ["error", { "property": "setTimeout" }, { "property": "setInterval" }],
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-argument": "error"
   },
   "overrides": [
     {

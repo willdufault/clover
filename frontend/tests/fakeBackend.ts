@@ -54,9 +54,10 @@ export const createFakeBackend = (data = seed()) => {
     if (method === 'POST') return create(kind, body)
     const batch = method === 'PATCH' ? body : (body as { ids?: unknown } | undefined)?.ids
     if (!Array.isArray(batch) || !batchSizeOk(batch.length)) return BAD_REQUEST
-    const ids = method === 'PATCH' ? batch.map((patch) => patch?.id) : batch
+    const items: unknown[] = batch
+    const ids = method === 'PATCH' ? items.map((patch) => (patch as Item | null)?.id) : items
     if (ids.some((id) => typeof id !== 'string')) return BAD_REQUEST
-    return method === 'PATCH' ? update(data[kind], batch) : remove(kind, ids)
+    return method === 'PATCH' ? update(data[kind], items as Item[]) : remove(kind, ids)
   }
   const create = (kind: Kind, body: unknown) => {
     const item = { id: `new-${nextId++}`, ...DEFAULTS[kind], ...(body as object) }

@@ -94,8 +94,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    api('GET', '/data')
-      .then((data: { lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }) => {
+    api<{ lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }>('GET', '/data')
+      .then((data) => {
         setLists(data.lists)
         setTasks(data.tasks.map((task) => ({ ...task, steps: data.steps.filter((step) => step.taskId === task.id) })))
         setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
@@ -116,7 +116,7 @@ export default function App() {
   }, [drawerOpen, setDrawerOpen])
 
   const updateSteps = async (patches: Partial<Step>[]) => {
-    const updated: Step[] = await api('PATCH', '/steps', patches)
+    const updated = await api<Step[]>('PATCH', '/steps', patches)
     setTasks((prev) =>
       prev.map((task) => ({
         ...task,
@@ -127,7 +127,7 @@ export default function App() {
 
   const addTask = (title: string) =>
     runReportingErrors(async () => {
-      const task = await api('POST', '/tasks', {
+      const task = await api<Omit<Task, 'steps'>>('POST', '/tasks', {
         title,
         listId: selectedList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
@@ -137,7 +137,7 @@ export default function App() {
 
   const addStep = (title: string) =>
     runReportingErrors(async () => {
-      const step: Step = await api('POST', '/steps', { taskId: detailTask?.id, title })
+      const step = await api<Step>('POST', '/steps', { taskId: detailTask?.id, title })
       setTasks((prev) =>
         prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
@@ -152,7 +152,7 @@ export default function App() {
 
   const updateTasks = (ids: string[], patch: TaskPatch) =>
     runReportingErrors(async () => {
-      const updated: Omit<Task, 'steps'>[] = await api(
+      const updated = await api<Omit<Task, 'steps'>[]>(
         'PATCH',
         '/tasks',
         ids.map((id) => ({ id, ...patch })),
@@ -205,7 +205,7 @@ export default function App() {
 
   const renameList = (id: string, name: string) =>
     runReportingErrors(async () => {
-      const [updated]: [TaskList] = await api('PATCH', '/lists', [{ id, name }])
+      const [updated] = await api<[TaskList]>('PATCH', '/lists', [{ id, name }])
       setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
     })
 
@@ -213,7 +213,7 @@ export default function App() {
 
   const createList = (name: string) =>
     runReportingErrors(async () => {
-      const newList: TaskList = await api('POST', '/lists', { name })
+      const newList = await api<TaskList>('POST', '/lists', { name })
       setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
