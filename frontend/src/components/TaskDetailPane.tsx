@@ -150,6 +150,7 @@ export default function TaskDetailPane({
       tag="li"
       onClick={(event) => onSelectStep(step.id, event)}
       onContextMenu={onContextMenu(RowKind.Step, step.id)}
+      selected={selectedStepIds.includes(step.id)}
       className={
         'group flex select-none items-start gap-icon rounded-lg px-2 py-2 text-base ' +
         (selectedStepIds.includes(step.id) || menuIds.includes(step.id)

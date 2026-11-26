@@ -65,6 +65,7 @@ export function SortableRow({
   onClick,
   onContextMenu,
   hidden,
+  selected,
   children,
 }: {
   id: string
@@ -74,6 +75,7 @@ export function SortableRow({
   onClick?: (event: React.MouseEvent) => void
   onContextMenu?: (event: MenuAnchor) => void
   hidden?: boolean
+  selected?: boolean
   children: React.ReactNode
 }) {
   const rowClass = 'touch-manipulation [-webkit-touch-callout:none] ' + className
@@ -107,6 +109,7 @@ export function SortableRow({
     <Tag
       ref={setNodeRef}
       data-kind={kind}
+      data-selected={selected}
       onClick={onClick}
       onContextMenu={(event) => {
         if (!onContextMenu) return

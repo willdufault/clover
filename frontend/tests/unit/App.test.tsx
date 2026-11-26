@@ -88,7 +88,8 @@ const selectTwo = async (user: User) => {
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 const taskById = (id: string) => backend.data.tasks.find((task) => task.id === id)
 const stepRow = (name: string) => row(name, aside())
-const isSelected = (element: HTMLElement) => element.className.includes('bg-selection')
+const isSelected = (element: HTMLElement) => element.dataset.selected === 'true'
+const selectedSteps = () => ['2% lactose free', 'Skim', 'Oat'].map((name) => isSelected(stepRow(name)))
 const stepDone = (name: string) => backend.data.steps.find((step) => step.title === name)?.completed
 const withSteps = async (user: User) => {
   await user.click(row('Milk'))
@@ -282,11 +283,11 @@ describe('multi-select', () => {
     await user.keyboard('{Shift>}')
     await user.click(stepRow('Oat'))
     await user.keyboard('{/Shift}')
-    expect(['2% lactose free', 'Skim', 'Oat'].map((name) => isSelected(stepRow(name)))).toEqual([true, true, true])
+    expect(selectedSteps()).toEqual([true, true, true])
     await user.keyboard('{Control>}')
     await user.click(stepRow('Skim'))
     await user.keyboard('{/Control}')
-    expect(['2% lactose free', 'Skim', 'Oat'].map((name) => isSelected(stepRow(name)))).toEqual([true, false, true])
+    expect(selectedSteps()).toEqual([true, false, true])
     await user.click(stepRow('Skim'))
     expect(rowsIn(aside()).some(isSelected)).toBe(false)
   })

@@ -157,6 +157,9 @@ export type MenuAnchor = { clientX: number; clientY: number; above?: number }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: MenuAnchor) => void
 
+const MARK_OPEN = { label: 'Mark as open', icon: { icon: faCircle, color: 'text-lichen' } }
+const MARK_DONE = { label: 'Mark as done', icon: { icon: faCircleCheck, color: 'text-clover' } }
+
 export default function ContextMenu({
   menu,
   onClose,
@@ -236,17 +239,7 @@ export default function ContextMenu({
   ]
 
   const stepItems: MenuItem[] = [
-    menu.allStepsDone
-      ? {
-          label: 'Mark as open',
-          icon: { icon: faCircle, color: 'text-lichen' },
-          action: () => onCompleteSteps(false),
-        }
-      : {
-          label: 'Mark as done',
-          icon: { icon: faCircleCheck, color: 'text-clover' },
-          action: () => onCompleteSteps(true),
-        },
+    { ...(menu.allStepsDone ? MARK_OPEN : MARK_DONE), action: () => onCompleteSteps(!menu.allStepsDone) },
   ]
 
   const kindItems = { [RowKind.List]: [], [RowKind.Task]: taskItems, [RowKind.Step]: stepItems }[menu.kind]

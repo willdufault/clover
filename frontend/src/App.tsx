@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +17,7 @@ import {
 import { getEventCoordinates } from '@dnd-kit/utilities'
 import { api } from './api'
 import { applyDrop, idsToMove } from './drop'
-import { nextSelection } from './selection'
+import { hasModifier, nextSelection } from './selection'
 import { sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, neighborListId, TODAY_LIST_ID, tasksInList } from './smartLists'
@@ -60,15 +60,14 @@ const clickModifiers = (event: React.MouseEvent) => ({
 const soleTask = (tasks: Task[], ids: string[]) =>
   ids.length === 1 ? tasks.find((task) => task.id === ids[0]) : undefined
 
-const stepsOf = (task: Task | undefined) => task?.steps ?? []
-
 const useStepSelection = (task: Task | undefined) => {
   const taskId = task?.id
   const [selection, setSelection] = useState({ taskId, ids: [] as string[] })
   if (selection.taskId !== taskId) setSelection({ taskId, ids: [] })
-  const ids = selection.ids.filter((id) => stepsOf(task).some((step) => step.id === id))
-  const select = useCallback((next: string[]) => setSelection({ taskId, ids: next }), [taskId])
-  return [ids, select] as const
+  const steps = task?.steps ?? []
+  const ids = selection.ids.filter((id) => steps.some((step) => step.id === id))
+  const select = (next: string[]) => setSelection({ taskId, ids: next })
+  return [steps, ids, select] as const
 }
 
 const shared = <T,>(values: T[]) => (values.every((value) => value === values[0]) ? values[0] : undefined)
@@ -107,8 +106,7 @@ export default function App() {
   const listName = SMART_LIST_NAMES[selectedListId] ?? selectedList?.name
   const selectedTaskIds = rawSelectedTaskIds.filter((id) => visibleTasks.some((task) => task.id === id))
   const detailTask = soleTask(visibleTasks, selectedTaskIds)
-  const detailSteps = stepsOf(detailTask)
-  const [selectedStepIds, setSelectedStepIds] = useStepSelection(detailTask)
+  const [detailSteps, selectedStepIds, setSelectedStepIds] = useStepSelection(detailTask)
   const { drawerOpen, setDrawerOpen, detailModal, mainInert } = useOverlays(!!detailTask)
 
   const selectList = (id: string) => {
@@ -129,9 +127,8 @@ export default function App() {
     )
 
   const selectStep = (id: string, event: React.MouseEvent) => {
-    const modifiers = clickModifiers(event)
     const ids = detailSteps.map((step) => step.id)
-    setSelectedStepIds(modifiers.ctrl || modifiers.shift ? nextSelection(selectedStepIds, ids, id, modifiers) : [])
+    setSelectedStepIds(hasModifier(event) ? nextSelection(selectedStepIds, ids, id, clickModifiers(event)) : [])
   }
 
   const runReportingErrors = (action: () => Promise<void>) => {

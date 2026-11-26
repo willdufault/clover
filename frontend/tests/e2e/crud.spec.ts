@@ -346,8 +346,7 @@ test('steps multi-select and the step menu marks done, open and deletes them in 
 
   const steps = page.locator('aside [data-kind="step"]')
   const step = (name: string) => steps.filter({ hasText: name })
-  const selected = () =>
-    steps.evaluateAll((rows: Element[]) => rows.map((row) => row.className.includes('bg-selection')))
+  const selected = () => steps.evaluateAll((rows: HTMLElement[]) => rows.map((row) => row.dataset.selected === 'true'))
   const done = () => backend.data.steps.map((s) => s.completed)
   await step('Skim').click({ modifiers: ['ControlOrMeta'] })
   await expect.poll(selected).toEqual([false, true, false])
