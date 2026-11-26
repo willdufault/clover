@@ -117,6 +117,23 @@ test('deleting a list that is not selected keeps the current list and the open p
   expect(within(aside()).getByRole('heading', { name: 'Milk' })).toBeInTheDocument()
 })
 
+test('deleting the selected list sends one batch request and selects the list before it', async () => {
+  const user = await setup()
+  const deletes: unknown[] = []
+  const realFetch = fetch
+  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+    if (init.method === 'DELETE') deletes.push([new URL(url).pathname, JSON.parse(init.body as string)])
+    return realFetch(url, init)
+  })
+  await user.click(within(nav()).getByText('Work'))
+  await deleteViaMenu(user, within(nav()).getByText('Work'))
+  await flush()
+  expect(deletes).toEqual([['/lists', { ids: ['work'] }]])
+  expect(screen.getByRole('heading', { name: 'Groceries' })).toBeInTheDocument()
+  expect(lists()).not.toContain('Work')
+  expect(backend.data.tasks.some((task) => task.listId === 'work')).toBe(false)
+})
+
 test('a list created while a delete is in flight survives and stays selected', async () => {
   const user = await setup()
   let release!: () => void
