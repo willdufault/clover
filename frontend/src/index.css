@@ -10,6 +10,8 @@
 }
 
 @theme {
+  --spacing-icon: 0.5em;
+
   --font-sans: 'Alegreya Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Alegreya', ui-serif, Georgia, serif;
 

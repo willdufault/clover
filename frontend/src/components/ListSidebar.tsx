@@ -64,7 +64,7 @@ export default function ListSidebar({
         }
       >
         <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-8 pb-4">
-          <div className="flex items-center gap-2 px-3 py-1 font-serif text-2xl font-medium text-moss">
+          <div className="flex items-center gap-icon px-3 py-1 font-serif text-2xl font-medium text-moss">
             <FontAwesomeIcon icon={faClover} className="text-xl text-clover" />
             Clover
           </div>
@@ -83,7 +83,7 @@ export default function ListSidebar({
             onClick={() => onSelectList(TODAY_LIST_ID)}
             className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-icon">
               <SmartListIcon listId={TODAY_LIST_ID} />
               {SMART_LIST_NAMES[TODAY_LIST_ID]}
             </span>
@@ -93,7 +93,7 @@ export default function ListSidebar({
             onClick={() => onSelectList(ALL_LIST_ID)}
             className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-icon">
               <SmartListIcon listId={ALL_LIST_ID} />
               {SMART_LIST_NAMES[ALL_LIST_ID]}
             </span>

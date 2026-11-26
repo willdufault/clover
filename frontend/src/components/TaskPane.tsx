@@ -24,7 +24,7 @@ const metaItems = (task: Task) => {
   const items = []
   if (task.addedToToday)
     items.push(
-      <span key="today" title="In Today" className="flex items-center gap-1.5">
+      <span key="today" title="In Today" className="flex items-center gap-icon">
         <FontAwesomeIcon icon={faSun} className="text-clover" />
         Today
       </span>,
@@ -32,7 +32,7 @@ const metaItems = (task: Task) => {
   if (task.due) {
     const icon = dueIcon(task.due)
     items.push(
-      <span key="due" className={'flex items-center gap-1.5' + (isOverdue(task.due) ? ' text-rosehip' : '')}>
+      <span key="due" className={'flex items-center gap-icon' + (isOverdue(task.due) ? ' text-rosehip' : '')}>
         <FontAwesomeIcon icon={icon.icon} title={icon.text} className={icon.color} />
         {formatDueDate(task.due)}
       </span>,
@@ -41,7 +41,7 @@ const metaItems = (task: Task) => {
   if (task.priority !== 'medium') {
     const priority = priorityLabel(task.priority)
     items.push(
-      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-1.5">
+      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-icon">
         <FontAwesomeIcon icon={priority.icon} className={priority.color} />
         {priority.text}
       </span>,
@@ -49,7 +49,7 @@ const metaItems = (task: Task) => {
   }
   if (task.steps.length > 0)
     items.push(
-      <span key="steps" className="flex items-center gap-1.5">
+      <span key="steps" className="flex items-center gap-icon">
         <FontAwesomeIcon icon={faListCheck} className="text-lichen" />
         {task.steps.filter((step) => step.completed).length}/{task.steps.length}
       </span>,
@@ -61,8 +61,8 @@ function TitleIcon({ listId }: { listId: string }) {
   const icon = SMART_LIST_ICONS[listId]
   return (
     icon && (
-      <span className="mr-1.5 flex h-10 items-center text-2xl text-clover sm:text-3xl">
-        <FontAwesomeIcon icon={icon} />
+      <span className="mr-[calc(var(--spacing-icon)-0.25rem)] flex h-10 items-center text-3xl text-clover sm:text-4xl">
+        <FontAwesomeIcon icon={icon} className="text-2xl sm:text-3xl" />
       </span>
     )
   )
@@ -170,7 +170,7 @@ export default function TaskPane({
         onClick={(event) => onSelectTask(task.id, event)}
         onContextMenu={onContextMenu(RowKind.Task, task.id)}
         className={
-          'group relative flex cursor-pointer select-none items-start gap-3 rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
+          'group relative flex cursor-pointer select-none items-start gap-icon rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
           rowStateClass(selectedIds.includes(task.id), menuIds.includes(task.id))
         }
       >

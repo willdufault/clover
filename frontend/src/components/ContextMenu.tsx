@@ -294,11 +294,13 @@ export default function ContextMenu({
       <div ref={contentRef}>
         {sheet ? (
           <div key={sheet.label} className="fade-in">
-            <div className="sticky -top-1 z-10 mx-2 mb-1 flex items-center gap-1 border-b border-fieldstone bg-parchment py-1 sheet:top-0">
+            <div className="sticky -top-1 z-10 mx-2 mb-1 flex items-center border-b border-fieldstone bg-parchment py-1 sheet:top-0">
               <button aria-label="Back" onClick={goBack} className={ICON_BUTTON_CLASS + ' -ml-1 text-lichen'}>
                 <FontAwesomeIcon icon={faArrowLeft} />
               </button>
-              <p className="font-serif text-lg font-medium text-moss">{sheet.label}</p>
+              <p className="ml-[calc(var(--spacing-icon)-0.25rem)] font-serif text-lg font-medium text-moss">
+                {sheet.label}
+              </p>
             </div>
             {sheet.submenu.map(renderItem)}
           </div>

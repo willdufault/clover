@@ -134,7 +134,7 @@ export default function TaskDetailPane({
       id={step.id}
       kind={RowKind.Step}
       tag="li"
-      className="group flex select-none items-start gap-3 rounded-lg px-2 py-2 text-base hover:bg-moss/5"
+      className="group flex select-none items-start gap-icon rounded-lg px-2 py-2 text-base hover:bg-moss/5"
     >
       <label
         {...ignoreRowEvents}
@@ -263,7 +263,7 @@ export default function TaskDetailPane({
           )}
           <button
             onClick={onDeleteTask}
-            className="mt-6 flex h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-base text-rosehip transition hover:bg-rosehip/5 pointer-fine:h-10"
+            className="mt-6 flex h-11 cursor-pointer items-center gap-icon rounded-lg px-2 text-base text-rosehip transition hover:bg-rosehip/5 pointer-fine:h-10"
           >
             <IconSlot icon={faTrashCan} />
             Delete task

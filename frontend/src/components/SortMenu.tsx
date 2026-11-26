@@ -32,7 +32,9 @@ export function SortMenu({
         aria-haspopup={label ? undefined : 'menu'}
         aria-expanded={label ? undefined : !!anchor}
         onClick={(event) => (label ? onSort(null) : setAnchor(anchorOf(event)))}
-        className={ICON_BUTTON_CLASS + ' -mr-2.5 h-9 w-auto gap-2 px-2.5 text-sm text-moss/80 aria-expanded:bg-moss/5'}
+        className={
+          ICON_BUTTON_CLASS + ' -mr-2.5 h-9 w-auto gap-icon px-2.5 text-sm text-moss/80 aria-expanded:bg-moss/5'
+        }
       >
         <FontAwesomeIcon
           icon={faArrowDownWideShort}
