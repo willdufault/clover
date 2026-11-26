@@ -2,67 +2,20 @@ import { useState } from 'react'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faBars, faEllipsis, faListCheck, faPen, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
-import { formatDueDate, isOverdue } from '../dates'
-import { dueIcon, isCompleted, priorityLabel, stageLabel } from '../labels'
-import {
-  TITLE_RENAME_CLASS,
-  ICON_BUTTON_CLASS,
-  ICON_SLOT_CLASS,
-  META_TEXT_CLASS,
-  doneTextClass,
-  rowStateClass,
-} from '../styles'
+import { faBars, faEllipsis, faPen, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { TITLE_RENAME_CLASS, ICON_BUTTON_CLASS, META_TEXT_CLASS } from '../styles'
 import type { SortCriteria } from '../sort'
-import { RowKind, type Task } from '../types'
+import type { Task } from '../types'
 import { SMART_LIST_ICONS } from '../smartLists'
 import { AddInput } from './AddInput'
 import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
-import { MENU_WIDTH, type OpenContextMenu } from './ContextMenu'
-import { ignoreRowEvents } from './ignoreRowEvents'
+import type { OpenContextMenu } from './ContextMenu'
 import { Popover, rem } from './Popover'
 import { anchorOf, type Anchor } from './Picker'
-import { SortableRow } from './SortableRow'
+import { TaskRow } from './TaskRow'
 import { SortMenu } from './SortMenu'
 import { MenuOption } from './MenuOption'
-
-const metaItems = (task: Task) => {
-  const items = []
-  if (task.addedToToday)
-    items.push(
-      <span key="today" title="In Today" className="flex items-center gap-icon">
-        <FontAwesomeIcon icon={faSun} className="text-clover" />
-        Today
-      </span>,
-    )
-  if (task.due) {
-    const icon = dueIcon(task.due)
-    items.push(
-      <span key="due" className={'flex items-center gap-icon' + (isOverdue(task.due) ? ' text-rosehip' : '')}>
-        <FontAwesomeIcon icon={icon.icon} title={icon.text} className={icon.color} />
-        {formatDueDate(task.due)}
-      </span>,
-    )
-  }
-  if (task.priority !== 'medium') {
-    const priority = priorityLabel(task.priority)
-    items.push(
-      <span key="priority" title={`${priority.text} priority`} className="flex items-center gap-icon">
-        <FontAwesomeIcon icon={priority.icon} className={priority.color} />
-        {priority.text}
-      </span>,
-    )
-  }
-  if (task.steps.length > 0)
-    items.push(
-      <span key="steps" className="flex items-center gap-icon">
-        <FontAwesomeIcon icon={faListCheck} className="text-lichen" />
-        {task.steps.filter((step) => step.completed).length}/{task.steps.length}
-      </span>,
-    )
-  return items
-}
 
 function TitleIcon({ listId }: { listId: string }) {
   const icon = SMART_LIST_ICONS[listId]
@@ -77,11 +30,6 @@ function TitleIcon({ listId }: { listId: string }) {
 
 const MAIN_CLASS =
   'min-w-0 flex-1 overflow-x-clip overflow-y-auto [scrollbar-gutter:stable] px-4 pt-5 pb-10 sm:px-6 lg:px-8 lg:pt-8'
-
-const actionsOpacity = (menuOpen: boolean, selected: boolean) => {
-  if (menuOpen) return 'opacity-100'
-  return selected ? 'opacity-40' : 'opacity-0'
-}
 
 function Progress({
   tasks,
@@ -167,77 +115,6 @@ export default function TaskPane({
   const closeListMenu = () => setListMenu(null)
   const columnClass = 'w-full max-w-3xl ' + (wide ? 'xl:max-w-5xl' : '2xl:max-w-4xl')
 
-  const taskRow = (task: Task) => {
-    const meta = metaItems(task)
-    const stage = stageLabel(task.stage)
-    return (
-      <SortableRow
-        key={task.id}
-        id={task.id}
-        kind={RowKind.Task}
-        tag="li"
-        onClick={(event) => onSelectTask(task.id, event)}
-        onContextMenu={onContextMenu(RowKind.Task, task.id)}
-        hidden={dragIds.includes(task.id)}
-        className={
-          'group relative flex cursor-pointer select-none items-start gap-icon rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
-          rowStateClass(selectedIds.includes(task.id), menuIds.includes(task.id))
-        }
-      >
-        <button
-          {...ignoreRowEvents}
-          aria-label={task.stage === 'done' ? 'Mark open' : 'Mark done'}
-          title={stage.text}
-          onClick={(event) => {
-            event.stopPropagation()
-            onToggleDone(task)
-          }}
-          className={
-            'touch-hit h-6 cursor-pointer rounded-full text-lg transition active:scale-90 ' +
-            ICON_SLOT_CLASS +
-            ' ' +
-            stage.color
-          }
-        >
-          <FontAwesomeIcon icon={stage.icon} />
-        </button>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className={'max-w-2xl text-base break-words ' + doneTextClass(isCompleted(task.stage))}>
-            {task.title}
-          </span>
-          {meta.length > 0 && (
-            <p className={'mt-0.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 ' + META_TEXT_CLASS}>{meta}</p>
-          )}
-        </div>
-        <button
-          {...ignoreRowEvents}
-          aria-label="Task actions"
-          aria-haspopup="menu"
-          onClick={(event) => {
-            event.stopPropagation()
-            const button = event.currentTarget.getBoundingClientRect()
-            const row = event.currentTarget.parentElement?.getBoundingClientRect() ?? button
-            onContextMenu(
-              RowKind.Task,
-              task.id,
-            )({
-              clientX: button.right - rem(MENU_WIDTH),
-              clientY: row.bottom + 4,
-              above: row.top - 4,
-            })
-          }}
-          className={
-            ICON_BUTTON_CLASS +
-            ' absolute top-2 right-1.5 size-8 text-lichen group-hover:opacity-100 focus-visible:opacity-100 group-focus-visible:opacity-100 pointer-coarse:hidden ' +
-            actionsOpacity(menuIds.includes(task.id), selectedIds.includes(task.id))
-          }
-        >
-          <FontAwesomeIcon icon={faEllipsis} />
-        </button>
-      </SortableRow>
-    )
-  }
-
   return (
     <main inert={inert} className={MAIN_CLASS}>
       <div className={columnClass}>
@@ -316,7 +193,22 @@ export default function TaskPane({
         <AddInput placeholder="Add a task" maxLength={limits.titleMax} onAdd={onAddTask} className="mt-4" />
 
         <SortableContext items={tasks} strategy={verticalListSortingStrategy} disabled={{ droppable: !!sort }}>
-          {tasks.length > 0 && <ul className="mt-1">{tasks.map(taskRow)}</ul>}
+          {tasks.length > 0 && (
+            <ul className="mt-1">
+              {tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  selected={selectedIds.includes(task.id)}
+                  menuOpen={menuIds.includes(task.id)}
+                  hidden={dragIds.includes(task.id)}
+                  onSelect={(event) => onSelectTask(task.id, event)}
+                  onToggleDone={() => onToggleDone(task)}
+                  onContextMenu={onContextMenu}
+                />
+              ))}
+            </ul>
+          )}
         </SortableContext>
 
         {tasks.length === 0 && <p className="mt-8 px-2 font-serif text-lg text-moss/80 italic">No tasks yet.</p>}
