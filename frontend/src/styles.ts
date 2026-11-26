@@ -16,7 +16,7 @@ export const SHEET_TITLE_CLASS =
   'mx-2 mb-1 truncate border-b border-fieldstone px-1 pt-1 pb-3 font-serif text-lg font-medium text-moss'
 
 export const MENU_ITEM_CLASS =
-  'flex w-full cursor-pointer items-center gap-3 break-words rounded-md px-3 py-3 text-left text-moss -outline-offset-2 hover:bg-moss/5 aria-expanded:bg-moss/5 pointer-fine:py-2'
+  'flex w-full cursor-pointer items-center gap-2.5 break-words rounded-md px-3 py-3 text-left text-moss -outline-offset-2 hover:bg-moss/5 aria-expanded:bg-moss/5 pointer-fine:py-2'
 
 export const META_TEXT_CLASS = 'text-sm text-moss/80'
 

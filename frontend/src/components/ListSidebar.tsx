@@ -83,7 +83,7 @@ export default function ListSidebar({
             onClick={() => onSelectList(TODAY_LIST_ID)}
             className={sidebarRowClass(selectedListId === TODAY_LIST_ID, dragOverListId === TODAY_LIST_ID)}
           >
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
               <SmartListIcon listId={TODAY_LIST_ID} />
               {SMART_LIST_NAMES[TODAY_LIST_ID]}
             </span>
@@ -93,7 +93,7 @@ export default function ListSidebar({
             onClick={() => onSelectList(ALL_LIST_ID)}
             className={sidebarRowClass(selectedListId === ALL_LIST_ID, false)}
           >
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
               <SmartListIcon listId={ALL_LIST_ID} />
               {SMART_LIST_NAMES[ALL_LIST_ID]}
             </span>
@@ -125,7 +125,7 @@ export default function ListSidebar({
             placeholder="Add a list"
             maxLength={limits.listNameMax}
             onAdd={onCreateList}
-            className="mt-2 shrink-0 px-3!"
+            className="mt-2 shrink-0"
           />
         </nav>
         <button
