@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
-import { ICON_SLOT_CLASS } from '../styles'
+import { IconSlot } from './IconSlot'
 
 export function AddInput({
   placeholder,
@@ -33,9 +32,7 @@ export function AddInput({
         className
       }
     >
-      <span className={ICON_SLOT_CLASS}>
-        <FontAwesomeIcon icon={faPlus} />
-      </span>
+      <IconSlot icon={faPlus} />
       <input
         value={text}
         onChange={(event) => setText(event.target.value)}

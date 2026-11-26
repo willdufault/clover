@@ -2,12 +2,13 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
-import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS, sidebarRowClass } from '../styles'
+import { SAFE_AREA_CLASS, ICON_BUTTON_CLASS, sidebarRowClass } from '../styles'
 import { isCompleted } from '../labels'
 import { RowKind, type Task, type TaskList } from '../types'
 import { ALL_LIST_ID, SMART_LIST_ICONS, SMART_LIST_NAMES, TODAY_LIST_ID, tasksInList } from '../smartLists'
 import { logout } from '../api'
 import { TaskCountBadge } from './TaskCountBadge'
+import { IconSlot } from './IconSlot'
 import { AddInput } from './AddInput'
 import limits from '../shared/limits.json'
 import { SortableRow } from './SortableRow'
@@ -15,8 +16,7 @@ import { useModalFocus } from '../useModalFocus'
 import type { OpenContextMenu } from './ContextMenu'
 
 function SmartListIcon({ listId }: { listId: string }) {
-  const icon = SMART_LIST_ICONS[listId]
-  return <span className={ICON_SLOT_CLASS + ' text-clover'}>{icon && <FontAwesomeIcon icon={icon} />}</span>
+  return <IconSlot icon={SMART_LIST_ICONS[listId]} color="text-clover" />
 }
 
 const openCount = (tasks: Task[], listId: string) =>

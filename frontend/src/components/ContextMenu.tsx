@@ -2,18 +2,22 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faArrowLeft, faCheck, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
-import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
-import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS, ICON_SLOT_CLASS } from '../styles'
+import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
+import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
 import { RowKind, type TaskList, type TaskPatch } from '../types'
 import { fit, Popover, rem } from './Popover'
+import { IconSlot } from './IconSlot'
 
 export const MENU_WIDTH = 16
+
+type MenuIcon = { icon: IconDefinition; color?: string }
 
 type MenuItem = {
   key?: string
   label: string
-  icon?: Label
+  icon?: MenuIcon
   action?: () => void
   danger?: boolean
   checked?: boolean
@@ -21,13 +25,6 @@ type MenuItem = {
   value?: React.ReactNode
   submenu?: MenuItem[]
 }
-
-const iconSlot = (label?: Label) =>
-  label && (
-    <span className={ICON_SLOT_CLASS + ' ' + label.color}>
-      <FontAwesomeIcon icon={label.icon} />
-    </span>
-  )
 
 function PickDateItem({ onPick }: { onPick: (date: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -59,7 +56,7 @@ function SubmenuRow({
   renderItem,
 }: {
   label: string
-  icon?: Label
+  icon?: MenuIcon
   value?: React.ReactNode
   submenu: MenuItem[]
   isTouch: boolean
@@ -93,7 +90,7 @@ function SubmenuRow({
         onClick={(event) => (open ? setOpen(false) : openPanel(event.currentTarget))}
         className={MENU_ITEM_CLASS}
       >
-        {iconSlot(icon)}
+        {icon && <IconSlot icon={icon.icon} color={icon.color} />}
         <span className="flex-1 whitespace-nowrap">{label}</span>
         {value}
         <FontAwesomeIcon icon={faChevronRight} className="text-xs text-lichen" />
@@ -122,7 +119,7 @@ const moveItems = (lists: TaskList[], onUpdate: (patch: TaskPatch) => void): Men
     ? [
         {
           label: 'Move to list',
-          icon: { icon: faListUl, color: 'text-lichen', text: '' },
+          icon: { icon: faListUl, color: 'text-lichen' },
           submenu: lists.map((list) => ({
             key: list.id,
             label: list.name,
@@ -215,12 +212,12 @@ export default function ContextMenu({
     menu.allInToday
       ? {
           label: 'Remove from Today',
-          icon: { icon: faSun, color: 'text-clover', text: '' },
+          icon: { icon: faSun, color: 'text-clover' },
           action: () => onUpdateTasks({ addedToToday: false }),
         }
       : {
           label: 'Add to Today',
-          icon: { icon: faSunRegular, color: 'text-lichen', text: '' },
+          icon: { icon: faSunRegular, color: 'text-lichen' },
           action: () => onUpdateTasks({ addedToToday: true }),
         },
     {
@@ -283,7 +280,7 @@ export default function ContextMenu({
         }}
         className={MENU_ITEM_CLASS + (item.danger ? ' text-rosehip!' : '')}
       >
-        {iconSlot(item.icon)}
+        {item.icon && <IconSlot icon={item.icon.icon} color={item.icon.color} />}
         {item.label}
         {item.checked && <FontAwesomeIcon icon={faCheck} className="ml-auto text-clover" />}
       </button>
@@ -317,7 +314,7 @@ export default function ContextMenu({
             {kindItems.length > 0 && <hr className="mx-2 my-1 border-fieldstone" />}
             {renderItem({
               label: 'Delete',
-              icon: { icon: faTrashCan, color: '', text: '' },
+              icon: { icon: faTrashCan },
               action: onDelete,
               danger: true,
             })}

@@ -25,6 +25,7 @@ import { Popover, rem } from './Popover'
 import { anchorOf, type Anchor } from './Picker'
 import { SortableRow } from './SortableRow'
 import { SortMenu } from './SortMenu'
+import { IconSlot } from './IconSlot'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -293,9 +294,7 @@ export default function TaskPane({
                 }}
                 className={MENU_ITEM_CLASS}
               >
-                <span className={ICON_SLOT_CLASS + ' text-lichen'}>
-                  <FontAwesomeIcon icon={faPen} />
-                </span>
+                <IconSlot icon={faPen} color="text-lichen" />
                 Rename list
               </button>
               <button
@@ -306,9 +305,7 @@ export default function TaskPane({
                 }}
                 className={MENU_ITEM_CLASS + ' text-rosehip!'}
               >
-                <span className={ICON_SLOT_CLASS}>
-                  <FontAwesomeIcon icon={faTrashCan} />
-                </span>
+                <IconSlot icon={faTrashCan} />
                 Delete list
               </button>
             </Popover>

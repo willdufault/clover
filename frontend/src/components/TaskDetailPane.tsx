@@ -23,12 +23,7 @@ import { Picker } from './Picker'
 import { SortableRow } from './SortableRow'
 import { ignoreRowEvents } from './ignoreRowEvents'
 import { useModalFocus } from '../useModalFocus'
-
-const LabelIcon = ({ label }: { label: Label }) => (
-  <span className={ICON_SLOT_CLASS + ' ' + label.color}>
-    <FontAwesomeIcon icon={label.icon} />
-  </span>
-)
+import { IconSlot } from './IconSlot'
 
 const REMOVE_BUTTON_CLASS = ICON_BUTTON_CLASS + ' relative ' + TRAILING_ICON_CLASS
 
@@ -85,17 +80,13 @@ function TodayField({ task, onUpdate }: { task: Task; onUpdate: (patch: TaskPatc
   if (!task.addedToToday)
     return (
       <button onClick={() => onUpdate({ addedToToday: true })} className={PROPERTY_ROW_CLASS}>
-        <span className={ICON_SLOT_CLASS + ' text-lichen'}>
-          <FontAwesomeIcon icon={faSunRegular} />
-        </span>
+        <IconSlot icon={faSunRegular} color="text-lichen" />
         Add to Today
       </button>
     )
   return (
     <div className={STATIC_ROW_CLASS}>
-      <span className={ICON_SLOT_CLASS + ' text-clover'}>
-        <FontAwesomeIcon icon={faSun} />
-      </span>
+      <IconSlot icon={faSun} color="text-clover" />
       <span className="flex-1">Added to Today</span>
       <button
         onClick={() => onUpdate({ addedToToday: false })}
@@ -236,7 +227,7 @@ export default function TaskDetailPane({
             onChange={(stage) => onUpdateTask({ stage })}
             className={PROPERTY_ROW_CLASS}
           >
-            <LabelIcon label={stageLabel(task.stage)} />
+            <IconSlot {...stageLabel(task.stage)} />
             {stageLabel(task.stage).text}
             <Chevron />
           </Picker>
@@ -250,7 +241,7 @@ export default function TaskDetailPane({
             onChange={(priority) => onUpdateTask({ priority })}
             className={PROPERTY_ROW_CLASS}
           >
-            <LabelIcon label={priorityLabel(task.priority)} />
+            <IconSlot {...priorityLabel(task.priority)} />
             {priorityLabel(task.priority).text} priority
             <Chevron />
           </Picker>
@@ -265,7 +256,7 @@ export default function TaskDetailPane({
               onChange={(listId) => onUpdateTask({ listId })}
               className={PROPERTY_ROW_CLASS}
             >
-              <LabelIcon label={listLabel(task.listId ?? '')} />
+              <IconSlot {...listLabel(task.listId ?? '')} />
               <span className="min-w-0 truncate">{listLabel(task.listId ?? '').text}</span>
               <Chevron />
             </Picker>
@@ -274,9 +265,7 @@ export default function TaskDetailPane({
             onClick={onDeleteTask}
             className="mt-6 flex h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-base text-rosehip transition hover:bg-rosehip/5 pointer-fine:h-10"
           >
-            <span className={ICON_SLOT_CLASS}>
-              <FontAwesomeIcon icon={faTrashCan} />
-            </span>
+            <IconSlot icon={faTrashCan} />
             Delete task
           </button>
         </div>

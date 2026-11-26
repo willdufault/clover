@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 import type { Label } from '../labels'
-import { ICON_SLOT_CLASS, MENU_ITEM_CLASS } from '../styles'
+import { MENU_ITEM_CLASS } from '../styles'
+import { IconSlot } from './IconSlot'
 import { Popover, rem } from './Popover'
 
 const MENU_WIDTH = 13
@@ -71,11 +72,7 @@ export function Picker({
                 }}
                 className={MENU_ITEM_CLASS}
               >
-                {showIcons && (
-                  <span className={ICON_SLOT_CLASS + ' ' + label.color}>
-                    <FontAwesomeIcon icon={label.icon} />
-                  </span>
-                )}
+                {showIcons && <IconSlot icon={label.icon} color={label.color} />}
                 <span title={label.text} className="min-w-0 flex-1 truncate">
                   {label.text}
                 </span>
