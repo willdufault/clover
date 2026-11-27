@@ -1,6 +1,18 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
-import { box, captureErrors, drag, glide, grab, mockApi, navRow, waitForDropAnimation } from './helpers'
+import {
+  box,
+  captureErrors,
+  drag,
+  glide,
+  grab,
+  lineSide,
+  lineSides,
+  mockApi,
+  navRow,
+  sweep,
+  waitForDropAnimation,
+} from './helpers'
 
 test('dragging a step keeps the panel open and reorders', async ({ page }) => {
   const errors = captureErrors(page)
@@ -84,13 +96,6 @@ const richSeed = () => {
 
 const clone = (page: Page) => page.locator('[data-overlay]')
 
-const lineSide = (row: Locator) =>
-  row.evaluate((el) => {
-    const style = getComputedStyle(el, '::before')
-    if (style.content === 'none') return null
-    return style.top === '0px' ? 'above' : 'below'
-  })
-
 const boxes = (rows: Locator) =>
   rows.evaluateAll((els) =>
     els.map((el) => {
@@ -107,7 +112,7 @@ const dragAndCheck = async (page: Page, rows: Locator, row: Locator, to: Locator
   await page.mouse.move(start.x, start.y + 10)
   await expect(row).toBeHidden()
   const settled = await boxes(rows)
-  await glide(page, start, to)
+  await glide(page, start, to, side === 'below' ? 0.75 : 0.25)
   await expect(clone(page)).toHaveCount(1)
   const overlay = await box(clone(page))
   expect(overlay.width).toBeCloseTo(before.width, 0)
@@ -115,7 +120,7 @@ const dragAndCheck = async (page: Page, rows: Locator, row: Locator, to: Locator
   await expect(clone(page)).toHaveText(text)
   await expect(row).toBeHidden()
   expect(await boxes(rows)).toEqual(settled)
-  const sides = await Promise.all((await rows.all()).map(lineSide))
+  const sides = await lineSides(rows)
   expect(sides.filter(Boolean)).toEqual(side ? [side] : [])
   if (side) expect(await lineSide(to)).toBe(side)
   await page.mouse.up()
@@ -148,6 +153,46 @@ test('dragging hides the row and shows a drop line where it lands', async ({ pag
   expect(errors).toEqual([])
 })
 
+test('dropping a task back in its gap keeps the order and the hovered half picks the side', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 3; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(5)
+  const before = await rows.allTextContents()
+  const start = await grab(page, rows.nth(2))
+  await page.mouse.move(start.x, start.y + 10)
+  const hover = async (index: number, at: number, side: 'above' | 'below') => {
+    await glide(page, start, rows.nth(index), at)
+    await expect.poll(() => lineSides(rows)).toEqual(before.map((_, i) => (i === index ? side : null)))
+  }
+  await hover(4, 0.25, 'above')
+  await hover(4, 0.75, 'below')
+  await hover(1, 0.75, 'below')
+  await hover(3, 0.25, 'above')
+  await page.mouse.up()
+  await waitForDropAnimation(page)
+  expect(await rows.allTextContents()).toEqual(before)
+  expect(errors).toEqual([])
+})
+
+test('a slow drag keeps the drop line at the gap under the pointer', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 5; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(7)
+  const start = await grab(page, rows.nth(2))
+  await page.mouse.move(start.x, start.y - 6)
+  await sweep(rows, start, (to) => page.mouse.move(to.x, to.y))
+  await page.mouse.up()
+  expect(errors).toEqual([])
+})
+
 test('new tasks show first and a dragged order sticks', async ({ page }) => {
   const errors = captureErrors(page)
   await mockApi(page)
@@ -162,7 +207,7 @@ test('new tasks show first and a dragged order sticks', async ({ page }) => {
 
   const start = await grab(page, rows.filter({ hasText: 'Bread' }))
   await page.mouse.move(start.x, start.y + 10)
-  await glide(page, start, rows.last())
+  await glide(page, start, rows.last(), 0.75)
   await page.mouse.up()
   await expect.poll(titles).toEqual(['Eggs', 'Milk', 'Bread'])
   await waitForDropAnimation(page)
@@ -193,8 +238,8 @@ test('dragging a task does not reorder while sorted but still moves it to a list
   const dragFirstToLast = async () => {
     const start = await grab(page, rows.first())
     await page.mouse.move(start.x, start.y + 10)
-    await glide(page, start, rows.last())
-    const lines = (await Promise.all((await rows.all()).map(lineSide))).filter(Boolean)
+    await glide(page, start, rows.last(), 0.75)
+    const lines = (await lineSides(rows)).filter(Boolean)
     await page.mouse.up()
     return lines
   }
@@ -285,5 +330,37 @@ test('dragging a selected task moves every selected task', async ({ page }) => {
   await expect.poll(() => listOf('g4')).toBe('work')
   expect(listOf('g3')).toBe('groceries')
   await expect(row('Bread')).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+test('dragging selected tasks within the list moves them together and the order sticks', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  data.tasks.push(
+    makeTask('g3', 'Bread', 'groceries'),
+    makeTask('g4', 'Butter', 'groceries'),
+    makeTask('g5', 'Jam', 'groceries'),
+  )
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  const row = (title: string) => rows.filter({ hasText: title })
+  const titles = async () => (await rows.locator('span.break-words').allInnerTexts()).map((t) => t.trim())
+  await expect.poll(titles).toEqual(['Jam', 'Butter', 'Bread', 'Eggs', 'Milk'])
+
+  await row('Butter').click({ modifiers: ['ControlOrMeta'] })
+  await row('Eggs').click({ modifiers: ['ControlOrMeta'] })
+  const start = await grab(page, row('Eggs'))
+  await page.mouse.move(start.x, start.y - 10)
+  await expect(row('Butter')).toBeHidden()
+  await glide(page, start, rows.first(), 0.25)
+  expect((await lineSides(rows)).filter(Boolean)).toEqual(['above'])
+  await page.mouse.up()
+  await expect.poll(titles).toEqual(['Butter', 'Eggs', 'Jam', 'Bread', 'Milk'])
+  await waitForDropAnimation(page)
+
+  await navRow(page, 'Work').click()
+  await navRow(page, 'Groceries').click()
+  await expect.poll(titles).toEqual(['Butter', 'Eggs', 'Jam', 'Bread', 'Milk'])
   expect(errors).toEqual([])
 })

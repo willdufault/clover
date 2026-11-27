@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { loadEnv } from 'vite'
 import { createFakeBackend, seed } from '../fakeBackend'
 
@@ -43,9 +43,42 @@ export const box = async (locator: Locator) => {
   return bounds
 }
 
-export const center = async (locator: Locator) => {
+export const center = async (locator: Locator, at = 0.5) => {
   const b = await box(locator)
-  return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+  return { x: b.x + b.width / 2, y: b.y + b.height * at }
+}
+
+type Point = { x: number; y: number }
+
+export const lineSide = (row: Locator) =>
+  row.evaluate((el) => {
+    const style = getComputedStyle(el, '::before')
+    if (style.content === 'none') return null
+    return style.top === '0px' ? 'above' : 'below'
+  })
+
+export const lineSides = async (rows: Locator) => Promise.all((await rows.all()).map(lineSide))
+
+export const sidesAt = (rows: Locator, pointerY: number) =>
+  rows.evaluateAll(
+    (els, y) =>
+      els.map((el) => {
+        const { top, bottom, height } = el.getBoundingClientRect()
+        if (!height || y < top || y >= bottom) return null
+        return y > top + height / 2 ? 'below' : 'above'
+      }),
+    pointerY,
+  )
+
+export const sweep = async (rows: Locator, start: Point, moveTo: (to: Point) => Promise<unknown>) => {
+  const ys = [
+    ...Array.from({ length: 26 }, (_, i) => start.y - 27 - 6 * i),
+    ...Array.from({ length: 60 }, (_, i) => start.y - 177 + 6 * i),
+  ]
+  for (const y of ys) {
+    await moveTo({ x: start.x, y })
+    await expect.poll(() => lineSides(rows), { timeout: 1000, message: `y=${y}` }).toEqual(await sidesAt(rows, y))
+  }
 }
 
 export const grab = async (page: Page, from: Locator) => {
@@ -55,8 +88,8 @@ export const grab = async (page: Page, from: Locator) => {
   return start
 }
 
-export const glide = async (page: Page, start: { x: number; y: number }, to: Locator) => {
-  const end = await center(to)
+export const glide = async (page: Page, start: { x: number; y: number }, to: Locator, at = 0.5) => {
+  const end = await center(to, at)
   for (let i = 1; i <= 10; i++)
     await page.mouse.move(start.x + (end.x - start.x) * (i / 10), start.y + (end.y - start.y) * (i / 10))
 }
@@ -77,8 +110,6 @@ export const pick = async (page: Page, trigger: Locator, option: string) => {
 
 export const stageButton = (row: Locator) => row.getByRole('button', { name: /^Stage: / })
 
-type Point = { x: number; y: number }
-
 export const finger = async (page: Page, from: Point) => {
   const cdp = await page.context().newCDPSession(page)
   const send = (type: 'touchStart' | 'touchMove' | 'touchEnd', touchPoints: Point[]) =>
@@ -86,9 +117,9 @@ export const finger = async (page: Page, from: Point) => {
   let at = from
   await send('touchStart', [from])
   return {
-    move: async (to: Point) => {
-      for (let i = 1; i <= 10; i++)
-        await send('touchMove', [{ x: at.x + (to.x - at.x) * (i / 10), y: at.y + (to.y - at.y) * (i / 10) }])
+    move: async (to: Point, steps = 10) => {
+      for (let i = 1; i <= steps; i++)
+        await send('touchMove', [{ x: at.x + (to.x - at.x) * (i / steps), y: at.y + (to.y - at.y) * (i / steps) }])
       at = to
     },
     up: () => send('touchEnd', []),

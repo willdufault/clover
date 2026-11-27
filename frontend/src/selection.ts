@@ -1,3 +1,5 @@
+export const hasModifier = (event: React.MouseEvent) => event.ctrlKey || event.metaKey || event.shiftKey
+
 export const nextSelection = (
   selected: string[],
   visibleIds: string[],

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faArrowLeft, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
+import { faCircle, faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faArrowLeft, faChevronRight, faCircleCheck, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
@@ -147,6 +147,7 @@ export type ContextMenuState = {
   moveTargets: TaskList[]
   anyHasDue: boolean
   allInToday: boolean
+  allStepsDone: boolean
   stage?: string
   priority?: string
   due?: string | null
@@ -156,16 +157,21 @@ export type MenuAnchor = { clientX: number; clientY: number; above?: number }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: MenuAnchor) => void
 
+const MARK_OPEN = { label: 'Mark as open', icon: { icon: faCircle, color: 'text-lichen' } }
+const MARK_DONE = { label: 'Mark as done', icon: { icon: faCircleCheck, color: 'text-clover' } }
+
 export default function ContextMenu({
   menu,
   onClose,
   onDelete,
   onUpdateTasks,
+  onCompleteSteps,
 }: {
   menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
   onUpdateTasks: (patch: TaskPatch) => void
+  onCompleteSteps: (completed: boolean) => void
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [openSubmenuLabel, setOpenSubmenuLabel] = useState<string | null>(null)
@@ -232,7 +238,11 @@ export default function ContextMenu({
     ...moveItems(menu.moveTargets, onUpdateTasks),
   ]
 
-  const kindItems = menu.kind === RowKind.Task ? taskItems : []
+  const stepItems: MenuItem[] = [
+    { ...(menu.allStepsDone ? MARK_OPEN : MARK_DONE), action: () => onCompleteSteps(!menu.allStepsDone) },
+  ]
+
+  const kindItems = { [RowKind.List]: [], [RowKind.Task]: taskItems, [RowKind.Step]: stepItems }[menu.kind]
 
   const renderItem = (item: MenuItem) => {
     if (item.pickDate)

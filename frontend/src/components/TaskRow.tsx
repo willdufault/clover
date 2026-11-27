@@ -78,6 +78,7 @@ export function TaskRow({
       onClick={onSelect}
       onContextMenu={onContextMenu(RowKind.Task, task.id)}
       hidden={hidden}
+      selected={selected}
       className={
         'group relative flex cursor-pointer select-none items-start gap-icon rounded-lg py-2.5 pr-2 pl-2 transition motion-reduce:transition-none pointer-fine:pr-10 ' +
         rowStateClass(selected, menuOpen)

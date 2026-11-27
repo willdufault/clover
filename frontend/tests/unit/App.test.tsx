@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../../src/App'
-import { createFakeBackend } from '../fakeBackend'
+import { createFakeBackend, task as makeTask } from '../fakeBackend'
 import { stubViewport } from './viewport'
 
 let backend: ReturnType<typeof createFakeBackend>
@@ -87,6 +87,16 @@ const selectTwo = async (user: User) => {
 }
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 const taskById = (id: string) => backend.data.tasks.find((task) => task.id === id)
+const stepRow = (name: string) => row(name, aside())
+const isSelected = (element: HTMLElement) => element.dataset.selected === 'true'
+const selectedSteps = () => ['2% lactose free', 'Skim', 'Oat'].map((name) => isSelected(stepRow(name)))
+const stepDone = (name: string) => backend.data.steps.find((step) => step.title === name)?.completed
+const withSteps = async (user: User) => {
+  await user.click(row('Milk'))
+  await newStep(user, 'Skim')
+  await newStep(user, 'Oat')
+  await flush()
+}
 
 test('opening the context menu cancels an in-progress rename', async () => {
   const user = await setup()
@@ -263,6 +273,95 @@ describe('multi-select', () => {
     await user.click(within(row('Oat', aside())).getByRole('button', { name: 'Delete step: Oat' }))
     expect(steps()).toEqual(['2% lactose free', 'Skim'])
   })
+
+  test('ctrl-click toggles steps, shift-click adds a range, plain click clears', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('2% lactose free'))
+    await user.keyboard('{/Control}')
+    await user.keyboard('{Shift>}')
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Shift}')
+    expect(selectedSteps()).toEqual([true, true, true])
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Skim'))
+    await user.keyboard('{/Control}')
+    expect(selectedSteps()).toEqual([true, false, true])
+    await user.click(stepRow('Skim'))
+    expect(rowsIn(aside()).some(isSelected)).toBe(false)
+  })
+
+  test('Escape clears the step selection and keeps the panel', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Control}')
+    await user.keyboard('{Escape}')
+    expect(isSelected(stepRow('Oat'))).toBe(false)
+    expect(aside()).toBeInTheDocument()
+  })
+
+  test('the step menu marks every selected step done, then open, then deletes them', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Skim'))
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Control}')
+    await rightClick(user, stepRow('Oat'))
+    expect(screen.getByText('2 steps')).toBeInTheDocument()
+    await user.click(screen.getByText('Mark as done'))
+    await flush()
+    expect([stepDone('Skim'), stepDone('Oat'), stepDone('2% lactose free')]).toEqual([true, true, false])
+    await rightClick(user, stepRow('Skim'))
+    await user.click(screen.getByText('Mark as open'))
+    await flush()
+    expect([stepDone('Skim'), stepDone('Oat')]).toEqual([false, false])
+    await deleteViaMenu(user, stepRow('Skim'))
+    await flush()
+    expect(steps()).toEqual(['2% lactose free'])
+  })
+
+  test('the step menu offers Mark as done when only some targets are done', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.click(within(stepRow('Oat')).getByRole('checkbox'))
+    await flush()
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Skim'))
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Control}')
+    await rightClick(user, stepRow('Oat'))
+    expect(screen.getByText('Mark as done')).toBeInTheDocument()
+    expect(screen.queryByText('Mark as open')).toBeNull()
+  })
+
+  test('right-clicking an unselected step targets only that step', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Skim'))
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Control}')
+    await rightClick(user, stepRow('2% lactose free'))
+    expect(screen.queryByText('2 steps')).toBeNull()
+    await user.click(screen.getByText('Mark as done'))
+    await flush()
+    expect([stepDone('2% lactose free'), stepDone('Skim'), stepDone('Oat')]).toEqual([true, false, false])
+  })
+
+  test('the step selection clears when the detail task changes', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.keyboard('{Control>}')
+    await user.click(stepRow('Oat'))
+    await user.keyboard('{/Control}')
+    await user.click(row('Eggs'))
+    await user.click(row('Milk'))
+    expect(isSelected(stepRow('Oat'))).toBe(false)
+  })
 })
 
 test('Escape in the add-step input or with the context menu open keeps the panel', async () => {
@@ -321,21 +420,21 @@ test('the lists drawer opens from the menu button and closes on X or picking a l
   stubViewport(375)
   const user = await setup()
   const drawer = () => nav().parentElement
-  expect(drawer()).toHaveClass('invisible')
+  expect(drawer()).toHaveClass('hidden')
   await user.click(screen.getByLabelText('Open lists'))
-  expect(drawer()).not.toHaveClass('invisible')
+  expect(drawer()).not.toHaveClass('hidden')
   await user.click(screen.getByLabelText('Close lists'))
-  expect(drawer()).toHaveClass('invisible')
+  expect(drawer()).toHaveClass('hidden')
   await user.click(screen.getByLabelText('Open lists'))
   await user.click(within(nav()).getByText('Work'))
-  expect(drawer()).toHaveClass('invisible')
+  expect(drawer()).toHaveClass('hidden')
   expect(screen.getByRole('heading', { name: 'Work' })).toBeInTheDocument()
   await user.click(screen.getByLabelText('Open lists'))
   expect(screen.getByRole('dialog', { name: 'Lists' })).toBeInTheDocument()
   expect(screen.getByLabelText('Close lists')).toHaveFocus()
   expect(main()).toHaveAttribute('inert')
   await user.keyboard('{Escape}')
-  expect(drawer()).toHaveClass('invisible')
+  expect(drawer()).toHaveClass('hidden')
   expect(screen.getByLabelText('Open lists')).toHaveFocus()
   expect(main()).not.toHaveAttribute('inert')
 })
@@ -361,7 +460,7 @@ test('Escape with the drawer open closes only the drawer', async () => {
   await user.click(screen.getByLabelText('Close panel'))
   await user.click(screen.getByLabelText('Open lists'))
   await user.keyboard('{Escape}')
-  expect(nav().parentElement).toHaveClass('invisible')
+  expect(nav().parentElement).toHaveClass('hidden')
 })
 
 test('right-click opens the menu without selecting or opening the task and returns focus on close', async () => {
@@ -634,9 +733,9 @@ const dragRow = async (from: HTMLElement, to: HTMLElement) => {
   fireEvent.mouseDown(from, { button: 0, clientX: 50, clientY: y(from) })
   fireEvent.mouseMove(document, { clientX: 50, clientY: y(from) + 10 })
   await flush()
-  fireEvent.mouseMove(document, { clientX: 50, clientY: y(to) })
+  fireEvent.mouseMove(document, { clientX: 50, clientY: y(to) + 10 })
   await flush()
-  fireEvent.mouseUp(document, { clientX: 50, clientY: y(to) })
+  fireEvent.mouseUp(document, { clientX: 50, clientY: y(to) + 10 })
   await act(() => new Promise((resolve) => setTimeout(resolve, 60)))
   vi.restoreAllMocks()
 }
@@ -653,4 +752,20 @@ test('dragging a task does not reorder while sorted, and does once the sort is c
   const before = tasks()
   await dragRow(row(before[0] ?? ''), row(before[1] ?? ''))
   expect(tasks()).toEqual([before[1], before[0]])
+})
+
+test('dragging one of several selected tasks reorders them together', async () => {
+  backend.data.tasks.push(
+    makeTask('g3', 'Bread', 'groceries'),
+    makeTask('g4', 'Butter', 'groceries'),
+    makeTask('g5', 'Jam', 'groceries'),
+  )
+  const user = await setup()
+  const before = tasks()
+  await user.keyboard('{Control>}')
+  await user.click(row(before[2] ?? ''))
+  await user.click(row(before[4] ?? ''))
+  await user.keyboard('{/Control}')
+  await dragRow(row(before[4] ?? ''), row(before[0] ?? ''))
+  expect(tasks()).toEqual([before[0], before[2], before[4], before[1], before[3]])
 })

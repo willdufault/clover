@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { hasModifier } from '../selection'
 import { ignoreRowEvents } from './ignoreRowEvents'
 
 export function EditableText({
@@ -62,7 +63,7 @@ export function EditableText({
   return (
     <Tag
       onClick={(event) => {
-        if (!editable) return
+        if (!editable || hasModifier(event)) return
         event.stopPropagation()
         setDraft(text)
       }}

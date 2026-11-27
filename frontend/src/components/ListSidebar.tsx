@@ -54,9 +54,9 @@ export default function ListSidebar({
         aria-modal={drawerOpen || undefined}
         aria-label="Lists"
         className={
-          'fixed inset-y-0 left-0 z-40 flex w-72 max-w-5/6 shrink-0 flex-col border-r border-fieldstone bg-parchment shadow-md lg:visible lg:static lg:z-auto lg:w-64 lg:p-0 lg:shadow-none 2xl:w-72 ' +
+          'fixed inset-y-0 left-0 z-40 w-72 max-w-5/6 shrink-0 flex-col border-r border-fieldstone bg-parchment shadow-md lg:static lg:flex lg:z-auto lg:w-64 lg:p-0 lg:shadow-none 2xl:w-72 ' +
           SAFE_AREA_CLASS +
-          (drawerOpen ? ' fade-in' : ' invisible')
+          (drawerOpen ? ' flex fade-in' : ' hidden')
         }
       >
         <div className="flex items-center justify-between overflow-hidden [scrollbar-gutter:stable] px-3 pt-8 pb-4">

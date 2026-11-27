@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { createContext, useContext, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { RowKind } from '../types'
 import type { MenuAnchor } from './ContextMenu'
@@ -8,6 +8,8 @@ const OVERLAY_BG: Record<RowKind, string> = {
   [RowKind.Task]: 'bg-linen',
   [RowKind.Step]: 'bg-parchment',
 }
+
+export const DropAfterContext = createContext(false)
 
 type Press = { x: number; y: number; timer: number; fired: boolean }
 
@@ -63,6 +65,7 @@ export function SortableRow({
   onClick,
   onContextMenu,
   hidden,
+  selected,
   children,
 }: {
   id: string
@@ -72,6 +75,7 @@ export function SortableRow({
   onClick?: (event: React.MouseEvent) => void
   onContextMenu?: (event: MenuAnchor) => void
   hidden?: boolean
+  selected?: boolean
   children: React.ReactNode
 }) {
   const rowClass = 'touch-manipulation [-webkit-touch-callout:none] ' + className
@@ -85,15 +89,16 @@ export function SortableRow({
       <Tag className={rowClass}>{children}</Tag>
     </Wrapper>
   )
-  const { attributes, listeners, setNodeRef, isDragging, isOver, index, activeIndex } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging, isOver, activeIndex } = useSortable({
     id,
     data: { kind, clone },
   })
+  const dropAfter = useContext(DropAfterContext)
   const dropIndicator =
     !isOver || activeIndex === -1
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover ' +
-        (index > activeIndex ? 'before:bottom-0 ' : 'before:top-0 ')
+        (dropAfter ? 'before:bottom-0 ' : 'before:top-0 ')
   const {
     pressing,
     onTouchStart: onPressStart,
@@ -104,6 +109,7 @@ export function SortableRow({
     <Tag
       ref={setNodeRef}
       data-kind={kind}
+      data-selected={selected}
       onClick={onClick}
       onContextMenu={(event) => {
         if (!onContextMenu) return

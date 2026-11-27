@@ -1,7 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { seed, task as makeTask } from '../fakeBackend'
 import { tomorrow } from '../../src/dates'
-import { captureErrors, center, finger, longPress, mockApi, touchDrag, waitForDropAnimation } from './helpers'
+import {
+  captureErrors,
+  center,
+  finger,
+  lineSides,
+  longPress,
+  mockApi,
+  sweep,
+  touchDrag,
+  waitForDropAnimation,
+} from './helpers'
 
 test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true })
 
@@ -96,8 +106,6 @@ test('long-press on a sidebar list opens its menu and step x buttons show on tou
   await page.mouse.click(360, 300)
 
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
-  await longPress(page, page.locator('aside [data-kind="step"]'))
-  await expect(page.getByRole('menu')).toHaveCount(0)
   const remove = page.getByRole('button', { name: /^Delete step/ })
   await expect(remove).toBeVisible()
   const hit = await remove.evaluate((el) => {
@@ -180,7 +188,7 @@ test('a slow touch drag reorders instead of opening the menu', async ({ page }) 
   await expect(rows).toHaveCount(2)
   const before = await texts(rows)
   const from = await center(rows.last())
-  const to = await center(rows.first())
+  const to = await center(rows.first(), 0.25)
 
   await rows.last().evaluate(
     async (target, { x, top, bottom }) => {
@@ -229,6 +237,50 @@ test('a touch drag from the middle collapses the row and marks the drop target',
 
   await expect.poll(() => texts(rows)).toEqual([before[2], before[0], before[1], before[3], before[4]])
   await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a touch drop back in its gap keeps the order and the hovered half picks the side', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 3; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(5)
+  const before = await texts(rows)
+  const f = await finger(page, await center(rows.nth(2)))
+  await page.locator('[data-overlay]').waitFor()
+  const hover = async (index: number, at: number, side: 'above' | 'below') => {
+    await f.move(await center(rows.nth(index), at))
+    await expect.poll(() => lineSides(rows)).toEqual(before.map((_, i) => (i === index ? side : null)))
+  }
+
+  await hover(0, 0.25, 'above')
+  await hover(4, 0.25, 'above')
+  await hover(4, 0.75, 'below')
+  await hover(1, 0.75, 'below')
+  await hover(3, 0.25, 'above')
+  await f.up()
+  await waitForDropAnimation(page)
+  expect(await texts(rows)).toEqual(before)
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('a slow touch drag keeps the drop line at the gap under the finger', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  for (let i = 0; i < 5; i++) data.tasks.push(makeTask(`x${i}`, `Extra ${i}`, 'groceries'))
+  await mockApi(page, data)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  await expect(rows).toHaveCount(7)
+  const start = await center(rows.nth(2))
+  const f = await finger(page, start)
+  await page.locator('[data-overlay]').waitFor()
+  await sweep(rows, start, (to) => f.move(to, 1))
+  await f.up()
   expect(errors).toEqual([])
 })
 
@@ -451,4 +503,20 @@ test.describe('tablet', () => {
     await expect(menu).toHaveCount(0)
     expect(errors).toEqual([])
   })
+})
+
+test('long-press on a step opens its menu and marks only that step done', async ({ page }) => {
+  const errors = captureErrors(page)
+  const data = seed()
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', completed: false })
+  const backend = await mockApi(page, data)
+  await page.goto('./')
+  await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
+
+  await longPress(page, page.locator('aside [data-kind="step"]', { hasText: 'Skim' }))
+  await page.getByRole('menuitem', { name: 'Mark as done' }).tap()
+  await expect(page.getByRole('menuitem', { name: 'Mark as done' })).toHaveCount(0)
+  await expect.poll(() => backend.data.steps.map((s) => s.completed)).toEqual([false, true])
+  await expect(page.locator('aside')).toBeVisible()
+  expect(errors).toEqual([])
 })

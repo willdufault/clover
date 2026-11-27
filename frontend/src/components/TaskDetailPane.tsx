@@ -15,9 +15,11 @@ import {
   ICON_BUTTON_CLASS,
   TITLE_RENAME_CLASS,
   TRAILING_ICON_CLASS,
+  rowStateClass,
 } from '../styles'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from '../types'
 import { AddInput } from './AddInput'
+import type { OpenContextMenu } from './ContextMenu'
 import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import { Picker } from './Picker'
@@ -111,6 +113,10 @@ export default function TaskDetailPane({
   onRenameStep,
   lists,
   modal,
+  selectedStepIds,
+  menuIds,
+  onSelectStep,
+  onContextMenu,
 }: {
   task: Task
   onClose: () => void
@@ -122,6 +128,10 @@ export default function TaskDetailPane({
   onRenameStep: (id: string, text: string) => void
   lists: TaskList[]
   modal: boolean
+  selectedStepIds: string[]
+  menuIds: string[]
+  onSelectStep: (id: string, event: React.MouseEvent) => void
+  onContextMenu: OpenContextMenu
 }) {
   const closeRef = useModalFocus<HTMLButtonElement>(modal)
   const listLabel = (id: string): Label => ({
@@ -138,7 +148,15 @@ export default function TaskDetailPane({
       id={step.id}
       kind={RowKind.Step}
       tag="li"
-      className="group flex select-none items-start gap-icon rounded-lg px-2 py-2 text-base hover:bg-moss/5"
+      onClick={(event) => onSelectStep(step.id, event)}
+      onContextMenu={onContextMenu(RowKind.Step, step.id)}
+      selected={selectedStepIds.includes(step.id)}
+      className={
+        'group flex select-none items-start gap-icon rounded-lg px-2 py-2 text-base ' +
+        (selectedStepIds.includes(step.id) || menuIds.includes(step.id)
+          ? rowStateClass(true, false)
+          : 'hover:bg-moss/5')
+      }
     >
       <label
         {...ignoreRowEvents}

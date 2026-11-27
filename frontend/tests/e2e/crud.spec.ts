@@ -323,3 +323,53 @@ for (const width of [1440, 2560])
     expect(Math.round(menu.x + menu.width)).toBe(Math.round(button.x + button.width))
     expect(errors).toEqual([])
   })
+
+const withMilkSteps = () => {
+  const data = seed()
+  data.steps.push(
+    { id: 'g1b', taskId: 'g1', title: 'Skim', completed: false },
+    { id: 'g1c', taskId: 'g1', title: 'Oat', completed: false },
+  )
+  return data
+}
+
+test('steps multi-select and the step menu marks done, open and deletes them in one request each', async ({ page }) => {
+  const errors = captureErrors(page)
+  const backend = await mockApi(page, withMilkSteps())
+  const writes: string[] = []
+  page.on(
+    'request',
+    (r) => ['PATCH', 'DELETE'].includes(r.method()) && writes.push(`${r.method()} ${new URL(r.url()).pathname}`),
+  )
+  await page.goto('./')
+  await page.locator('main [data-kind="task"]', { hasText: 'Milk' }).click()
+
+  const steps = page.locator('aside [data-kind="step"]')
+  const step = (name: string) => steps.filter({ hasText: name })
+  const selected = () => steps.evaluateAll((rows: HTMLElement[]) => rows.map((row) => row.dataset.selected === 'true'))
+  const done = () => backend.data.steps.map((s) => s.completed)
+  await step('Skim').click({ modifiers: ['ControlOrMeta'] })
+  await expect.poll(selected).toEqual([false, true, false])
+  await step('2% lactose free').click({ modifiers: ['Shift'] })
+  await expect.poll(selected).toEqual([true, true, false])
+  await step('Oat').click({ modifiers: ['ControlOrMeta'] })
+  await expect.poll(selected).toEqual([true, true, true])
+
+  await step('Oat').click({ button: 'right' })
+  await expect(page.getByText('3 steps')).toHaveCount(1)
+  await page.getByRole('menuitem', { name: 'Mark as done' }).click()
+  await expect(steps.getByRole('checkbox', { checked: true })).toHaveCount(3)
+  expect(done()).toEqual([true, true, true])
+
+  await step('Skim').click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Mark as open' }).click()
+  await expect(steps.getByRole('checkbox', { checked: false })).toHaveCount(3)
+  expect(done()).toEqual([false, false, false])
+
+  await step('Skim').click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await expect(steps).toHaveCount(0)
+  expect(backend.data.steps).toEqual([])
+  expect(writes).toEqual(['PATCH /steps', 'PATCH /steps', 'DELETE /steps'])
+  expect(errors).toEqual([])
+})
