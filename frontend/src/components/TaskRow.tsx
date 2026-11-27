@@ -1,13 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEllipsis, faListCheck, faSun } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, isOverdue } from '../dates'
-import { dueIcon, isCompleted, priorityLabel, stageLabel } from '../labels'
-import { ICON_BUTTON_CLASS, ICON_SLOT_CLASS, META_TEXT_CLASS, doneTextClass, rowStateClass } from '../styles'
+import { dueIcon, isCompleted, priorityLabel } from '../labels'
+import { ICON_BUTTON_CLASS, META_TEXT_CLASS, doneTextClass, rowStateClass } from '../styles'
 import { RowKind, type Task } from '../types'
 import { MENU_WIDTH, type OpenContextMenu } from './ContextMenu'
 import { ignoreRowEvents } from './ignoreRowEvents'
 import { rem } from './Popover'
 import { SortableRow } from './SortableRow'
+import { StageButton } from './StageButton'
 
 const metaItems = (task: Task) => {
   const items = []
@@ -40,7 +41,8 @@ const metaItems = (task: Task) => {
     items.push(
       <span key="steps" className="flex items-center gap-icon">
         <FontAwesomeIcon icon={faListCheck} className="text-lichen" />
-        {task.steps.filter((step) => step.completed).length}/{task.steps.length}
+        {task.steps.filter((step) => step.stage === 'done').length}/
+        {task.steps.filter((step) => step.stage !== 'cancelled').length}
       </span>,
     )
   return items
@@ -69,7 +71,6 @@ export function TaskRow({
   onContextMenu: OpenContextMenu
 }) {
   const meta = metaItems(task)
-  const stage = stageLabel(task.stage)
   return (
     <SortableRow
       id={task.id}
@@ -84,23 +85,7 @@ export function TaskRow({
         rowStateClass(selected, menuOpen)
       }
     >
-      <button
-        {...ignoreRowEvents}
-        aria-label={task.stage === 'done' ? 'Mark open' : 'Mark done'}
-        title={stage.text}
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggleDone()
-        }}
-        className={
-          'touch-hit h-6 cursor-pointer rounded-full text-lg transition active:scale-90 ' +
-          ICON_SLOT_CLASS +
-          ' ' +
-          stage.color
-        }
-      >
-        <FontAwesomeIcon icon={stage.icon} />
-      </button>
+      <StageButton stage={task.stage} onToggle={onToggleDone} className="text-lg" />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className={'max-w-2xl text-base break-words ' + doneTextClass(isCompleted(task.stage))}>
           {task.title}

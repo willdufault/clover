@@ -164,7 +164,7 @@ test('touch hold-then-move reorders a task', async ({ page }) => {
 
 test('touch hold-then-move reorders a step', async ({ page }) => {
   const data = seed()
-  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', completed: false })
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', stage: 'open' })
   await touchReorder(
     page,
     'aside [data-kind="step"]',
@@ -508,15 +508,16 @@ test.describe('tablet', () => {
 test('long-press on a step opens its menu and marks only that step done', async ({ page }) => {
   const errors = captureErrors(page)
   const data = seed()
-  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', completed: false })
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open' })
   const backend = await mockApi(page, data)
   await page.goto('./')
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()
 
   await longPress(page, page.locator('aside [data-kind="step"]', { hasText: 'Skim' }))
-  await page.getByRole('menuitem', { name: 'Mark as done' }).tap()
-  await expect(page.getByRole('menuitem', { name: 'Mark as done' })).toHaveCount(0)
-  await expect.poll(() => backend.data.steps.map((s) => s.completed)).toEqual([false, true])
+  await page.getByRole('menuitem', { name: 'Set stage' }).tap()
+  await page.getByRole('menuitemradio', { name: 'Done' }).tap()
+  await expect(page.getByRole('menuitemradio', { name: 'Done' })).toHaveCount(0)
+  await expect.poll(() => backend.data.steps.map((s) => s.stage)).toEqual(['open', 'done'])
   await expect(page.locator('aside')).toBeVisible()
   expect(errors).toEqual([])
 })

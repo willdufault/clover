@@ -1,4 +1,4 @@
-export type Step = { id: string; taskId: string; title: string; completed: boolean }
+export type Step = { id: string; taskId: string; title: string; stage: string }
 export type Task = {
   id: string
   title: string

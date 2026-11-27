@@ -87,9 +87,9 @@ const richSeed = () => {
       id: 's2',
       taskId: 'g1',
       title: 'A long step title that wraps across the narrow detail pane '.repeat(2),
-      completed: false,
+      stage: 'open',
     },
-    { id: 's3', taskId: 'g1', title: 'Short', completed: false },
+    { id: 's3', taskId: 'g1', title: 'Short', stage: 'open' },
   )
   return data
 }

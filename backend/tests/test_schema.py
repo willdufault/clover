@@ -35,7 +35,6 @@ checks = {
     "priority": lambda v: v in PRIORITIES,
     "due": lambda v: v is None or date.fromisoformat(v).isoformat() == v,
     "addedToToday": lambda v: isinstance(v, bool),
-    "completed": lambda v: isinstance(v, bool),
     "listId": lambda v: v is None or isinstance(v, str),
     "taskId": lambda v: isinstance(v, str),
 }

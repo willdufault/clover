@@ -6,7 +6,7 @@ type Kind = 'lists' | 'tasks' | 'steps'
 const DEFAULTS: Record<Kind, Record<string, unknown>> = {
   lists: {},
   tasks: { stage: 'open', due: null, priority: 'medium', addedToToday: false, listId: null },
-  steps: { completed: false },
+  steps: { stage: 'open' },
 }
 
 export const task = (id: string, title: string, listId: string | null) => ({ ...DEFAULTS.tasks, id, title, listId })
@@ -24,7 +24,7 @@ export const seed = () => ({
     task('w2', 'Update docs', 'work'),
     task('w3', 'Review PR', 'work'),
   ] as Item[],
-  steps: [{ id: 'g1a', taskId: 'g1', title: '2% lactose free', completed: false }] as Item[],
+  steps: [{ id: 'g1a', taskId: 'g1', title: '2% lactose free', stage: 'open' }] as Item[],
 })
 
 const BAD_REQUEST = { status: 400, body: { error: 'Bad request' } }

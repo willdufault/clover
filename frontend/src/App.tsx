@@ -74,6 +74,8 @@ const DragStack = ({ stacked, children }: { stacked: boolean; children: React.Re
   </div>
 )
 
+const toggledStage = (stage: string) => (stage === 'done' ? 'open' : 'done')
+
 export default function App() {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -197,10 +199,12 @@ export default function App() {
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
-  const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: stage === 'done' ? 'open' : 'done' })
+  const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: toggledStage(stage) })
 
-  const setStepsCompleted = (ids: string[], completed: boolean) =>
-    runReportingErrors(() => updateSteps(ids.map((id) => ({ id, completed }))))
+  const setStepsStage = (ids: string[], stage: string) =>
+    runReportingErrors(() => updateSteps(ids.map((id) => ({ id, stage }))))
+
+  const toggleStepDone = ({ id, stage }: Step) => setStepsStage([id], toggledStage(stage))
 
   const deleteSteps = (ids: string[]) =>
     runReportingErrors(async () => {
@@ -231,11 +235,10 @@ export default function App() {
       kind,
       ids,
       title: ids.length > 1 ? `${ids.length} ${kind}s` : names[kind],
-      allStepsDone: menuSteps.every((step) => step.completed),
       moveTargets: lists.filter((list) => !menuTasks.every((task) => task.listId === list.id)),
       anyHasDue: menuTasks.some((task) => task.due),
       allInToday: menuTasks.every((task) => task.addedToToday),
-      stage: shared(menuTasks.map((task) => task.stage)),
+      stage: shared((kind === RowKind.Step ? menuSteps : menuTasks).map((item) => item.stage)),
       priority: shared(menuTasks.map((task) => task.priority)),
       due: shared(menuTasks.map((task) => task.due)),
     })
@@ -392,7 +395,7 @@ export default function App() {
                 onClose={() => setSelectedTaskIds([])}
                 onDeleteTask={() => deleteTasks([detailTask.id])}
                 onAddStep={addStep}
-                onToggleStep={(id, completed) => setStepsCompleted([id], completed)}
+                onToggleStep={toggleStepDone}
                 onDeleteStep={(id) => deleteSteps([id])}
                 onUpdateTask={(patch) => updateTask(detailTask.id, patch)}
                 lists={lists}
@@ -417,7 +420,7 @@ export default function App() {
           onClose={() => setContextMenu(null)}
           onDelete={() => deleteMenuTargets(contextMenu)}
           onUpdateTasks={(patch) => updateTasks(contextMenu.ids, patch)}
-          onCompleteSteps={(completed) => setStepsCompleted(contextMenu.ids, completed)}
+          onSetStepsStage={(stage) => setStepsStage(contextMenu.ids, stage)}
         />
       )}
     </DndContext>

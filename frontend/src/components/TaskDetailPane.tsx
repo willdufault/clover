@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircle, faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faChevronDown, faCircleCheck, faListUl, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faChevronDown, faListUl, faSun, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, isOverdue } from '../dates'
-import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
+import { dueIcon, isCompleted, PRIORITIES, priorityLabel, STAGES, stageLabel, type Label } from '../labels'
 import {
   doneTextClass,
   PROPERTY_ROW_CLASS,
@@ -24,6 +24,7 @@ import limits from '../shared/limits.json'
 import { EditableText } from './EditableText'
 import { Picker } from './Picker'
 import { SortableRow } from './SortableRow'
+import { StageButton } from './StageButton'
 import { ignoreRowEvents } from './ignoreRowEvents'
 import { useModalFocus } from '../useModalFocus'
 import { IconSlot } from './IconSlot'
@@ -122,7 +123,7 @@ export default function TaskDetailPane({
   onClose: () => void
   onDeleteTask: () => void
   onAddStep: (text: string) => void
-  onToggleStep: (id: string, completed: boolean) => void
+  onToggleStep: (step: Step) => void
   onDeleteStep: (id: string) => void
   onUpdateTask: (patch: TaskPatch) => void
   onRenameStep: (id: string, text: string) => void
@@ -158,28 +159,13 @@ export default function TaskDetailPane({
           : 'hover:bg-moss/5')
       }
     >
-      <label
-        {...ignoreRowEvents}
-        className={
-          'touch-hit relative h-6 rounded-full has-focus-visible:outline-2 has-focus-visible:outline-clover ' +
-          ICON_SLOT_CLASS +
-          (step.completed ? ' text-clover' : ' text-lichen')
-        }
-      >
-        <input
-          type="checkbox"
-          checked={step.completed}
-          onChange={() => onToggleStep(step.id, !step.completed)}
-          className="absolute inset-0 cursor-pointer appearance-none rounded-full outline-none"
-        />
-        <FontAwesomeIcon icon={step.completed ? faCircleCheck : faCircle} />
-      </label>
+      <StageButton stage={step.stage} onToggle={() => onToggleStep(step)} />
       <EditableText
         tag="span"
         text={step.title}
         maxLength={limits.titleMax}
         onCommit={(title) => onRenameStep(step.id, title)}
-        className={'min-w-0 flex-1 break-words ' + doneTextClass(step.completed)}
+        className={'min-w-0 flex-1 break-words ' + doneTextClass(isCompleted(step.stage))}
         inputClassName={RENAME_CLASS + ' min-w-0 flex-1 px-1 text-base'}
       />
       <button
