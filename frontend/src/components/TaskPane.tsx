@@ -113,7 +113,7 @@ export default function TaskPane({
   const [listMenu, setListMenu] = useState<Anchor | null>(null)
   const [renameRequest, setRenameRequest] = useState(0)
   const closeListMenu = () => setListMenu(null)
-  const columnClass = 'w-full max-w-3xl ' + (wide ? 'xl:max-w-5xl' : '2xl:max-w-4xl')
+  const columnClass = 'mx-auto w-full max-w-3xl ' + (wide ? 'xl:max-w-5xl' : '2xl:max-w-4xl')
 
   return (
     <main inert={inert} className={MAIN_CLASS}>

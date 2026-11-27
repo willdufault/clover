@@ -354,7 +354,7 @@ export default function App() {
               </button>
             </div>
           )}
-          <div className="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 2xl:border-x 2xl:border-fieldstone">
+          <div className="flex min-h-0 w-full flex-1">
             <ListSidebar
               lists={lists}
               tasks={tasks}
