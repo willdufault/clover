@@ -251,6 +251,7 @@ test('a dragged list order survives a reload', async ({ page }) => {
   await expect.poll(names).toEqual(['Work3', 'Home', 'Groceries2'])
   await page.reload()
   await expect.poll(names).toEqual(['Work3', 'Home', 'Groceries2'])
+  await expect(page.locator('main').getByRole('heading', { name: 'Work' })).toBeVisible()
   expect(errors).toEqual([])
 })
 

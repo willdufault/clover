@@ -3,7 +3,6 @@ import random
 import time
 import uuid
 from collections.abc import Collection, Iterable
-from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -35,8 +34,8 @@ def id_of(item: dict) -> str:
 
 
 def to_api(item: dict) -> dict:
-    data = {k: int(v) if isinstance(v, Decimal) else v for k, v in item.items() if k not in ("PK", "SK")}
-    return {"id": id_of(item), "order": 0, **data}
+    data = {k: v for k, v in item.items() if k not in ("PK", "SK")}
+    return {"id": id_of(item), **data, "order": int(data["order"])}
 
 
 def load_all(user_id: str) -> list:

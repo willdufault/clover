@@ -2,3 +2,4 @@
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
 - serve API at clover-api.willdufault.dev (ACM cert + API Gateway custom domain, Cloudflare proxied CNAME, Full strict) so work DNS doesn't hijack execute-api
 - disable reordering in smart lists
+- add Google sign-in

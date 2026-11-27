@@ -131,12 +131,15 @@ export default function App() {
   useEffect(() => {
     api<{ lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }>('GET', '/data')
       .then((data) => {
-        const steps = byOrder(data.steps)
-        setLists(byOrder(data.lists))
+        const sortedLists = byOrder(data.lists)
+        setLists(sortedLists)
         setTasks(
-          byOrder(data.tasks).map((task) => ({ ...task, steps: steps.filter((step) => step.taskId === task.id) })),
+          byOrder(data.tasks).map((task) => ({
+            ...task,
+            steps: byOrder(data.steps.filter((step) => step.taskId === task.id)),
+          })),
         )
-        setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
+        setSelectedListId(sortedLists[0]?.id ?? ALL_LIST_ID)
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
@@ -183,14 +186,14 @@ export default function App() {
         addedToToday: selectedListId === TODAY_LIST_ID,
         order: nextOrder(tasks),
       })
-      setTasks((prev) => byOrder([...prev, { ...task, steps: [] }]))
+      setTasks((prev) => [...prev, { ...task, steps: [] }])
     })
 
   const addStep = (title: string) =>
     runReportingErrors(async () => {
       const step = await api<Step>('POST', '/steps', { taskId: detailTask?.id, title, order: nextOrder(detailSteps) })
       setTasks((prev) =>
-        prev.map((task) => (task.id === step.taskId ? { ...task, steps: byOrder([...task.steps, step]) } : task)),
+        prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
     })
 
@@ -263,7 +266,7 @@ export default function App() {
   const createList = (name: string) =>
     runReportingErrors(async () => {
       const newList = await api<TaskList>('POST', '/lists', { name, order: nextOrder(lists) })
-      setLists((prev) => byOrder([...prev, newList]))
+      setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
 

@@ -86,7 +86,7 @@ def optional_date(v: object) -> bool:
         return False
 
 
-LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED), "order": (is_order, 0)}
+LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED), "order": (is_order, REQUIRED)}
 TASK_FIELDS = {
     "title": (text(TITLE_MAX), REQUIRED),
     "stage": (one_of(*ENUMS["stages"]), "open"),
@@ -94,13 +94,13 @@ TASK_FIELDS = {
     "priority": (one_of(*ENUMS["priorities"]), "medium"),
     "addedToToday": (is_bool, False),
     "listId": (optional_str, None),
-    "order": (is_order, 0),
+    "order": (is_order, REQUIRED),
 }
 STEP_FIELDS = {
     "taskId": (is_str, REQUIRED),
     "title": (text(TITLE_MAX), REQUIRED),
     "stage": (one_of(*ENUMS["stages"]), "open"),
-    "order": (is_order, 0),
+    "order": (is_order, REQUIRED),
 }
 STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 

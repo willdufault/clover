@@ -131,8 +131,7 @@ test('property: the dropped group keeps the same items, unchanged', () => {
   fc.assert(
     fc.property(caseArb, ({ state, drop }) => {
       const result = applyDrop(state, drop)
-      fc.pre(!!result)
-      if (!result) return
+      if (!result) return fc.pre(false)
       const group: { id: string }[] = groupOf(state, drop)[result.kind]
       expect(ids(result.items).toSorted()).toEqual(ids(group).toSorted())
       for (const item of result.items) expect(group).toContain(item)
