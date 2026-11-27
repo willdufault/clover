@@ -49,6 +49,7 @@ export const idsToMove = (tasks: Task[], ids: string[], targetListId: string) =>
     .filter((task) => (targetListId === TODAY_LIST_ID ? !task.addedToToday : task.listId !== targetListId))
     .map((task) => task.id)
 
+// The view shows the highest order first, so orders below the list's lowest put the tasks at its bottom.
 export const movedToList = (tasks: Task[], ids: string[], listId: string) => {
   const lowest = Math.min(0, ...tasksInList(tasks, listId).map((task) => task.order))
   return ids.map((id, i) => ({ id, listId, order: lowest - ids.length + i }))

@@ -310,7 +310,6 @@ export default function App() {
       const ids = idsToMove(tasks, dragIds, targetListId)
       if (ids.length === 0) return
       if (targetListId === TODAY_LIST_ID) return updateTasks(ids, { addedToToday: true })
-      // The view shows the highest order first, so orders below the list's lowest put the tasks at its bottom.
       return runReportingErrors(() => patchTasks(movedToList(tasks, ids, targetListId)))
     }
     const drop = applyDrop(
@@ -324,8 +323,9 @@ export default function App() {
         after: isDropAfter(event),
       },
     )
-    const patches = drop ? orderPatches(drop.items) : []
-    if (!drop || patches.length === 0) return
+    if (!drop) return
+    const patches = orderPatches(drop.items)
+    if (patches.length === 0) return
     const patchers = { [RowKind.List]: patchLists, [RowKind.Task]: patchTasks, [RowKind.Step]: patchSteps }
     runReportingErrors(() => patchers[drop.kind](patches))
   }
