@@ -1,4 +1,4 @@
-import type { Task, TaskList } from './types'
+import { RowKind, type Task, type TaskList } from './types'
 import { TODAY_LIST_ID, tasksInList } from './smartLists'
 
 const moveById = <T extends { id: string }>(items: T[], ids: string[], overId: string, after: boolean): T[] => {
@@ -9,6 +9,10 @@ const moveById = <T extends { id: string }>(items: T[], ids: string[], overId: s
   const to = rest.indexOf(over) + (after ? 1 : 0)
   return [...rest.slice(0, to), ...moved, ...rest.slice(to)]
 }
+
+type Ordered = { id: string; order: number }
+
+const has = (items: { id: string }[], id: string) => items.some((item) => item.id === id)
 
 type DropEvent = {
   selectedListId: string
@@ -22,32 +26,31 @@ type DropEvent = {
 export type ListsAndTasks = { lists: TaskList[]; tasks: Task[] }
 
 export const applyDrop = (
-  state: ListsAndTasks,
+  { lists, tasks }: ListsAndTasks,
   { selectedListId, detailTask, activeId, dragIds = [activeId], overId, after }: DropEvent,
-): ListsAndTasks => {
-  const { lists, tasks } = state
-  if (activeId === overId) return state
-  const isListId = (id: string) => lists.some((list) => list.id === id)
-
-  if (isListId(activeId) && isListId(overId)) return { lists: moveById(lists, [activeId], overId, after), tasks }
-
-  const containsBoth = (items: { id: string }[]) =>
-    items.some((item) => item.id === activeId) && items.some((item) => item.id === overId)
-  if (containsBoth(tasksInList(tasks, selectedListId)))
-    return { lists, tasks: moveById(tasks, dragIds, overId, !after) }
-  if (detailTask && containsBoth(detailTask.steps)) {
-    return {
-      lists,
-      tasks: tasks.map((task) =>
-        task === detailTask ? { ...task, steps: moveById(task.steps, [activeId], overId, after) } : task,
-      ),
-    }
-  }
-  return state
+) => {
+  const groups = [
+    { kind: RowKind.List, items: lists as Ordered[], ids: [activeId], after },
+    { kind: RowKind.Task, items: tasksInList(tasks, selectedListId), ids: dragIds, after: !after },
+    { kind: RowKind.Step, items: detailTask?.steps ?? [], ids: [activeId], after },
+  ]
+  const group = groups.find(({ items }) => has(items, activeId) && has(items, overId))
+  if (!group) return null
+  const items = moveById(group.items, group.ids, overId, group.after)
+  return items === group.items ? null : { kind: group.kind, items }
 }
+
+export const orderPatches = (items: Ordered[]) =>
+  items.flatMap((item, order) => (item.order === order ? [] : [{ id: item.id, order }]))
 
 export const idsToMove = (tasks: Task[], ids: string[], targetListId: string) =>
   tasks
     .filter((task) => ids.includes(task.id))
     .filter((task) => (targetListId === TODAY_LIST_ID ? !task.addedToToday : task.listId !== targetListId))
     .map((task) => task.id)
+
+// The view shows the highest order first, so orders below the list's lowest put the tasks at its bottom.
+export const movedToList = (tasks: Task[], ids: string[], listId: string) => {
+  const lowest = Math.min(0, ...tasksInList(tasks, listId).map((task) => task.order))
+  return ids.map((id, i) => ({ id, listId, order: lowest - ids.length + i }))
+}

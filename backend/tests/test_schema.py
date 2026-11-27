@@ -18,6 +18,7 @@ field_values = st.one_of(
     st.none(),
     st.dates().map(date.isoformat),
     st.sampled_from(STAGES + PRIORITIES),
+    st.integers(),
     json_values,
 )
 id_lists = st.lists(st.uuids().map(str), min_size=1, max_size=schema.MAX_BATCH + 1)
@@ -37,6 +38,7 @@ checks = {
     "addedToToday": lambda v: isinstance(v, bool),
     "listId": lambda v: v is None or isinstance(v, str),
     "taskId": lambda v: isinstance(v, str),
+    "order": lambda v: type(v) is int and -(2**31) <= v < 2**31,
 }
 
 

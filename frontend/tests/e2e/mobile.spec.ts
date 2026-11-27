@@ -164,7 +164,7 @@ test('touch hold-then-move reorders a task', async ({ page }) => {
 
 test('touch hold-then-move reorders a step', async ({ page }) => {
   const data = seed()
-  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', stage: 'open' })
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Whole', stage: 'open', order: 0 })
   await touchReorder(
     page,
     'aside [data-kind="step"]',
@@ -463,7 +463,7 @@ test.describe('tablet', () => {
   test('long-press menu floats at the press point and Move to list replaces it in place', async ({ page }) => {
     const errors = captureErrors(page)
     const data = seed()
-    for (let i = 1; i <= 20; i++) data.lists.push({ id: `l${i}`, name: `List ${i}` })
+    for (let i = 1; i <= 20; i++) data.lists.push({ id: `l${i}`, name: `List ${i}`, order: 0 })
     const backend = await mockApi(page, data)
     await page.goto('./')
     const row = page.locator('main [data-kind="task"]', { hasText: 'Eggs' })
@@ -508,7 +508,7 @@ test.describe('tablet', () => {
 test('long-press on a step opens its menu and marks only that step done', async ({ page }) => {
   const errors = captureErrors(page)
   const data = seed()
-  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open' })
+  data.steps.push({ id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open', order: 0 })
   const backend = await mockApi(page, data)
   await page.goto('./')
   await page.locator('[data-kind="task"]', { hasText: 'Milk' }).tap()

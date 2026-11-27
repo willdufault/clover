@@ -4,18 +4,18 @@ type Item = Record<string, unknown> & { id: string }
 type Kind = 'lists' | 'tasks' | 'steps'
 
 const DEFAULTS: Record<Kind, Record<string, unknown>> = {
-  lists: {},
-  tasks: { stage: 'open', due: null, priority: 'medium', addedToToday: false, listId: null },
-  steps: { stage: 'open' },
+  lists: { order: 0 },
+  tasks: { stage: 'open', due: null, priority: 'medium', addedToToday: false, listId: null, order: 0 },
+  steps: { stage: 'open', order: 0 },
 }
 
 export const task = (id: string, title: string, listId: string | null) => ({ ...DEFAULTS.tasks, id, title, listId })
 
 export const seed = () => ({
   lists: [
-    { id: 'groceries', name: 'Groceries' },
-    { id: 'work', name: 'Work' },
-    { id: 'home', name: 'Home' },
+    { id: 'groceries', name: 'Groceries', order: 0 },
+    { id: 'work', name: 'Work', order: 0 },
+    { id: 'home', name: 'Home', order: 0 },
   ] as Item[],
   tasks: [
     task('g1', 'Milk', 'groceries'),
@@ -24,7 +24,7 @@ export const seed = () => ({
     task('w2', 'Update docs', 'work'),
     task('w3', 'Review PR', 'work'),
   ] as Item[],
-  steps: [{ id: 'g1a', taskId: 'g1', title: '2% lactose free', stage: 'open' }] as Item[],
+  steps: [{ id: 'g1a', taskId: 'g1', title: '2% lactose free', stage: 'open', order: 0 }] as Item[],
 })
 
 const BAD_REQUEST = { status: 400, body: { error: 'Bad request' } }

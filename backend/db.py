@@ -35,7 +35,7 @@ def id_of(item: dict) -> str:
 
 def to_api(item: dict) -> dict:
     data = {k: v for k, v in item.items() if k not in ("PK", "SK")}
-    return {"id": id_of(item), **data}
+    return {"id": id_of(item), **data, "order": int(data["order"])}
 
 
 def load_all(user_id: str) -> list:

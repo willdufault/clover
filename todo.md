@@ -1,4 +1,7 @@
 - look into optimistic rendering for creates and edits (instant UI, roll back on failure) so failures never lose typed text
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
 - serve API at clover-api.willdufault.dev (ACM cert + API Gateway custom domain, Cloudflare proxied CNAME, Full strict) so work DNS doesn't hijack execute-api
-- persist drag reorder (tasks, steps, lists) instead of local only
+- disable reordering in smart lists
+- add Google sign-in
+- reorder race: a second drop before the first PATCH returns is computed from stale order and can leave duplicate orders (cosmetic, next drop fixes). Simple fix: disable drag while a save is in flight. Alt: client sends the META version it last saw and the server 409s on mismatch; stops stale writes but adds a META read per write and false 409s on unrelated concurrent edits (other tabs, fast checkoffs), and needs version plumbing plus 409 handling
+- review skills for DRY, KISS, YAGNI, comments, tests and security

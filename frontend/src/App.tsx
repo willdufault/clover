@@ -15,9 +15,9 @@ import {
 } from '@dnd-kit/core'
 import { getEventCoordinates } from '@dnd-kit/utilities'
 import { api } from './api'
-import { applyDrop, idsToMove } from './drop'
+import { applyDrop, idsToMove, movedToList, orderPatches } from './drop'
 import { hasModifier, nextSelection } from './selection'
-import { sortTasks, type SortCriteria } from './sort'
+import { byOrder, nextOrder, sortTasks, type SortCriteria } from './sort'
 import { RowKind, type Step, type Task, type TaskList, type TaskPatch } from './types'
 import { ALL_LIST_ID, SMART_LIST_NAMES, neighborListId, TODAY_LIST_ID, tasksInList } from './smartLists'
 import ContextMenu, { type ContextMenuState, type OpenContextMenu } from './components/ContextMenu'
@@ -131,9 +131,15 @@ export default function App() {
   useEffect(() => {
     api<{ lists: TaskList[]; tasks: Omit<Task, 'steps'>[]; steps: Step[] }>('GET', '/data')
       .then((data) => {
-        setLists(data.lists)
-        setTasks(data.tasks.map((task) => ({ ...task, steps: data.steps.filter((step) => step.taskId === task.id) })))
-        setSelectedListId(data.lists[0]?.id ?? ALL_LIST_ID)
+        const sortedLists = byOrder(data.lists)
+        setLists(sortedLists)
+        setTasks(
+          byOrder(data.tasks).map((task) => ({
+            ...task,
+            steps: byOrder(data.steps.filter((step) => step.taskId === task.id)),
+          })),
+        )
+        setSelectedListId(sortedLists[0]?.id ?? ALL_LIST_ID)
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
@@ -152,14 +158,24 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [drawerOpen, setDrawerOpen, hasStepSelection, setSelectedStepIds])
 
-  const updateSteps = async (patches: Partial<Step>[]) => {
+  const patchSteps = async (patches: Partial<Step>[]) => {
     const updated = await api<Step[]>('PATCH', '/steps', patches)
     setTasks((prev) =>
       prev.map((task) => ({
         ...task,
-        steps: task.steps.map((step) => updated.find((other) => other.id === step.id) ?? step),
+        steps: byOrder(task.steps.map((step) => updated.find((other) => other.id === step.id) ?? step)),
       })),
     )
+  }
+
+  const patchTasks = async (patches: (TaskPatch & { id: string })[]) => {
+    const updated = await api<Omit<Task, 'steps'>[]>('PATCH', '/tasks', patches)
+    setTasks((prev) => byOrder(prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) }))))
+  }
+
+  const patchLists = async (patches: Partial<TaskList>[]) => {
+    const updated = await api<TaskList[]>('PATCH', '/lists', patches)
+    setLists((prev) => byOrder(prev.map((list) => updated.find((other) => other.id === list.id) ?? list)))
   }
 
   const addTask = (title: string) =>
@@ -168,13 +184,14 @@ export default function App() {
         title,
         listId: selectedList?.id ?? null,
         addedToToday: selectedListId === TODAY_LIST_ID,
+        order: nextOrder(tasks),
       })
       setTasks((prev) => [...prev, { ...task, steps: [] }])
     })
 
   const addStep = (title: string) =>
     runReportingErrors(async () => {
-      const step = await api<Step>('POST', '/steps', { taskId: detailTask?.id, title })
+      const step = await api<Step>('POST', '/steps', { taskId: detailTask?.id, title, order: nextOrder(detailSteps) })
       setTasks((prev) =>
         prev.map((task) => (task.id === step.taskId ? { ...task, steps: [...task.steps, step] } : task)),
       )
@@ -188,21 +205,14 @@ export default function App() {
     })
 
   const updateTasks = (ids: string[], patch: TaskPatch) =>
-    runReportingErrors(async () => {
-      const updated = await api<Omit<Task, 'steps'>[]>(
-        'PATCH',
-        '/tasks',
-        ids.map((id) => ({ id, ...patch })),
-      )
-      setTasks((prev) => prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) })))
-    })
+    runReportingErrors(() => patchTasks(ids.map((id) => ({ id, ...patch }))))
 
   const updateTask = (id: string, patch: TaskPatch) => updateTasks([id], patch)
 
   const toggleDone = ({ id, stage }: Task) => updateTask(id, { stage: toggledStage(stage) })
 
   const setStepsStage = (ids: string[], stage: string) =>
-    runReportingErrors(() => updateSteps(ids.map((id) => ({ id, stage }))))
+    runReportingErrors(() => patchSteps(ids.map((id) => ({ id, stage }))))
 
   const toggleStepDone = ({ id, stage }: Step) => setStepsStage([id], toggledStage(stage))
 
@@ -249,17 +259,13 @@ export default function App() {
 
   const menuIds = contextMenu?.ids ?? []
 
-  const renameList = (id: string, name: string) =>
-    runReportingErrors(async () => {
-      const [updated] = await api<[TaskList]>('PATCH', '/lists', [{ id, name }])
-      setLists((prev) => prev.map((list) => (list.id === id ? updated : list)))
-    })
+  const renameList = (id: string, name: string) => runReportingErrors(() => patchLists([{ id, name }]))
 
-  const renameStep = (id: string, title: string) => runReportingErrors(() => updateSteps([{ id, title }]))
+  const renameStep = (id: string, title: string) => runReportingErrors(() => patchSteps([{ id, title }]))
 
   const createList = (name: string) =>
     runReportingErrors(async () => {
-      const newList = await api<TaskList>('POST', '/lists', { name })
+      const newList = await api<TaskList>('POST', '/lists', { name, order: nextOrder(lists) })
       setLists((prev) => [...prev, newList])
       selectList(newList.id)
     })
@@ -305,11 +311,11 @@ export default function App() {
     if (targetListId) {
       setSelectedTaskIds([])
       const ids = idsToMove(tasks, dragIds, targetListId)
-      if (ids.length > 0)
-        updateTasks(ids, targetListId === TODAY_LIST_ID ? { addedToToday: true } : { listId: targetListId })
-      return
+      if (ids.length === 0) return
+      if (targetListId === TODAY_LIST_ID) return updateTasks(ids, { addedToToday: true })
+      return runReportingErrors(() => patchTasks(movedToList(tasks, ids, targetListId)))
     }
-    const nextState = applyDrop(
+    const drop = applyDrop(
       { lists, tasks },
       {
         selectedListId,
@@ -320,8 +326,11 @@ export default function App() {
         after: isDropAfter(event),
       },
     )
-    setLists(nextState.lists)
-    setTasks(nextState.tasks)
+    if (!drop) return
+    const patches = orderPatches(drop.items)
+    if (patches.length === 0) return
+    const patchers = { [RowKind.List]: patchLists, [RowKind.Task]: patchTasks, [RowKind.Step]: patchSteps }
+    runReportingErrors(() => patchers[drop.kind](patches))
   }
 
   if (loading) return <p className="p-8 font-sans text-moss/80">Loading…</p>

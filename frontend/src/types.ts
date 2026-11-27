@@ -1,4 +1,4 @@
-export type Step = { id: string; taskId: string; title: string; stage: string }
+export type Step = { id: string; taskId: string; title: string; stage: string; order: number }
 export type Task = {
   id: string
   title: string
@@ -8,8 +8,9 @@ export type Task = {
   stage: string
   listId: string | null
   addedToToday: boolean
+  order: number
 }
-export type TaskList = { id: string; name: string }
+export type TaskList = { id: string; name: string; order: number }
 export type TaskPatch = Partial<Omit<Task, 'id' | 'steps'>>
 
 export const RowKind = {
