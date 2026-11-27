@@ -90,7 +90,7 @@ const taskById = (id: string) => backend.data.tasks.find((task) => task.id === i
 const stepRow = (name: string) => row(name, aside())
 const isSelected = (element: HTMLElement) => element.dataset.selected === 'true'
 const selectedSteps = () => ['2% lactose free', 'Skim', 'Oat'].map((name) => isSelected(stepRow(name)))
-const stepDone = (name: string) => backend.data.steps.find((step) => step.title === name)?.completed
+const stepStage = (name: string) => backend.data.steps.find((step) => step.title === name)?.stage
 const withSteps = async (user: User) => {
   await user.click(row('Milk'))
   await newStep(user, 'Skim')
@@ -303,7 +303,7 @@ describe('multi-select', () => {
     expect(aside()).toBeInTheDocument()
   })
 
-  test('the step menu marks every selected step done, then open, then deletes them', async () => {
+  test('the step menu sets the stage of every selected step, then deletes them', async () => {
     const user = await setup()
     await withSteps(user)
     await user.keyboard('{Control>}')
@@ -312,30 +312,53 @@ describe('multi-select', () => {
     await user.keyboard('{/Control}')
     await rightClick(user, stepRow('Oat'))
     expect(screen.getByText('2 steps')).toBeInTheDocument()
-    await user.click(screen.getByText('Mark as done'))
-    await flush()
-    expect([stepDone('Skim'), stepDone('Oat'), stepDone('2% lactose free')]).toEqual([true, true, false])
+    await submenuClick(user, 'Set stage', 'Waiting')
+    expect([stepStage('Skim'), stepStage('Oat'), stepStage('2% lactose free')]).toEqual(['waiting', 'waiting', 'open'])
     await rightClick(user, stepRow('Skim'))
-    await user.click(screen.getByText('Mark as open'))
-    await flush()
-    expect([stepDone('Skim'), stepDone('Oat')]).toEqual([false, false])
+    await submenuClick(user, 'Set stage', 'Open')
+    expect([stepStage('Skim'), stepStage('Oat')]).toEqual(['open', 'open'])
     await deleteViaMenu(user, stepRow('Skim'))
     await flush()
     expect(steps()).toEqual(['2% lactose free'])
   })
 
-  test('the step menu offers Mark as done when only some targets are done', async () => {
+  test('the step icon toggles done and open', async () => {
     const user = await setup()
     await withSteps(user)
-    await user.click(within(stepRow('Oat')).getByRole('checkbox'))
+    await user.click(within(stepRow('Oat')).getByRole('button', { name: 'Mark done' }))
     await flush()
+    expect(stepStage('Oat')).toBe('done')
+    expect(within(stepRow('Oat')).getByRole('button', { name: 'Mark open' })).toHaveAttribute('title', 'Done')
+    await user.click(within(stepRow('Oat')).getByRole('button', { name: 'Mark open' }))
+    await flush()
+    expect(stepStage('Oat')).toBe('open')
+  })
+
+  test('the step menu checks the shared stage only when all targets share it', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.click(within(stepRow('Oat')).getByRole('button', { name: 'Mark done' }))
+    await flush()
+    await rightClick(user, stepRow('Oat'))
+    await user.hover(screen.getByText('Set stage'))
+    expect(screen.getByRole('menuitemradio', { name: 'Done' })).toBeChecked()
+    await user.keyboard('{Escape}')
     await user.keyboard('{Control>}')
     await user.click(stepRow('Skim'))
     await user.click(stepRow('Oat'))
     await user.keyboard('{/Control}')
     await rightClick(user, stepRow('Oat'))
-    expect(screen.getByText('Mark as done')).toBeInTheDocument()
-    expect(screen.queryByText('Mark as open')).toBeNull()
+    await user.hover(screen.getByText('Set stage'))
+    expect(screen.queryByRole('menuitemradio', { checked: true })).toBeNull()
+  })
+
+  test('the task step counter excludes cancelled steps', async () => {
+    const user = await setup()
+    await withSteps(user)
+    await user.click(within(stepRow('Skim')).getByRole('button', { name: 'Mark done' }))
+    await rightClick(user, stepRow('Oat'))
+    await submenuClick(user, 'Set stage', 'Cancelled')
+    expect(row('Milk')).toHaveTextContent('1/2')
   })
 
   test('right-clicking an unselected step targets only that step', async () => {
@@ -347,9 +370,8 @@ describe('multi-select', () => {
     await user.keyboard('{/Control}')
     await rightClick(user, stepRow('2% lactose free'))
     expect(screen.queryByText('2 steps')).toBeNull()
-    await user.click(screen.getByText('Mark as done'))
-    await flush()
-    expect([stepDone('2% lactose free'), stepDone('Skim'), stepDone('Oat')]).toEqual([true, false, false])
+    await submenuClick(user, 'Set stage', 'Done')
+    expect([stepStage('2% lactose free'), stepStage('Skim'), stepStage('Oat')]).toEqual(['done', 'open', 'open'])
   })
 
   test('the step selection clears when the detail task changes', async () => {

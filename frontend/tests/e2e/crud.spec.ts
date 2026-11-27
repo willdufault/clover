@@ -59,9 +59,9 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
     .getByRole('button', { name: /^Delete step/ })
     .click()
   await expect(steps).toHaveText(['Chapter 1', 'Chapter Two'])
-  const checkbox = aside.locator('[data-kind="step"]', { hasText: 'Chapter 1' }).getByRole('checkbox')
-  await checkbox.click()
-  await expect(checkbox).toBeChecked()
+  const chapterOne = aside.locator('[data-kind="step"]', { hasText: 'Chapter 1' })
+  await chapterOne.getByRole('button', { name: 'Mark done' }).click()
+  await expect(chapterOne.getByRole('button', { name: 'Mark open' })).toHaveAttribute('title', 'Done')
   await expect(task).toContainText('1/2')
 
   await pick(page, stageButton(aside), 'In progress')
@@ -86,7 +86,7 @@ test('create, edit, set stage/due/Today and delete against the API', async ({ pa
     addedToToday: true,
     priority: 'high',
   })
-  expect(backend.data.steps.find((s) => s.title === 'Chapter 1')).toMatchObject({ completed: true })
+  expect(backend.data.steps.find((s) => s.title === 'Chapter 1')).toMatchObject({ stage: 'done' })
   expect(backend.data.steps.map((s) => s.title)).toEqual(['2% lactose free', 'Chapter 1', 'Chapter Two'])
 
   await nav.getByText('📚 Books').click()
@@ -327,13 +327,13 @@ for (const width of [1440, 2560])
 const withMilkSteps = () => {
   const data = seed()
   data.steps.push(
-    { id: 'g1b', taskId: 'g1', title: 'Skim', completed: false },
-    { id: 'g1c', taskId: 'g1', title: 'Oat', completed: false },
+    { id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open' },
+    { id: 'g1c', taskId: 'g1', title: 'Oat', stage: 'open' },
   )
   return data
 }
 
-test('steps multi-select and the step menu marks done, open and deletes them in one request each', async ({ page }) => {
+test('steps multi-select and the step menu sets stages and deletes them in one request each', async ({ page }) => {
   const errors = captureErrors(page)
   const backend = await mockApi(page, withMilkSteps())
   const writes: string[] = []
@@ -347,7 +347,7 @@ test('steps multi-select and the step menu marks done, open and deletes them in 
   const steps = page.locator('aside [data-kind="step"]')
   const step = (name: string) => steps.filter({ hasText: name })
   const selected = () => steps.evaluateAll((rows: HTMLElement[]) => rows.map((row) => row.dataset.selected === 'true'))
-  const done = () => backend.data.steps.map((s) => s.completed)
+  const stages = () => backend.data.steps.map((s) => s.stage)
   await step('Skim').click({ modifiers: ['ControlOrMeta'] })
   await expect.poll(selected).toEqual([false, true, false])
   await step('2% lactose free').click({ modifiers: ['Shift'] })
@@ -357,14 +357,16 @@ test('steps multi-select and the step menu marks done, open and deletes them in 
 
   await step('Oat').click({ button: 'right' })
   await expect(page.getByText('3 steps')).toHaveCount(1)
-  await page.getByRole('menuitem', { name: 'Mark as done' }).click()
-  await expect(steps.getByRole('checkbox', { checked: true })).toHaveCount(3)
-  expect(done()).toEqual([true, true, true])
+  await page.getByRole('menuitem', { name: 'Set stage' }).hover()
+  await page.getByRole('menuitemradio', { name: 'Done' }).click()
+  await expect(steps.getByRole('button', { name: 'Mark open' })).toHaveCount(3)
+  expect(stages()).toEqual(['done', 'done', 'done'])
 
   await step('Skim').click({ button: 'right' })
-  await page.getByRole('menuitem', { name: 'Mark as open' }).click()
-  await expect(steps.getByRole('checkbox', { checked: false })).toHaveCount(3)
-  expect(done()).toEqual([false, false, false])
+  await page.getByRole('menuitem', { name: 'Set stage' }).hover()
+  await page.getByRole('menuitemradio', { name: 'Cancelled' }).click()
+  await expect(steps.getByTitle('Cancelled')).toHaveCount(3)
+  expect(stages()).toEqual(['cancelled', 'cancelled', 'cancelled'])
 
   await step('Skim').click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Delete' }).click()

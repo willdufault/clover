@@ -52,14 +52,15 @@ const gardenSeed = () => ({
     task('t8', 'Pick up twine', 'errands'),
   ],
   steps: [
-    { id: 's1', taskId: 't1', title: 'Fork over the top layer', completed: true },
+    { id: 's1', taskId: 't1', title: 'Fork over the top layer', stage: 'done' },
     {
       id: 's2',
       taskId: 't1',
       title: 'Add a barrow of leaf mould and the coffee grounds from the café',
-      completed: false,
+      stage: 'open',
     },
-    { id: 's3', taskId: 't1', title: 'Water if dry', completed: false },
+    { id: 's3', taskId: 't1', title: 'Water if dry', stage: 'inProgress' },
+    { id: 's4', taskId: 't1', title: 'Buy a new fork', stage: 'cancelled' },
   ],
 })
 
@@ -145,6 +146,12 @@ for (const [width, height, touch] of VIEWPORTS)
       const aside = page.locator('aside')
       await expect(aside.getByText('Water if dry')).toBeVisible()
       await shot('detail')
+      await menuOn(aside.locator('[data-kind="step"]').filter({ hasText: 'Water if dry' }))
+      const stageItem = page.getByRole('menuitem', { name: 'Set stage' })
+      await (touch ? stageItem.tap() : stageItem.hover())
+      await expect(page.getByRole('menuitemradio', { name: 'Cancelled' })).toBeVisible()
+      await shot('step-stage-menu', true)
+      await dismiss()
       await press(aside.getByRole('button', { name: /^Priority: / }))
       await shot('detail-picker')
       await dismiss()

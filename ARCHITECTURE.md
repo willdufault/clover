@@ -25,7 +25,7 @@ Single prod environment in `us-east-1`. Requests flow SPA â†’ Cognito (login) â†
 - Meta: `version` (number), one per user.
 - List: `name`.
 - Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list).
-- Step: `taskId`, `title`, `completed` (default false). `taskId` is set on create and can't be patched.
+- Step: `taskId`, `title`, `stage` (same enum and default as task). `taskId` is set on create and can't be patched.
 - Every request loads all of a user's items with one strongly consistent Query (`ConsistentRead=True`, no pagination; worst case ~210 items).
 
 ## Concurrency

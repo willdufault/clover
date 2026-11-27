@@ -94,7 +94,7 @@ TASK_FIELDS = {
 STEP_FIELDS = {
     "taskId": (is_str, REQUIRED),
     "title": (text(TITLE_MAX), REQUIRED),
-    "completed": (is_bool, False),
+    "stage": (one_of(*ENUMS["stages"]), "open"),
 }
 STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 

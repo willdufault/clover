@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircle, faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faArrowLeft, faChevronRight, faCircleCheck, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
+import { faSun as faSunRegular, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faArrowLeft, faChevronRight, faListUl, faSun } from '@fortawesome/free-solid-svg-icons'
 import { formatDueDate, nextMonday, today, tomorrow } from '../dates'
 import { dueIcon, PRIORITIES, priorityLabel, STAGES, stageLabel } from '../labels'
 import { MENU_CLASS, MENU_ITEM_CLASS, ICON_BUTTON_CLASS } from '../styles'
@@ -147,7 +147,6 @@ export type ContextMenuState = {
   moveTargets: TaskList[]
   anyHasDue: boolean
   allInToday: boolean
-  allStepsDone: boolean
   stage?: string
   priority?: string
   due?: string | null
@@ -157,21 +156,29 @@ export type MenuAnchor = { clientX: number; clientY: number; above?: number }
 
 export type OpenContextMenu = (kind: RowKind, id: string) => (event: MenuAnchor) => void
 
-const MARK_OPEN = { label: 'Mark as open', icon: { icon: faCircle, color: 'text-lichen' } }
-const MARK_DONE = { label: 'Mark as done', icon: { icon: faCircleCheck, color: 'text-clover' } }
+const stageItem = (current: string | undefined, onSet: (stage: string) => void): MenuItem => ({
+  label: 'Set stage',
+  icon: stageLabel(current ?? 'open'),
+  submenu: STAGES.map((stage) => ({
+    label: stageLabel(stage).text,
+    icon: stageLabel(stage),
+    checked: stage === current,
+    action: () => onSet(stage),
+  })),
+})
 
 export default function ContextMenu({
   menu,
   onClose,
   onDelete,
   onUpdateTasks,
-  onCompleteSteps,
+  onSetStepsStage,
 }: {
   menu: ContextMenuState
   onClose: () => void
   onDelete: () => void
   onUpdateTasks: (patch: TaskPatch) => void
-  onCompleteSteps: (completed: boolean) => void
+  onSetStepsStage: (stage: string) => void
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [openSubmenuLabel, setOpenSubmenuLabel] = useState<string | null>(null)
@@ -198,16 +205,7 @@ export default function ContextMenu({
   }
 
   const taskItems: MenuItem[] = [
-    {
-      label: 'Set stage',
-      icon: stageLabel(menu.stage ?? 'open'),
-      submenu: STAGES.map((stage) => ({
-        label: stageLabel(stage).text,
-        icon: stageLabel(stage),
-        checked: stage === menu.stage,
-        action: () => onUpdateTasks({ stage }),
-      })),
-    },
+    stageItem(menu.stage, (stage) => onUpdateTasks({ stage })),
     menu.allInToday
       ? {
           label: 'Remove from Today',
@@ -238,9 +236,7 @@ export default function ContextMenu({
     ...moveItems(menu.moveTargets, onUpdateTasks),
   ]
 
-  const stepItems: MenuItem[] = [
-    { ...(menu.allStepsDone ? MARK_OPEN : MARK_DONE), action: () => onCompleteSteps(!menu.allStepsDone) },
-  ]
+  const stepItems: MenuItem[] = [stageItem(menu.stage, onSetStepsStage)]
 
   const kindItems = { [RowKind.List]: [], [RowKind.Task]: taskItems, [RowKind.Step]: stepItems }[menu.kind]
 

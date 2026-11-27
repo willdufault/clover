@@ -14,7 +14,7 @@ def task(call: Callable) -> dict:
 def test_create(call: Callable, task: dict) -> None:
     status, step = call("POST /steps", {"title": "S", "taskId": task["id"]})
     assert status == 201
-    assert step == {"id": step["id"], "taskId": task["id"], "title": "S", "completed": False}
+    assert step == {"id": step["id"], "taskId": task["id"], "title": "S", "stage": "open"}
 
 
 def test_create_validation(call: Callable, task: dict) -> None:
@@ -45,13 +45,13 @@ def test_user_limit(call: Callable) -> None:
 def test_update(call: Callable, task: dict) -> None:
     step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
     other = call("POST /steps", {"title": "O", "taskId": task["id"]})[1]
-    body = [{"id": step["id"], "completed": True}, {"id": other["id"], "title": "O2"}]
+    body = [{"id": step["id"], "stage": "done"}, {"id": other["id"], "title": "O2"}]
     assert call("PATCH /steps", body) == (
         200,
-        [{**step, "completed": True}, {**other, "title": "O2"}],
+        [{**step, "stage": "done"}, {**other, "title": "O2"}],
     )
     assert call("PATCH /steps", [{"id": step["id"], "taskId": "x"}])[0] == 400
-    assert call("PATCH /steps", [{"id": step["id"], "completed": 1}])[0] == 400
+    assert call("PATCH /steps", [{"id": step["id"], "stage": "nope"}])[0] == 400
     assert call("PATCH /steps", [{"id": "missing", "title": "S"}])[0] == 404
     assert call("PATCH /steps", [{"id": step["id"], "title": "x" * (TITLE_MAX + 1)}])[0] == 400
 
@@ -84,6 +84,6 @@ def test_create_over_task_limit_after_stale_read_is_409(call: Callable, task: di
 
 def test_delete_removes_orphan_steps(call: Callable, task: dict, mock_table: Table) -> None:
     step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
-    mock_table.put_item(Item={"PK": "user-1", "SK": "STEP#orphan", "taskId": "gone", "title": "O", "completed": False})
+    mock_table.put_item(Item={"PK": "user-1", "SK": "STEP#orphan", "taskId": "gone", "title": "O", "stage": "open"})
     assert call("DELETE /steps", {"ids": [step["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}

@@ -5,7 +5,7 @@ import { sortTasks } from '../../src/sort'
 import type { Step, Task } from '../../src/types'
 import { makeTask } from './makeTask'
 
-const makeStep = (id: string): Step => ({ id, taskId: '', title: id, completed: false })
+const makeStep = (id: string): Step => ({ id, taskId: '', title: id, stage: 'open' })
 const makeState = (): ListsAndTasks => ({
   lists: [
     { id: 'A', name: 'A' },
