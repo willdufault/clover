@@ -1,4 +1,4 @@
 - look into optimistic rendering for creates and edits (instant UI, roll back on failure) so failures never lose typed text
 - install ffmpeg system-wide (sudo apt install ffmpeg) and remove the ffmpeg-static dev dependency
 - serve API at clover-api.willdufault.dev (ACM cert + API Gateway custom domain, Cloudflare proxied CNAME, Full strict) so work DNS doesn't hijack execute-api
-- persist drag reorder (tasks, steps, lists) instead of local only
+- disable reordering in smart lists

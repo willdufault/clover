@@ -327,8 +327,8 @@ for (const width of [1440, 2560])
 const withMilkSteps = () => {
   const data = seed()
   data.steps.push(
-    { id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open' },
-    { id: 'g1c', taskId: 'g1', title: 'Oat', stage: 'open' },
+    { id: 'g1b', taskId: 'g1', title: 'Skim', stage: 'open', order: 0 },
+    { id: 'g1c', taskId: 'g1', title: 'Oat', stage: 'open', order: 0 },
   )
   return data
 }

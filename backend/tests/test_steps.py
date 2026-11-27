@@ -14,7 +14,7 @@ def task(call: Callable) -> dict:
 def test_create(call: Callable, task: dict) -> None:
     status, step = call("POST /steps", {"title": "S", "taskId": task["id"]})
     assert status == 201
-    assert step == {"id": step["id"], "taskId": task["id"], "title": "S", "stage": "open"}
+    assert step == {"id": step["id"], "taskId": task["id"], "title": "S", "stage": "open", "order": 0}
 
 
 def test_create_validation(call: Callable, task: dict) -> None:
@@ -87,3 +87,20 @@ def test_delete_removes_orphan_steps(call: Callable, task: dict, mock_table: Tab
     mock_table.put_item(Item={"PK": "user-1", "SK": "STEP#orphan", "taskId": "gone", "title": "O", "stage": "open"})
     assert call("DELETE /steps", {"ids": [step["id"]]}) == (204, None)
     assert call("GET /data")[1] == {"lists": [], "tasks": [task], "steps": []}
+
+
+def test_order(call: Callable, task: dict) -> None:
+    assert call("POST /steps", {"title": "S", "taskId": task["id"]})[1]["order"] == 0
+    a = call("POST /steps", {"title": "A", "taskId": task["id"], "order": 5})[1]
+    b = call("POST /steps", {"title": "B", "taskId": task["id"], "order": -3})[1]
+    assert (a["order"], b["order"]) == (5, -3)
+    body = [{"id": a["id"], "order": 1}, {"id": b["id"], "order": 2}]
+    assert call("PATCH /steps", body) == (200, [{**a, "order": 1}, {**b, "order": 2}])
+    assert [s["order"] for s in call("GET /data")[1]["steps"]] == [0, 1, 2]
+
+
+@pytest.mark.parametrize("order", [True, 1.5, "1", 2**40])
+def test_order_validation(call: Callable, task: dict, order: object) -> None:
+    step = call("POST /steps", {"title": "S", "taskId": task["id"]})[1]
+    assert call("POST /steps", {"title": "S", "taskId": task["id"], "order": order})[0] == 400
+    assert call("PATCH /steps", [{"id": step["id"], "order": order}])[0] == 400

@@ -9,6 +9,10 @@ const sortKey = {
   priority: (task: Task) => PRIORITIES.indexOf(task.priority),
 }
 
+export const byOrder = <T extends { order: number }>(items: T[]) => items.toSorted((a, b) => a.order - b.order)
+
+export const nextOrder = (items: { order: number }[]) => Math.max(-1, ...items.map((item) => item.order)) + 1
+
 const compare = <T>(a: T, b: T) => Number(a > b) - Number(a < b)
 
 export const sortTasks = (tasks: Task[], sort: SortCriteria | null) => {

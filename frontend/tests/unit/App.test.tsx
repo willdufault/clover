@@ -1,8 +1,22 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { DndContextProps, DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import App from '../../src/App'
+import { RowKind } from '../../src/types'
 import { createFakeBackend, task as makeTask } from '../fakeBackend'
 import { stubViewport } from './viewport'
+
+const dnd = vi.hoisted(() => ({ props: {} as DndContextProps }))
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@dnd-kit/core')>()
+  return {
+    ...mod,
+    DndContext: (props: DndContextProps) => {
+      dnd.props = props
+      return <mod.DndContext {...props} />
+    },
+  }
+})
 
 let backend: ReturnType<typeof createFakeBackend>
 beforeEach(() => {
@@ -86,6 +100,16 @@ const selectTwo = async (user: User) => {
   await user.keyboard('{/Control}')
 }
 const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+const dragDrop = async (kind: RowKind, activeId: string, overId: string, after = true) => {
+  const activatorEvent = new MouseEvent('mousedown')
+  const active = { id: activeId, data: { current: { kind, clone: null } } }
+  act(() => dnd.props.onDragStart?.({ active, activatorEvent } as unknown as DragStartEvent))
+  const over = { id: overId, rect: { top: after ? -2 : 2, height: 2 } }
+  act(() => dnd.props.onDragEnd?.({ active, activatorEvent, over, delta: { x: 0, y: 0 } } as unknown as DragEndEvent))
+  await flush()
+}
+const orderOf = (kind: 'lists' | 'tasks' | 'steps', id: string) =>
+  backend.data[kind].find((item) => item.id === id)?.order
 const taskById = (id: string) => backend.data.tasks.find((task) => task.id === id)
 const stepRow = (name: string) => row(name, aside())
 const isSelected = (element: HTMLElement) => element.dataset.selected === 'true'
@@ -790,4 +814,63 @@ test('dragging one of several selected tasks reorders them together', async () =
   await user.keyboard('{/Control}')
   await dragRow(row(before[4] ?? ''), row(before[0] ?? ''))
   expect(tasks()).toEqual([before[0], before[2], before[4], before[1], before[3]])
+})
+
+describe('drag reorder', () => {
+  test('dragging tasks, lists and steps saves the order and a reload shows it', async () => {
+    const user = await setup()
+    await dragDrop(RowKind.Task, 'g1', 'g2', false)
+    expect(tasks()).toEqual(['Milk', 'Eggs'])
+    expect(orderOf('tasks', 'g1')).toBe(1)
+
+    await dragDrop(RowKind.List, 'groceries', 'home')
+    expect(lists()).toEqual(['Work', 'Home', 'Groceries'])
+    expect(['work', 'home', 'groceries'].map((id) => orderOf('lists', id))).toEqual([0, 1, 2])
+
+    await withSteps(user)
+    const oat = backend.data.steps.find((step) => step.title === 'Oat')?.id ?? ''
+    await dragDrop(RowKind.Step, oat, 'g1a', false)
+    expect(steps()).toEqual(['Oat', '2% lactose free', 'Skim'])
+
+    cleanup()
+    const again = await setup()
+    expect(lists()).toEqual(['Work', 'Home', 'Groceries'])
+    await again.click(within(nav()).getByText('Groceries'))
+    expect(tasks()).toEqual(['Milk', 'Eggs'])
+    await again.click(row('Milk'))
+    expect(steps()).toEqual(['Oat', '2% lactose free', 'Skim'])
+  })
+
+  test('new lists, tasks and steps get one above the highest order', async () => {
+    backend.data.tasks = backend.data.tasks.map((t) => (t.id === 'g1' ? { ...t, order: 5 } : t))
+    const user = await setup()
+    await user.type(screen.getByPlaceholderText('Add a task'), 'Bread{Enter}')
+    await newList(user, 'Fun')
+    await flush()
+    await user.click(within(nav()).getByText('Groceries'))
+    await user.click(row('Milk'))
+    await newStep(user, 'Skim')
+    await flush()
+    const created = (kind: 'lists' | 'tasks' | 'steps') => backend.data[kind].at(-1)?.order
+    expect([created('tasks'), created('lists'), created('steps')]).toEqual([6, 1, 1])
+  })
+
+  test('a task dropped on another list lands at its bottom', async () => {
+    const user = await setup()
+    await dragDrop(RowKind.Task, 'g1', 'work')
+    expect(orderOf('tasks', 'g1')).toBe(-1)
+    await user.click(within(nav()).getByText('Work'))
+    expect(tasks()).toEqual(['Review PR', 'Update docs', 'Reply to emails', 'Milk'])
+  })
+
+  test('a failed reorder keeps the order and shows the banner', async () => {
+    await setup()
+    const handle = backend.handle
+    backend.handle = (method, url, body) =>
+      method === 'PATCH' ? { status: 409, body: { error: 'Concurrent update' } } : handle(method, url, body)
+    await dragDrop(RowKind.Task, 'g1', 'g2', false)
+    expect(screen.getByRole('alert')).toHaveTextContent('Concurrent update')
+    expect(tasks()).toEqual(['Eggs', 'Milk'])
+    expect(orderOf('tasks', 'g1')).toBe(0)
+  })
 })

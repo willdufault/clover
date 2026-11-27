@@ -68,6 +68,10 @@ def is_str(v: object) -> bool:
     return isinstance(v, str)
 
 
+def is_order(v: object) -> bool:
+    return type(v) is int and -(2**31) <= v < 2**31
+
+
 def optional_str(v: object) -> bool:
     return v is None or isinstance(v, str)
 
@@ -82,7 +86,7 @@ def optional_date(v: object) -> bool:
         return False
 
 
-LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED)}
+LIST_FIELDS = {"name": (text(LIST_NAME_MAX), REQUIRED), "order": (is_order, 0)}
 TASK_FIELDS = {
     "title": (text(TITLE_MAX), REQUIRED),
     "stage": (one_of(*ENUMS["stages"]), "open"),
@@ -90,11 +94,13 @@ TASK_FIELDS = {
     "priority": (one_of(*ENUMS["priorities"]), "medium"),
     "addedToToday": (is_bool, False),
     "listId": (optional_str, None),
+    "order": (is_order, 0),
 }
 STEP_FIELDS = {
     "taskId": (is_str, REQUIRED),
     "title": (text(TITLE_MAX), REQUIRED),
     "stage": (one_of(*ENUMS["stages"]), "open"),
+    "order": (is_order, 0),
 }
 STEP_EDITABLE = {k: v for k, v in STEP_FIELDS.items() if k != "taskId"}
 

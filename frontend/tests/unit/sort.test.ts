@@ -1,4 +1,5 @@
-import { sortTasks } from '../../src/sort'
+import * as fc from 'fast-check'
+import { byOrder, nextOrder, sortTasks } from '../../src/sort'
 import type { Task } from '../../src/types'
 import { makeTask } from './makeTask'
 
@@ -43,4 +44,24 @@ test('no sort shows the newest task first', () => {
 test('ties keep the unsorted order, newest first', () => {
   const tasks = [makeTask('old'), makeTask('mid'), makeTask('new')]
   expect(ids(sortTasks(tasks, 'stage'))).toEqual(['new', 'mid', 'old'])
+})
+
+test('property: byOrder sorts ascending, keeps every item, and keeps equal orders in place', () => {
+  fc.assert(
+    fc.property(fc.array(fc.integer({ min: -3, max: 3 })), (orders) => {
+      const items = orders.map((order, i) => ({ id: i, order }))
+      const sorted = byOrder(items)
+      expect(sorted.toSorted((a, b) => a.id - b.id)).toEqual(items)
+      sorted.slice(1).forEach((item, i) => {
+        const prev = sorted[i]
+        if (!prev) throw new Error('No item')
+        expect(prev.order < item.order || (prev.order === item.order && prev.id < item.id)).toBe(true)
+      })
+    }),
+  )
+})
+
+test('nextOrder is one above the highest order, or 0 when empty', () => {
+  expect(nextOrder([])).toBe(0)
+  expect(nextOrder([{ order: -4 }, { order: 2 }, { order: 1 }])).toBe(3)
 })

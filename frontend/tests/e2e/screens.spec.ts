@@ -18,10 +18,10 @@ const VIEWPORTS: [number, number, boolean][] = [
 
 const gardenSeed = () => ({
   lists: [
-    { id: 'garden', name: 'Garden' },
-    { id: 'errands', name: 'Errands' },
-    { id: 'reading', name: 'Reading list for the long winter evenings' },
-    { id: 'someday', name: 'Someday' },
+    { id: 'garden', name: 'Garden', order: 0 },
+    { id: 'errands', name: 'Errands', order: 0 },
+    { id: 'reading', name: 'Reading list for the long winter evenings', order: 0 },
+    { id: 'someday', name: 'Someday', order: 0 },
   ],
   tasks: [
     {
@@ -52,15 +52,16 @@ const gardenSeed = () => ({
     task('t8', 'Pick up twine', 'errands'),
   ],
   steps: [
-    { id: 's1', taskId: 't1', title: 'Fork over the top layer', stage: 'done' },
+    { id: 's1', taskId: 't1', title: 'Fork over the top layer', stage: 'done', order: 0 },
     {
       id: 's2',
       taskId: 't1',
       title: 'Add a barrow of leaf mould and the coffee grounds from the café',
       stage: 'open',
+      order: 0,
     },
-    { id: 's3', taskId: 't1', title: 'Water if dry', stage: 'inProgress' },
-    { id: 's4', taskId: 't1', title: 'Buy a new fork', stage: 'cancelled' },
+    { id: 's3', taskId: 't1', title: 'Water if dry', stage: 'inProgress', order: 0 },
+    { id: 's4', taskId: 't1', title: 'Buy a new fork', stage: 'cancelled', order: 0 },
   ],
 })
 

@@ -1,17 +1,13 @@
 import * as fc from 'fast-check'
-import { applyDrop, idsToMove, type ListsAndTasks } from '../../src/drop'
+import { applyDrop, idsToMove, movedToList, orderPatches, type ListsAndTasks } from '../../src/drop'
 import { ALL_LIST_ID, TODAY_LIST_ID, tasksInList } from '../../src/smartLists'
-import { sortTasks } from '../../src/sort'
-import type { Step, Task } from '../../src/types'
+import { RowKind, type Step, type Task } from '../../src/types'
 import { makeTask } from './makeTask'
 
-const makeStep = (id: string): Step => ({ id, taskId: '', title: id, stage: 'open' })
+const makeStep = (id: string): Step => ({ id, taskId: '', title: id, stage: 'open', order: 0 })
+const makeList = (id: string) => ({ id, name: id, order: 0 })
 const makeState = (): ListsAndTasks => ({
-  lists: [
-    { id: 'A', name: 'A' },
-    { id: 'B', name: 'B' },
-    { id: 'C', name: 'C' },
-  ],
+  lists: [makeList('A'), makeList('B'), makeList('C')],
   tasks: [
     makeTask('a1', { listId: 'A', steps: [makeStep('s1'), makeStep('s2'), makeStep('s3')] }),
     makeTask('a2', { listId: 'A', steps: [makeStep('x1'), makeStep('x2')] }),
@@ -22,75 +18,66 @@ const makeState = (): ListsAndTasks => ({
   ],
 })
 const baseDrop = { selectedListId: 'A', detailTask: undefined as Task | undefined, after: true }
+type Drop = Parameters<typeof applyDrop>[1]
 const ids = (items: { id: string }[]) => items.map((item) => item.id)
+const dropped = (state: ListsAndTasks, drop: Drop) => {
+  const result = applyDrop(state, drop)
+  if (!result) throw new Error('No drop')
+  return { kind: result.kind, ids: ids(result.items) }
+}
+const listOrder = (state: ListsAndTasks, drop: Drop) => ids(applyDrop(state, drop)?.items ?? state.lists)
+const shown = (state: ListsAndTasks, drop: Drop) =>
+  ids(applyDrop(state, drop)?.items ?? tasksInList(state.tasks, drop.selectedListId)).toReversed()
 
-const shown = (state: ListsAndTasks) => ids(sortTasks(tasksInList(state.tasks, 'A'), null))
-
-test('reorder lists: only list order changes', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, activeId: 'A', overId: 'C' })
-  expect(ids(result.lists)).toEqual(['B', 'C', 'A'])
-  expect(result.tasks).toEqual(makeState().tasks)
-  expect(ids(applyDrop(makeState(), { ...baseDrop, activeId: 'A', overId: 'C', after: false }).lists)).toEqual([
-    'B',
-    'A',
-    'C',
-  ])
+test('reorder lists returns the new list order', () => {
+  expect(dropped(makeState(), { ...baseDrop, activeId: 'A', overId: 'C' })).toEqual({
+    kind: RowKind.List,
+    ids: ['B', 'C', 'A'],
+  })
+  expect(listOrder(makeState(), { ...baseDrop, activeId: 'A', overId: 'C', after: false })).toEqual(['B', 'A', 'C'])
 })
 
 test('dropping next to the original spot keeps the order', () => {
   const state = makeState()
-  expect(ids(applyDrop(state, { ...baseDrop, activeId: 'B', overId: 'A' }).lists)).toEqual(['A', 'B', 'C'])
-  expect(ids(applyDrop(state, { ...baseDrop, activeId: 'B', overId: 'C', after: false }).lists)).toEqual([
-    'A',
-    'B',
-    'C',
-  ])
-  expect(shown(applyDrop(state, { ...baseDrop, activeId: 'a2', overId: 'a3' }))).toEqual(['a3', 'a2', 'a1'])
-  expect(shown(applyDrop(state, { ...baseDrop, activeId: 'a2', overId: 'a1', after: false }))).toEqual([
-    'a3',
-    'a2',
-    'a1',
-  ])
+  expect(listOrder(state, { ...baseDrop, activeId: 'B', overId: 'A' })).toEqual(['A', 'B', 'C'])
+  expect(listOrder(state, { ...baseDrop, activeId: 'B', overId: 'C', after: false })).toEqual(['A', 'B', 'C'])
+  expect(shown(state, { ...baseDrop, activeId: 'a2', overId: 'a3' })).toEqual(['a3', 'a2', 'a1'])
+  expect(shown(state, { ...baseDrop, activeId: 'a2', overId: 'a1', after: false })).toEqual(['a3', 'a2', 'a1'])
 })
 
-test('reorder tasks in a list: other tasks untouched', () => {
-  const result = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a3', after: false })
-  expect(ids(result.tasks)).toEqual(['a2', 'a3', 'a1', 'b1', 'b2', 'c1'])
-  expect(result.tasks.find((task) => task.id === 'a1')).toEqual(makeState().tasks[0])
-  expect(result.lists).toEqual(makeState().lists)
+test('reorder tasks in a list returns only that list in stored order', () => {
+  expect(dropped(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a3', after: false })).toEqual({
+    kind: RowKind.Task,
+    ids: ['a2', 'a3', 'a1'],
+  })
 })
 
 test('a task dropped in the newest-first view lands where it was dropped', () => {
-  expect(shown(makeState())).toEqual(['a3', 'a2', 'a1'])
-  const down = applyDrop(makeState(), { ...baseDrop, activeId: 'a3', overId: 'a1' })
-  expect(shown(down)).toEqual(['a2', 'a1', 'a3'])
-  const up = applyDrop(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a2', after: false })
-  expect(shown(up)).toEqual(['a3', 'a1', 'a2'])
+  expect(shown(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a1' })).toEqual(['a3', 'a2', 'a1'])
+  expect(shown(makeState(), { ...baseDrop, activeId: 'a3', overId: 'a1' })).toEqual(['a2', 'a1', 'a3'])
+  expect(shown(makeState(), { ...baseDrop, activeId: 'a1', overId: 'a2', after: false })).toEqual(['a3', 'a1', 'a2'])
 })
 
-test('reorder steps: task order and other tasks untouched', () => {
+test('reorder steps returns the detail task steps', () => {
   const state = makeState()
-  const result = applyDrop(state, { ...baseDrop, detailTask: state.tasks[0], activeId: 's1', overId: 's3' })
-  const expected = makeState()
-  expect(ids(result.tasks)).toEqual(ids(expected.tasks))
-  const [task] = result.tasks
-  if (!task) throw new Error('No task')
-  expect(ids(task.steps)).toEqual(['s2', 's3', 's1'])
-  expect(result.tasks.slice(1)).toEqual(expected.tasks.slice(1))
+  expect(dropped(state, { ...baseDrop, detailTask: state.tasks[0], activeId: 's1', overId: 's3' })).toEqual({
+    kind: RowKind.Step,
+    ids: ['s2', 's3', 's1'],
+  })
 })
 
 test('task dropped on its own list or on All is a no-op', () => {
   const state = makeState()
-  expect(applyDrop(state, { ...baseDrop, activeId: 'a1', overId: 'A' })).toBe(state)
-  expect(applyDrop(state, { ...baseDrop, activeId: 'a1', overId: 'all' })).toBe(state)
+  expect(applyDrop(state, { ...baseDrop, activeId: 'a1', overId: 'A' })).toBeNull()
+  expect(applyDrop(state, { ...baseDrop, activeId: 'a1', overId: 'all' })).toBeNull()
 })
 
 test('mismatched ids are no-ops', () => {
   const state = makeState()
-  const expectNoop = (drop: Partial<Parameters<typeof applyDrop>[1]>) =>
+  const expectNoop = (drop: Partial<Drop>) =>
     expect(
       applyDrop(state, { ...baseDrop, detailTask: state.tasks[0], activeId: 'a1', overId: 'a2', ...drop }),
-    ).toEqual(makeState())
+    ).toBeNull()
   expectNoop({ activeId: 's1', overId: 'a2' })
   expectNoop({ activeId: 'a1', overId: 's1' })
   expectNoop({ activeId: 's1', overId: 'x1' })
@@ -106,7 +93,7 @@ const stateArb = fc
     }),
   })
   .map(({ listCount, tasks }): ListsAndTasks => ({
-    lists: Array.from({ length: listCount }, (_, i) => ({ id: `L${i}`, name: `L${i}` })),
+    lists: Array.from({ length: listCount }, (_, i) => makeList(`L${i}`)),
     tasks: tasks.map((task, i) =>
       makeTask(`T${i}`, {
         listId: listCount ? `L${task.list % listCount}` : null,
@@ -134,46 +121,39 @@ const caseArb = stateArb.chain((state) => {
 })
 
 const has = (items: { id: string }[], id: string) => items.some((item) => item.id === id)
-const sortedIds = (items: { id: string }[]) => ids(items).toSorted()
-const stepIdsByTask = (state: ListsAndTasks) =>
-  Object.fromEntries(state.tasks.map((task) => [task.id, sortedIds(task.steps)]))
+const groupOf = (state: ListsAndTasks, drop: Drop) => ({
+  [RowKind.List]: state.lists,
+  [RowKind.Task]: tasksInList(state.tasks, drop.selectedListId),
+  [RowKind.Step]: drop.detailTask?.steps ?? [],
+})
 
-test('property: no list, task, or step is lost or duplicated', () => {
+test('property: the dropped group keeps the same items, unchanged', () => {
   fc.assert(
     fc.property(caseArb, ({ state, drop }) => {
       const result = applyDrop(state, drop)
-      expect(sortedIds(result.lists)).toEqual(sortedIds(state.lists))
-      expect(sortedIds(result.tasks)).toEqual(sortedIds(state.tasks))
-      expect(stepIdsByTask(result)).toEqual(stepIdsByTask(state))
+      fc.pre(!!result)
+      if (!result) return
+      const group: { id: string }[] = groupOf(state, drop)[result.kind]
+      expect(ids(result.items).toSorted()).toEqual(ids(group).toSorted())
+      for (const item of result.items) expect(group).toContain(item)
     }),
   )
 })
 
-test('property: dropping an item on itself returns the same state', () => {
+test('property: dropping an item on itself is a no-op', () => {
   fc.assert(
     fc.property(caseArb, ({ state, drop }) => {
-      expect(applyDrop(state, { ...drop, overId: drop.activeId })).toBe(state)
+      expect(applyDrop(state, { ...drop, overId: drop.activeId })).toBeNull()
     }),
   )
 })
 
-test('property: task fields other than step order are unchanged', () => {
-  fc.assert(
-    fc.property(caseArb, ({ state, drop }) => {
-      for (const task of applyDrop(state, drop).tasks) {
-        expect(task).toEqual({ ...state.tasks.find((original) => original.id === task.id), steps: task.steps })
-      }
-    }),
-  )
-})
-
-test('property: drops outside lists, visible tasks, or detail steps return the same state', () => {
+test('property: drops outside lists, visible tasks, or detail steps are no-ops', () => {
   fc.assert(
     fc.property(caseArb, ({ state, drop }) => {
       const both = (items: { id: string }[]) => has(items, drop.activeId) && has(items, drop.overId)
-      const visible = tasksInList(state.tasks, drop.selectedListId)
-      fc.pre(!both(state.lists) && !both(visible) && !(drop.detailTask && both(drop.detailTask.steps)))
-      expect(applyDrop(state, drop)).toBe(state)
+      fc.pre(!Object.values(groupOf(state, drop)).some(both))
+      expect(applyDrop(state, drop)).toBeNull()
     }),
   )
 })
@@ -186,13 +166,13 @@ const orderArb = fc.integer({ min: 2, max: 8 }).chain((count) =>
     after: fc.boolean(),
   }),
 )
-const listState = (order: string[]): ListsAndTasks => ({ lists: order.map((id) => ({ id, name: id })), tasks: [] })
+const listState = (order: string[]): ListsAndTasks => ({ lists: order.map(makeList), tasks: [] })
 const taskState = (order: string[]): ListsAndTasks => ({
-  lists: [{ id: 'A', name: 'A' }],
+  lists: [makeList('A')],
   tasks: order.toReversed().map((id) => makeTask(id, { listId: 'A' })),
 })
 const views = [
-  [listState, (state: ListsAndTasks) => ids(state.lists)],
+  [listState, listOrder],
   [taskState, shown],
 ] as const
 
@@ -203,7 +183,7 @@ test('property: dropping into the original gap leaves the order unchanged', () =
       fc.pre(overIndex >= 0 && overIndex < order.length)
       for (const [build, view] of views) {
         const drop = { ...baseDrop, activeId: order[from] ?? '', overId: order[overIndex] ?? '', after }
-        expect(view(applyDrop(build(order), drop))).toEqual(order)
+        expect(view(build(order), drop)).toEqual(order)
       }
     }),
   )
@@ -216,7 +196,7 @@ test('property: a drop lands before or after the hovered item and keeps the othe
       const activeId = order[from] ?? ''
       const overId = order[over] ?? ''
       for (const [build, view] of views) {
-        const result = view(applyDrop(build(order), { ...baseDrop, activeId, overId, after }))
+        const result = view(build(order), { ...baseDrop, activeId, overId, after })
         expect(result.indexOf(activeId)).toBe(result.indexOf(overId) + (after ? 1 : -1))
         expect(result.filter((id) => id !== activeId)).toEqual(order.filter((id) => id !== activeId))
       }
@@ -226,7 +206,7 @@ test('property: a drop lands before or after the hovered item and keeps the othe
 
 const fiveState = () => taskState(['t0', 't1', 't2', 't3', 't4'])
 const multiDrop = (dragIds: string[], overId: string, after: boolean) =>
-  shown(applyDrop(fiveState(), { ...baseDrop, activeId: dragIds[0] ?? '', dragIds, overId, after }))
+  shown(fiveState(), { ...baseDrop, activeId: dragIds[0] ?? '', dragIds, overId, after })
 
 test('dragging several tasks moves them together in their shown order', () => {
   expect(multiDrop(['t3', 't1'], 't0', false)).toEqual(['t1', 't3', 't0', 't2', 't4'])
@@ -255,7 +235,7 @@ test('property: dragged tasks land as one block next to the hovered task in thei
       const overId = order[over] ?? ''
       const activeId = dragIds[0] ?? ''
       fc.pre(!dragIds.includes(overId))
-      const result = shown(applyDrop(taskState(order), { ...baseDrop, activeId, dragIds, overId, after }))
+      const result = shown(taskState(order), { ...baseDrop, activeId, dragIds, overId, after })
       expect(result.toSorted()).toEqual(order.toSorted())
       const moved = order.filter((id) => dragIds.includes(id))
       const start = result.indexOf(overId) + (after ? 1 : -moved.length)
@@ -271,7 +251,7 @@ test('property: dropping dragged tasks on one of themselves is a no-op', () => {
       const dragIds = picks.map((i) => order[i] ?? '')
       for (const overId of dragIds) {
         const drop = { ...baseDrop, activeId: dragIds[0] ?? '', dragIds, overId, after }
-        expect(shown(applyDrop(taskState(order), drop))).toEqual(order)
+        expect(shown(taskState(order), drop)).toEqual(order)
       }
     }),
   )
@@ -283,6 +263,35 @@ test('property: one dragged task moves the same with or without dragIds', () => 
       expect(applyDrop(state, { ...drop, dragIds: [drop.activeId] })).toEqual(applyDrop(state, drop))
     }),
   )
+})
+
+const orderedArb = fc
+  .array(fc.integer({ min: -5, max: 5 }), { maxLength: 8 })
+  .map((orders) => orders.map((order, i) => ({ id: `I${i}`, order })))
+
+test('property: applying order patches numbers the items 0..n-1', () => {
+  fc.assert(
+    fc.property(orderedArb, (items) => {
+      const patches = orderPatches(items)
+      const patched = items.map((item) => ({ ...item, ...patches.find((patch) => patch.id === item.id) }))
+      expect(patched.map((item) => item.order)).toEqual(items.map((_, i) => i))
+      expect(orderPatches(patched)).toEqual([])
+    }),
+  )
+})
+
+test('movedToList puts tasks below the lowest order in the target list, keeping their order', () => {
+  const tasks = [
+    makeTask('a', { listId: 'A', order: 3 }),
+    makeTask('b', { listId: 'B', order: -2 }),
+    makeTask('c', { listId: 'B', order: 5 }),
+    makeTask('d', { listId: 'C', order: -9 }),
+  ]
+  expect(movedToList(tasks, ['a', 'd'], 'B')).toEqual([
+    { id: 'a', listId: 'B', order: -4 },
+    { id: 'd', listId: 'B', order: -3 },
+  ])
+  expect(movedToList(tasks, ['a'], 'D')).toEqual([{ id: 'a', listId: 'D', order: -1 }])
 })
 
 test('idsToMove skips tasks already in the target list', () => {

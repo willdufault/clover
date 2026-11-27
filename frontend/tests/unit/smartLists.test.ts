@@ -12,7 +12,7 @@ test('Today view shows only tasks added to Today, whatever their due date', () =
 })
 
 test('deleting lists selects the nearest surviving list before them, else the first, else All', () => {
-  const lists = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id }))
+  const lists = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id, order: 0 }))
   expect(neighborListId(lists, ['c'])).toBe('b')
   expect(neighborListId(lists, ['b', 'c'])).toBe('a')
   expect(neighborListId(lists, ['a', 'b'])).toBe('c')

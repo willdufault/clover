@@ -17,6 +17,7 @@ def test_create_defaults(call: Callable) -> None:
         "priority": "medium",
         "addedToToday": False,
         "listId": None,
+        "order": 0,
     }
 
 
@@ -29,6 +30,7 @@ def test_create_all_fields(call: Callable) -> None:
         "priority": "high",
         "addedToToday": True,
         "listId": lst["id"],
+        "order": 4,
     }
     status, task = call("POST /tasks", body)
     assert status == 201
@@ -249,3 +251,20 @@ def test_max_batch_fits_transaction(call: Callable) -> None:
     assert call("PATCH /tasks", body)[0] == 200
     assert call("DELETE /tasks", {"ids": [t["id"] for t in tasks]}) == (204, None)
     assert call("GET /data")[1]["tasks"] == []
+
+
+def test_order(call: Callable) -> None:
+    assert call("POST /tasks", {"title": "T"})[1]["order"] == 0
+    a = call("POST /tasks", {"title": "A", "order": 5})[1]
+    b = call("POST /tasks", {"title": "B", "order": -3})[1]
+    assert (a["order"], b["order"]) == (5, -3)
+    body = [{"id": a["id"], "order": 1}, {"id": b["id"], "order": 2}]
+    assert call("PATCH /tasks", body) == (200, [{**a, "order": 1}, {**b, "order": 2}])
+    assert [t["order"] for t in call("GET /data")[1]["tasks"]] == [0, 1, 2]
+
+
+@pytest.mark.parametrize("order", [True, 1.5, "1", 2**40])
+def test_order_validation(call: Callable, order: object) -> None:
+    task = call("POST /tasks", {"title": "T"})[1]
+    assert call("POST /tasks", {"title": "T", "order": order})[0] == 400
+    assert call("PATCH /tasks", [{"id": task["id"], "order": order}])[0] == 400

@@ -88,8 +88,9 @@ const richSeed = () => {
       taskId: 'g1',
       title: 'A long step title that wraps across the narrow detail pane '.repeat(2),
       stage: 'open',
+      order: 0,
     },
-    { id: 's3', taskId: 'g1', title: 'Short', stage: 'open' },
+    { id: 's3', taskId: 'g1', title: 'Short', stage: 'open', order: 0 },
   )
   return data
 }
@@ -222,6 +223,75 @@ test('new tasks show first and a dragged order sticks', async ({ page }) => {
   await navRow(page, 'All').click()
   const all = await titles()
   expect(all.filter((t) => ['Eggs', 'Milk', 'Bread'].includes(t))).toEqual(['Eggs', 'Milk', 'Bread'])
+
+  await page.reload()
+  await expect.poll(titles).toEqual(['Eggs', 'Milk', 'Bread'])
+  expect(errors).toEqual([])
+})
+
+const dropOn = async (page: Page, row: Locator, to: Locator, at: number) => {
+  const start = await grab(page, row)
+  await page.mouse.move(start.x, start.y + 10)
+  await glide(page, start, to, at)
+  await page.mouse.up()
+  await waitForDropAnimation(page)
+}
+
+const texts = async (rows: Locator) => (await rows.allInnerTexts()).map((t) => t.trim())
+
+test('a dragged list order survives a reload', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const lists = page.locator('nav [data-kind="list"]')
+  const names = () => lists.allTextContents()
+  await expect.poll(names).toEqual(['Groceries2', 'Work3', 'Home'])
+
+  await dropOn(page, lists.first(), lists.last(), 0.75)
+  await expect.poll(names).toEqual(['Work3', 'Home', 'Groceries2'])
+  await page.reload()
+  await expect.poll(names).toEqual(['Work3', 'Home', 'Groceries2'])
+  expect(errors).toEqual([])
+})
+
+test('a dragged step order survives a reload', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const milk = page.locator('main [data-kind="task"]', { hasText: 'Milk' })
+  const steps = page.locator('aside [data-kind="step"]')
+  await milk.click()
+  const input = page.getByPlaceholder('Add a step')
+  for (const name of ['aaa', 'bbb']) {
+    await input.fill(name)
+    await input.press('Enter')
+  }
+  await expect.poll(() => texts(steps)).toEqual(['2% lactose free', 'aaa', 'bbb'])
+
+  await dropOn(page, steps.last(), steps.first(), 0.25)
+  await expect.poll(() => texts(steps)).toEqual(['bbb', '2% lactose free', 'aaa'])
+  await page.reload()
+  await milk.click()
+  await expect.poll(() => texts(steps)).toEqual(['bbb', '2% lactose free', 'aaa'])
+  expect(errors).toEqual([])
+})
+
+test('a task dragged to another list shows at its bottom', async ({ page }) => {
+  const errors = captureErrors(page)
+  await mockApi(page)
+  await page.goto('./')
+  const rows = page.locator('main [data-kind="task"]')
+  const titles = async () => (await rows.locator('span.break-words').allInnerTexts()).map((t) => t.trim())
+
+  await drag(page, rows.filter({ hasText: 'Milk' }), page.locator('nav').getByText('Work'))
+  await expect(rows.filter({ hasText: 'Milk' })).toHaveCount(0)
+  await waitForDropAnimation(page)
+  await navRow(page, 'Work').click()
+  await expect.poll(titles).toEqual(['Review PR', 'Update docs', 'Reply to emails', 'Milk'])
+  await page.reload()
+  await navRow(page, 'Work').click()
+  await expect.poll(titles).toEqual(['Review PR', 'Update docs', 'Reply to emails', 'Milk'])
+  await page.screenshot({ path: 'test-results/drag-to-list-bottom.png' })
   expect(errors).toEqual([])
 })
 

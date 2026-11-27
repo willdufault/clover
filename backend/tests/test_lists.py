@@ -9,7 +9,7 @@ from schema import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
 def test_create_and_get(call: Callable, mock_table: Table) -> None:
     status, lst = call("POST /lists", {"name": "🏠 Home"})
     assert status == 201
-    assert lst == {"id": lst["id"], "name": "🏠 Home"}
+    assert lst == {"id": lst["id"], "name": "🏠 Home", "order": 0}
     assert "Item" in mock_table.get_item(Key={"PK": "user-1", "SK": f"LIST#{lst['id']}"})
     assert call("GET /data")[1]["lists"] == [lst]
 
@@ -69,7 +69,7 @@ def test_update(call: Callable) -> None:
     lst = call("POST /lists", {"name": "A"})[1]
     assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}]) == (
         200,
-        [{"id": lst["id"], "name": "B"}],
+        [{"id": lst["id"], "name": "B", "order": 0}],
     )
     assert call("PATCH /lists", [{"id": lst["id"], "name": ""}])[0] == 400
     assert call("PATCH /lists", [{"id": lst["id"], "name": "x" * (LIST_NAME_MAX + 1)}])[0] == 400
@@ -81,7 +81,7 @@ def test_update_many(call: Callable) -> None:
     b = call("POST /lists", {"name": "B"})[1]
     status, body = call("PATCH /lists", [{"id": b["id"], "name": "B2"}, {"id": a["id"]}])
     assert status == 200
-    assert body == [{"id": b["id"], "name": "B2"}, a]
+    assert body == [{**b, "name": "B2"}, a]
 
 
 def test_update_all_or_nothing(call: Callable) -> None:
@@ -164,3 +164,33 @@ def test_id_only_update_skips_transaction(call: Callable, mock_table: Table, mon
     monkeypatch.setattr(mock_table.meta.client, "transact_write_items", lambda **kwargs: calls.append(kwargs))
     assert call("PATCH /lists", [{"id": lst["id"]}]) == (200, [lst])
     assert calls == []
+
+
+def test_order(call: Callable) -> None:
+    assert call("POST /lists", {"name": "A"})[1]["order"] == 0
+    a = call("POST /lists", {"name": "A", "order": 5})[1]
+    b = call("POST /lists", {"name": "B", "order": -3})[1]
+    assert (a["order"], b["order"]) == (5, -3)
+    body = [{"id": a["id"], "order": 1}, {"id": b["id"], "order": 2}]
+    assert call("PATCH /lists", body) == (200, [{**a, "order": 1}, {**b, "order": 2}])
+    assert [lst["order"] for lst in call("GET /data")[1]["lists"]] == [0, 1, 2]
+
+
+@pytest.mark.parametrize("order", [True, 1.5, "1", 2**40])
+def test_order_validation(call: Callable, order: object) -> None:
+    lst = call("POST /lists", {"name": "A"})[1]
+    assert call("POST /lists", {"name": "A", "order": order})[0] == 400
+    assert call("PATCH /lists", [{"id": lst["id"], "order": order}])[0] == 400
+
+
+def test_order_defaults_for_stored_items(call: Callable, mock_table: Table) -> None:
+    mock_table.put_item(Item={"PK": "user-1", "SK": "LIST#old", "name": "Old"})
+    assert call("GET /data")[1]["lists"] == [{"id": "old", "name": "Old", "order": 0}]
+
+
+def test_update_returns_int_order(call: Callable) -> None:
+    lst = call("POST /lists", {"name": "A", "order": 7})[1]
+    status, body = call("PATCH /lists", [{"id": lst["id"], "name": "B"}])
+    assert status == 200
+    assert type(body[0]["order"]) is int
+    assert body == [{**lst, "name": "B"}]

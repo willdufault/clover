@@ -1,6 +1,6 @@
 # Clover architecture
 
-Single prod environment in `us-east-1`. Requests flow SPA → Cognito (login) → API Gateway → Lambda → DynamoDB. Terraform manages the API and auth. The frontend deploys to GitHub Pages (`https://willdufault.dev/clover/`) from `main` via `.github/workflows/pages.yml`. Ordering is not persisted.
+Single prod environment in `us-east-1`. Requests flow SPA → Cognito (login) → API Gateway → Lambda → DynamoDB. Terraform manages the API and auth. The frontend deploys to GitHub Pages (`https://willdufault.dev/clover/`) from `main` via `.github/workflows/pages.yml`.
 
 ## Components
 
@@ -23,9 +23,10 @@ Single prod environment in `us-east-1`. Requests flow SPA → Cognito (login) �
 
 - `PK` = user id (Cognito `sub`), `SK` = `LIST#<id>` | `TASK#<id>` | `STEP#<id>` | `META`, id = `uuid.uuid7()`.
 - Meta: `version` (number), one per user.
-- List: `name`.
-- Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list).
-- Step: `taskId`, `title`, `stage` (same enum and default as task). `taskId` is set on create and can't be patched.
+- List: `name`, `order`.
+- Task: `title`, `stage` (`open|inProgress|waiting|done|cancelled`, default `open`), `due` (ISO date or null), `priority` (`low|medium|high`, default `medium`), `addedToToday` (default false), `listId` (null = no list), `order`.
+- Step: `taskId`, `title`, `stage` (same enum and default as task), `order`. `taskId` is set on create and can't be patched.
+- `order`: integer (default 0, also when missing on old items), settable on POST and PATCH. Lists sort ascending, steps ascending within their task, tasks ascending within their list (the task view shows them reversed, highest first). Ties keep load order.
 - Every request loads all of a user's items with one strongly consistent Query (`ConsistentRead=True`, no pagination; worst case ~210 items).
 
 ## Concurrency
@@ -66,4 +67,6 @@ Defined once in `shared/limits.json`. Both apps reach it through a `shared` fold
 
 - `GET /data` once on load, then group steps under tasks. Sorting is in the UI.
 - Not optimistic: await each call, then apply the server response (creates use the server id). On error, state is unchanged and the error is shown.
-- Drag-and-drop reordering is local only. Moving a task to another list is a `PATCH /tasks` of `listId`.
+- Lists, tasks and steps are sorted by `order` on load and after every server response. A new item gets the highest `order` in its group + 1.
+- Drag-and-drop reorder: the drop computes the new order of the one visible group (lists, the current view's tasks, or the open task's steps), then sends one `PATCH` with `{id, order: index}` for each item whose `order` changed. The UI updates from the response.
+- Dropping a task on a sidebar list is a `PATCH /tasks` of `listId` and an `order` below the target list's lowest, so it shows at the bottom. Dropping on Today sets `addedToToday`.
