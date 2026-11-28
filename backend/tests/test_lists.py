@@ -4,6 +4,7 @@ import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
 from schema import LIST_NAME_MAX, MAX_BATCH, USER_LIMITS
+from tests.helpers import meta_version
 
 
 def test_create_and_get(call: Callable, mock_table: Table) -> None:
@@ -60,9 +61,9 @@ def test_delete_with_step_added_after_read_removes_step(call: Callable, mock_tab
 
 def test_update_does_not_bump_meta(call: Callable, mock_table: Table) -> None:
     lst = call("POST /lists", {"name": "A", "order": 0})[1]
-    version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
+    version = meta_version(mock_table)
     assert call("PATCH /lists", [{"id": lst["id"], "name": "B"}])[0] == 200
-    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == version
+    assert meta_version(mock_table) == version
 
 
 def test_update(call: Callable) -> None:

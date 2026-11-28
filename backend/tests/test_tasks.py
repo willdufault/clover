@@ -4,6 +4,7 @@ import pytest
 from mypy_boto3_dynamodb.service_resource import Table
 
 from schema import MAX_BATCH, TASKS_PER_LIST, TITLE_MAX, USER_LIMITS
+from tests.helpers import fill, meta_version
 
 
 def test_create_defaults(call: Callable) -> None:
@@ -84,8 +85,7 @@ def test_update(call: Callable) -> None:
 
 def test_update_move_checks_list(call: Callable) -> None:
     full = call("POST /lists", {"name": "Full", "order": 0})[1]
-    for i in range(TASKS_PER_LIST):
-        call("POST /tasks", {"title": f"T{i}", "listId": full["id"], "order": 0})
+    fill(call, full["id"], TASKS_PER_LIST)
     task = call("POST /tasks", {"title": "T", "order": 0})[1]
     assert call("PATCH /tasks", [{"id": task["id"], "listId": "missing"}]) == (
         404,
@@ -104,8 +104,7 @@ def test_update_move_checks_list(call: Callable) -> None:
 
 def test_update_batch_move_overflow(call: Callable) -> None:
     target = call("POST /lists", {"name": "Target", "order": 0})[1]
-    for i in range(TASKS_PER_LIST - 1):
-        call("POST /tasks", {"title": f"T{i}", "listId": target["id"], "order": 0})
+    fill(call, target["id"], TASKS_PER_LIST - 1)
     a = call("POST /tasks", {"title": "A", "order": 0})[1]
     b = call("POST /tasks", {"title": "B", "order": 0})[1]
     body = [{"id": a["id"], "listId": target["id"]}, {"id": b["id"], "listId": target["id"]}]
@@ -123,10 +122,10 @@ def test_update_within_full_list_is_allowed(call: Callable, mock_table: Table) -
     tasks = [
         call("POST /tasks", {"title": f"T{i}", "listId": full["id"], "order": 0})[1] for i in range(TASKS_PER_LIST)
     ]
-    version = mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
+    version = meta_version(mock_table)
     body = [{"id": tasks[0]["id"], "listId": full["id"], "stage": "done"}]
     assert call("PATCH /tasks", body)[0] == 200
-    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == version
+    assert meta_version(mock_table) == version
 
 
 def test_delete_cascades(call: Callable) -> None:
@@ -209,8 +208,7 @@ def test_move_to_list_deleted_after_read_is_404(call: Callable, race: Callable) 
 
 def test_move_into_list_filled_after_read_is_409(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L", "order": 0})[1]
-    for i in range(TASKS_PER_LIST - 1):
-        call("POST /tasks", {"title": f"T{i}", "listId": lst["id"], "order": 0})
+    fill(call, lst["id"], TASKS_PER_LIST - 1)
     task = call("POST /tasks", {"title": "T", "order": 0})[1]
     race(lambda: call("POST /tasks", {"title": "concurrent", "listId": lst["id"], "order": 0}))
     assert call("PATCH /tasks", [{"id": task["id"], "listId": lst["id"]}]) == (409, {"error": "List is full"})
@@ -221,8 +219,7 @@ def test_move_into_list_filled_after_read_is_409(call: Callable, race: Callable)
 
 def test_create_over_list_limit_after_stale_read_is_409(call: Callable, race: Callable) -> None:
     lst = call("POST /lists", {"name": "L", "order": 0})[1]
-    for i in range(TASKS_PER_LIST - 1):
-        call("POST /tasks", {"title": f"T{i}", "listId": lst["id"], "order": 0})
+    fill(call, lst["id"], TASKS_PER_LIST - 1)
     race(lambda: call("POST /tasks", {"title": "concurrent", "listId": lst["id"], "order": 0}))
     assert call("POST /tasks", {"title": "too many", "listId": lst["id"], "order": 0})[0] == 409
     tasks = call("GET /data")[1]["tasks"]

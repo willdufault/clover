@@ -5,6 +5,7 @@ from mypy_boto3_dynamodb.service_resource import Table
 
 import db
 import index
+from tests.helpers import meta_version
 
 
 def test_unknown_route(call: Callable) -> None:
@@ -54,7 +55,7 @@ def test_first_write_after_stale_read_retries(
     monkeypatch.setattr(mock_table.meta.client, "transact_write_items", counted)
     assert call("POST /lists", {"name": "B", "order": 0})[0] == 201
     assert len(call("GET /data")[1]["lists"]) == 2
-    assert mock_table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"] == 2
+    assert meta_version(mock_table) == 2
     assert len(attempts) == 2
 
 

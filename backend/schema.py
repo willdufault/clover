@@ -57,7 +57,7 @@ def text(max_len: int) -> Callable:
 
 
 def one_of(*options: str) -> Callable:
-    return lambda v: isinstance(v, str) and v in options
+    return lambda v: v in options
 
 
 def is_bool(v: object) -> bool:

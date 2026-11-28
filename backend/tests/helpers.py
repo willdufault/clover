@@ -1,6 +1,8 @@
 from collections.abc import Callable
+from decimal import Decimal
 
 from hypothesis import strategies as st
+from mypy_boto3_dynamodb.service_resource import Table
 
 from api import ApiError
 
@@ -18,3 +20,14 @@ def outcome(fn: Callable, *args: object, **kwargs: object) -> tuple:
         if e.status != 400:
             raise
         return False, None
+
+
+def meta_version(table: Table) -> int:
+    version = table.get_item(Key={"PK": "user-1", "SK": "META"})["Item"]["version"]
+    assert isinstance(version, Decimal)
+    return int(version)
+
+
+def fill(call: Callable, list_id: str, n: int) -> None:
+    for i in range(n):
+        call("POST /tasks", {"title": f"T{i}", "listId": list_id, "order": 0})
