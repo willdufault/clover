@@ -28,7 +28,6 @@ locals {
   function_name  = "clover-api"
   app_urls       = formatlist("%s/clover/", var.app_origins)
   cognito_issuer = "https://${aws_cognito_user_pool.users.endpoint}"
-  routes         = toset(keys(jsondecode(file("${path.module}/../backend/routes.json"))))
 }
 
 resource "aws_dynamodb_table" "tasks" {
@@ -80,12 +79,6 @@ resource "aws_cognito_user_pool_client" "web" {
   callback_urls                        = local.app_urls
   logout_urls                          = local.app_urls
   id_token_validity                    = 12
-  access_token_validity                = 1
-
-  token_validity_units {
-    id_token     = "hours"
-    access_token = "hours"
-  }
 }
 
 data "archive_file" "api" {
@@ -195,9 +188,9 @@ resource "aws_apigatewayv2_integration" "api" {
 }
 
 resource "aws_apigatewayv2_route" "api" {
-  for_each             = local.routes
+  for_each             = jsondecode(file("${path.module}/../backend/routes.json"))
   api_id               = aws_apigatewayv2_api.api.id
-  route_key            = each.value
+  route_key            = each.key
   target               = "integrations/${aws_apigatewayv2_integration.api.id}"
   authorization_type   = "JWT"
   authorizer_id        = aws_apigatewayv2_authorizer.cognito.id
