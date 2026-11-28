@@ -172,12 +172,7 @@ export default function TaskDetailPane({
         {...ignoreRowEvents}
         onClick={() => onDeleteStep(step.id)}
         aria-label={`Delete step: ${step.title}`}
-        className={
-          ICON_BUTTON_CLASS +
-          ' ' +
-          TRAILING_ICON_CLASS +
-          ' hover:text-rosehip! pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100'
-        }
+        className={`${ICON_BUTTON_CLASS} ${TRAILING_ICON_CLASS} hover:text-rosehip! pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100`}
       >
         <FontAwesomeIcon icon={faTrashCan} />
       </button>

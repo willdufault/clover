@@ -33,7 +33,7 @@ export function EditableText({
     if (editing) inputRef.current?.focus()
   }, [editing])
 
-  if (draft !== null) {
+  if (editing) {
     const cancel = () => setDraft(null)
     return (
       <textarea

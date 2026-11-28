@@ -72,8 +72,8 @@ export function SortableRow({
   kind: RowKind
   tag: 'li' | 'div'
   className: string
-  onClick?: (event: React.MouseEvent) => void
-  onContextMenu?: (event: MenuAnchor) => void
+  onClick: (event: React.MouseEvent) => void
+  onContextMenu: (event: MenuAnchor) => void
   hidden?: boolean
   selected?: boolean
   children: React.ReactNode
@@ -99,11 +99,7 @@ export function SortableRow({
       ? ''
       : 'relative before:absolute before:inset-x-1 before:h-0.5 before:rounded-full before:bg-clover ' +
         (dropAfter ? 'before:bottom-0 ' : 'before:top-0 ')
-  const {
-    pressing,
-    onTouchStart: onPressStart,
-    ...longPressHandlers
-  } = useLongPress((event) => onContextMenu?.(event), isDragging)
+  const { pressing, onTouchStart: onPressStart, ...longPressHandlers } = useLongPress(onContextMenu, isDragging)
   const hideClass = pressing ? 'invisible ' : 'hidden! '
   return (
     <Tag
@@ -112,7 +108,6 @@ export function SortableRow({
       data-selected={selected}
       onClick={onClick}
       onContextMenu={(event) => {
-        if (!onContextMenu) return
         event.preventDefault()
         if ((event.nativeEvent as PointerEvent).pointerType !== 'touch') onContextMenu(event)
       }}

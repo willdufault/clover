@@ -76,6 +76,9 @@ const DragStack = ({ stacked, children }: { stacked: boolean; children: React.Re
 
 const toggledStage = (stage: string) => (stage === 'done' ? 'open' : 'done')
 
+const mergeById = <T extends { id: string }>(items: T[], updated: (Partial<T> & { id: string })[]) =>
+  items.map((item) => ({ ...item, ...updated.find((other) => other.id === item.id) }))
+
 export default function App() {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -160,22 +163,17 @@ export default function App() {
 
   const patchSteps = async (patches: Partial<Step>[]) => {
     const updated = await api<Step[]>('PATCH', '/steps', patches)
-    setTasks((prev) =>
-      prev.map((task) => ({
-        ...task,
-        steps: byOrder(task.steps.map((step) => updated.find((other) => other.id === step.id) ?? step)),
-      })),
-    )
+    setTasks((prev) => prev.map((task) => ({ ...task, steps: byOrder(mergeById(task.steps, updated)) })))
   }
 
   const patchTasks = async (patches: (TaskPatch & { id: string })[]) => {
     const updated = await api<Omit<Task, 'steps'>[]>('PATCH', '/tasks', patches)
-    setTasks((prev) => byOrder(prev.map((task) => ({ ...task, ...updated.find((other) => other.id === task.id) }))))
+    setTasks((prev) => byOrder(mergeById(prev, updated)))
   }
 
   const patchLists = async (patches: Partial<TaskList>[]) => {
     const updated = await api<TaskList[]>('PATCH', '/lists', patches)
-    setLists((prev) => byOrder(prev.map((list) => updated.find((other) => other.id === list.id) ?? list)))
+    setLists((prev) => byOrder(mergeById(prev, updated)))
   }
 
   const addTask = (title: string) =>

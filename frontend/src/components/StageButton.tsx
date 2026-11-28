@@ -22,14 +22,7 @@ export function StageButton({
         event.stopPropagation()
         onToggle()
       }}
-      className={
-        'touch-hit h-6 cursor-pointer rounded-full transition active:scale-90 ' +
-        ICON_SLOT_CLASS +
-        ' ' +
-        label.color +
-        ' ' +
-        className
-      }
+      className={`touch-hit h-6 cursor-pointer rounded-full transition active:scale-90 ${ICON_SLOT_CLASS} ${label.color} ${className}`}
     >
       <FontAwesomeIcon icon={label.icon} />
     </button>

@@ -15,17 +15,14 @@ export function AddInput({
 }) {
   const [text, setText] = useState('')
 
-  const add = () => {
-    if (!text.trim()) return
-    onAdd(text.trim())
-    setText('')
-  }
-
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        add()
+        const trimmed = text.trim()
+        if (!trimmed) return
+        onAdd(trimmed)
+        setText('')
       }}
       className={
         'flex h-11 items-center gap-icon rounded-lg px-2 text-clover transition focus-within:bg-parchment focus-within:ring-1 focus-within:ring-fieldstone hover:bg-moss/5 pointer-fine:h-10 ' +

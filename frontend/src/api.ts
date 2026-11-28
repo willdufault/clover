@@ -14,8 +14,6 @@ const userManager = new UserManager({
 
 let justSignedIn = false
 
-const login = () => userManager.signinRedirect()
-
 export const logout = async () => {
   await userManager.revokeTokens().catch(() => {})
   await userManager.removeUser()
@@ -48,7 +46,7 @@ export const api = async <T>(method: string, path: string, body?: object): Promi
   })
   if (response.status === 401) {
     if (justSignedIn) throw new Error('Sign-in failed')
-    await login()
+    await userManager.signinRedirect()
     throw new Error('Session expired')
   }
   justSignedIn = false
